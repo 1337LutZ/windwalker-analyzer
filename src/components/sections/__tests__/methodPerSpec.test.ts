@@ -59,15 +59,21 @@ const ENERGY_BAR = 'Energy is read from the classResources snapshot';
 
 describe('the method notes belong to the spec that is being read', () => {
 	/**
-	 * The premise: three notes under both specs, so neither case below is passing on a section that
+	 * The premise: four notes under both specs, so neither case below is passing on a section that
 	 * rendered nothing. The shared one is asserted identical, because it is the control — a fix that
 	 * split the whole section per spec would pass the two cases below and fail this.
+	 *
+	 * **Four and not three since the reference block landed.** The fourth is `ReferenceNote`, and it is
+	 * shared in the same sense the engaged note is: one component, keyed by the registry's spec key,
+	 * saying either what the sweep measured for this spec or that no sweep has covered it yet. It is
+	 * counted here rather than excluded, because a note that silently stopped rendering is exactly the
+	 * failure this count exists to catch.
 	 */
-	it('renders three notes under either spec, one of them shared', () => {
+	it('renders four notes under either spec, one of them shared', () => {
 		const ww = notesOf(render(WINDWALKER, windwalkerPull('strong')));
 		const el = notesOf(render(ELEMENTAL, elementalPull('addsThenBoss')));
-		expect(ww).toHaveLength(3);
-		expect(el).toHaveLength(3);
+		expect(ww).toHaveLength(4);
+		expect(el).toHaveLength(4);
 		expect(el[0]).toBe(ww[0]);
 		expect(el[0]).toContain('measured against engaged time');
 	});

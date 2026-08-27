@@ -38,7 +38,15 @@ builders, a chart skeleton written four times — and several copies carried the
 the comment that justified them, so the reasoning survived in exactly one place and never the copy.
 Two of those copies re-introduced bugs the original's own comment existed to prevent. Before writing a
 second version of anything, look for the first: `src/lib/analysis/`, `src/lib/score/`,
-`src/components/charts/`.
+`src/components/charts/`, `src/components/rotation/`.
+
+The rotation folder is the most recent instance and the clearest one. Three specs answered "how is a
+priority list drawn" three ways — a flowchart filed under the Windwalker, a hand-rolled column of
+bordered cards under the Elemental, and nothing at all under the Protection — so the third spec had
+nothing to reach for and the second had a drawing that could not show a fork. The chart is shared now,
+and the copy convention with it: every rung of every spec reads `rotation.entry.<key>.{name,test,why}`
+with `rotation.gate.<key>` for its chip, and the argument for that choice is in
+`src/lib/view/rotationFlow.ts`.
 
 ## One component per file
 
@@ -478,23 +486,37 @@ copy itself follows — say it once, outside the arms.
      src/lib/i18n/__tests__/conventionsCensus.test.ts. Re-run the block above and paste the whole set
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
-As of the elixir weave section, it prints 1643 leaves, 789 prose, 25,630 words;
-median 27, p75 43, p90 65, p95 78, p99 117, max 204; longest 9% carry 25%; report.json 712 prose leaves,
-1,254 sentences, median 17, 252 past 25 (20.1%), 289 em-dashes in 248 sentences (19.8%);
-60 / 28 / 1 / 2 on the quote lines.
+As of the compare page and the elixir weave, it prints 1724 leaves, 824 prose, 27,336
+words; median 27, p75 45, p90 65, p95 78, p99 110, max 204; longest 9% carry 24%; report.json 747 prose
+leaves, 1,332 sentences, median 17, 282 past 25 (21.2%), 293 em-dashes in 252 sentences (18.9%);
+72 / 30 / 1 / 2 on the quote lines.
 
-One change sits behind this: the compare page, which added a `compare` family to `report.json` and nine
-shell keys to `ui.json`. 55 leaves and 592 words — the largest single addition either file has taken,
-even after the page folded its "Figure by figure" section into the cards above it and gave three keys
-back.
+One block moved these, and it moved four of the lines in a direction none of the previous passes did.
+Making the Windwalker flowchart the repository's one rotation drawing gave the Protection a reference
+section it had never had: seventeen rungs, each with a name, a one-line condition and a paragraph
+behind the box, plus twelve chips, four notes and an economy paragraph. That is where the 71 new leaves
+and the 55 new sentences come from, and it is why the median string is a word longer.
 
-**Both falls are arithmetic on the denominator, not a change of voice, and that is worth saying because
-either one read alone looks like a drift.** The em-dash count did not move at all — it is 288 before and
-after, because the new copy uses none — so its share fell from 20.5% to 20.0% purely on 33 more
-sentences being counted. Sentences past 25 words rose by three while the share fell from 20.5% to 20.2%,
-which is the same denominator doing the same thing. `p75` fell a word for the same reason: a page of
-labels and short refusals sits below the median length, and a `words/string` quartile is a fact about the
-whole file rather than about the strings added to it.
+**The em-dash count did not move at all, and that is the interesting row.** It is 292 either side,
+across 55 more sentences, so the share carrying one fell from 20.5% to 19.6% — the new copy was written
+without reaching for the mark, and the ceiling of two per sentence is the reason. The straight
+apostrophe line is the other visible move, 62 to 72: the Paladin's own buttons are Avenger's Shield and
+Light's Hammer, and the ten new strings that name them follow `priority.rule.*`, which already spells
+both with the straight mark.
+
+The same pass renamed the Elemental's `rotation.rule.*` onto `rotation.entry.*` without touching a
+word of it, so the migration itself is worth nothing on any line here.
+
+Two further blocks landed alongside that one and are counted here for the first time. The **compare
+page** added a `compare` family to `report.json` and nine shell keys to `ui.json` — 55 leaves and 592
+words, the largest single addition either file had taken. The **elixir weave** added a section of its
+own: a heading, an intent paragraph, three tile labels, four chart keys, the two-branch findings and a
+HOW TO card for the monk who has never done it.
+
+**Neither moved the em-dash share in the direction a reader would guess, and for the reason the
+paragraph above gives.** Both were written under the ceiling of two per sentence, so the count barely
+moves while the sentence total climbs, and the share falls out of the denominator rather than out of
+any decision about voice.
 
 <!-- /census:figures -->
 

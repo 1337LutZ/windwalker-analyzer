@@ -21,6 +21,25 @@ describe('bandGap', () => {
 		expect(bandGap(metric({ key: 'k', value: 90 }), metric({ key: 'k', value: 80 }))).toBeCloseTo(0.5);
 	});
 
+	/**
+	 * Two pulls graded on different scales, which stopped being hypothetical when `gcdUtilisation` was
+	 * anchored per encounter.
+	 *
+	 * Before that a spec's thresholds were fixed across the tier, so both sides always carried the same
+	 * band width and dividing by either gave the same answer. A Garrosh pull against a Malkorok one no
+	 * longer does, and dividing by whichever happened to be on the left made `compare(x, y)` disagree
+	 * with `compare(y, x)` by more than a sign.
+	 */
+	it('gives the same magnitude whichever pull is put first', () => {
+		const wide = metric({ key: 'k', value: 80, good: 90, ok: 70 });
+		const narrow = metric({ key: 'k', value: 70, good: 74, ok: 66 });
+		const forward = bandGap(wide, narrow);
+		const back = bandGap(narrow, wide);
+		expect(forward).toBeCloseTo(-back);
+		// And the unit is the mean of the two bands — 20 and 8, so 14 — rather than either alone.
+		expect(forward).toBeCloseTo(10 / 14);
+	});
+
 	it('flips the subtraction where a lower number is the better one', () => {
 		const rule = { good: 0, ok: 5, higherIsBetter: false };
 		// A wasted four casts and B wasted one, so B is ahead by three fifths of a band.

@@ -185,11 +185,14 @@ describe('what the fight enforced', () => {
 				else expect(rule.ids?.length, rule.key).toBeGreaterThan(0);
 			}
 		}
-		// Four lockouts, and the count is worth pinning because of how few they are: the sweep that found
-		// them took every aura the player carried over 1.5s more than once — fifty-two of them — and three
-		// passed. Gene Splice is the fourth and was found by another route entirely, which is the whole
-		// reason `player-buff` exists as a source.
-		// **A profile with no rules is a claim too, and eight of the twelve are now one.** "This boss
+		// **Seven lockouts, and the count is still the point.** The first sweep took every aura the player
+		// carried over 1.5s more than once — fifty-two of them, from two reports — and three passed; Gene
+		// Splice is the fourth and was found by another route, which is the whole reason `player-buff`
+		// exists as a source. The re-sweep at n=152 scored 1 471 aura-by-encounter pairs and added three
+		// more, **all of them on encounters that already had one**. Eleven of the fourteen Siege bosses
+		// enforce nothing a tank's own log can see, and the credit's median stays 0.00% with the new rules
+		// in — which is a finding about the raid rather than about the sample size.
+		// **A profile with no rules is a claim too, and eleven of the fifteen are now one.** "This boss
 		// enforces nothing" and "nobody has looked at this boss" are different sentences, and the table can
 		// only make the first if a rejected candidate is written down beside a kept one. Every empty
 		// profile carries a note saying what was measured and refused.
@@ -211,11 +214,17 @@ describe('what the fight enforced', () => {
 		expect(ENFORCED_PROFILES.flatMap((p) => p.rules).every((r) => r.basis === 'lockout')).toBe(true);
 
 		const lockouts = ENFORCED_PROFILES.flatMap((p) => p.rules).filter((r) => r.basis === 'lockout');
+		// Two `gouge` rules, on two different encounters and two different spell ids — 143301 on Fallen
+		// Protectors and 143939 on Paragons. Sorted keys therefore repeat, and that is correct rather than
+		// a duplicate: a rule's key is unique within its profile, never across the table.
 		expect(lockouts.map((r) => r.key).sort()).toEqual([
 			'gene-splice',
+			'gouge',
+			'gouge',
 			'shield-bash',
 			'vengeful-strikes',
 			'weak-minded',
+			'whirling',
 		]);
 	});
 });

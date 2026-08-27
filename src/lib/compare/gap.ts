@@ -37,7 +37,17 @@ export const TIE_BANDS = 0.25;
  * the same fallback for the same reason.
  */
 export function bandGap(a: Metric, b: Metric): number {
-	const band = Math.abs(a.good - a.ok);
+	// The mean of the two, and it has to be a function of both or the answer depends on which pull the
+	// reader put first. This divided by `a`'s band alone, which was the same number as `b`'s for as long
+	// as a spec's thresholds were fixed across the tier. `gcdUtilisation` is anchored per encounter now,
+	// so a Garrosh pull and a Malkorok pull carry different band widths, and the old divisor made
+	// `compare(x, y)` and `compare(y, x)` disagree by more than a sign — 1.91 against 2.34 on the two
+	// committed captures. `direction.test` asserts the mirror and is what caught it.
+	//
+	// A mean rather than the wider or the narrower of the two because it is the only choice that treats
+	// the two pulls alike; none of the three is "the" true unit when the two sides were graded on
+	// different scales, and this figure is a sort key and a leader test rather than something printed.
+	const band = (Math.abs(a.good - a.ok) + Math.abs(b.good - b.ok)) / 2;
 	if (band === 0) {
 		if (a.grade === b.grade) return 0;
 		// Ranked against the grade order rather than the raw values, which a zero-width rule cannot

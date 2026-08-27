@@ -172,41 +172,60 @@ describe('the headline says how much of the pull it judged', () => {
  *   3. The mean is taken over the weight that survived, which `MIN_JUDGED_WEIGHT_SHARE` only requires
  *      to be half — so the sentence can be a claim about copy from sections it never read.
  *
- * `strong` is the proof and it is committed: `good` over **15 of 17** points, with `brew` lettering
- * `bad` and two metrics scoring zero. A reader of that pull was told the red section below was not a
- * real mistake.
+ * `cleave` is the proof and it is committed: `good` over **14 of 16** points, with `casts` and `debuff`
+ * both lettering `bad`. A reader of that pull was told the two red sections below were not real
+ * mistakes.
  *
  * The two unread points are `weaveRate`, which every committed capture predates, and (3) is still not
- * what carries the argument: 15 of 17 is 88% of the offered weight, comfortably past
- * `MIN_JUDGED_WEIGHT_SHARE`, so the `bad` section under the `good` letter is (1) and (2) alone.
+ * what carries the argument: 14 of 16 is 87.5% of the offered weight, comfortably past
+ * `MIN_JUDGED_WEIGHT_SHARE`, so the red sections under the `good` letter are (1) and (2) alone.
  *
- * It used to be two sections and three zeroes, and the third zero going is a fix rather than a drift:
- * `karma` lettered `bad` because `karmaEmpty` was a share with no sample floor, and `strong` took two
- * Touch of Karma presses and left one of them on a quiet stretch — a `bad` off a denominator of two.
- * The metric goes through `shareOf` now and is refused on that pull, which leaves `karma` at `ok`. The
- * headline itself does not move: that metric carries weight nought, so it was never in the mean, and
- * the 15 measured below is the same 15 it always was. One red section under a `good` headline is all
- * this argument ever needed.
+ * ---
+ *
+ * **`strong` stood here until `gcdUtilisation` was anchored per encounter, and it can no longer answer
+ * — the witness moved because a letter moved, not because a number was inconvenient.** That pull fills
+ * 82.83% of its globals on Garrosh. Against the old fixed pair, `good 85 / ok 75` on every fight in the
+ * tier, that was `ok`; against Garrosh's own reference row — p90 86.01, p50 83.82, over the nine kills
+ * the table holds for that fight — it is `bad`, because 82.83 sits a point *below* the median Garrosh
+ * pull. The `casts` section goes red with it, the weighted mean falls from 76.7% to 73.33%, and the
+ * headline follows: `strong` letters `ok` now. That is the intended reading rather than a regression —
+ * "strong everywhere" was the old claim about this fixture and "slightly below a typical Garrosh pull"
+ * is the measured one — but it does mean the pull can no longer carry a test about what a `good`
+ * headline permits.
+ *
+ * `cleave` is the better witness for it in any case: it letters `good` at **exactly the 75.00% floor**
+ * of the weight it could read, with *two* of seven sections red rather than one. Its own
+ * `casts` moved the same way — 77.75% against Dark Shaman's p90/p50 of 85.78/80.64 — which is what put
+ * the second red section under the headline.
+ *
+ * The retired witness's own history is kept, because it is the same argument made once already:
+ * `strong` used to show two red sections and three zeroes, and the third zero going was a fix rather
+ * than a drift. `karma` lettered `bad` because `karmaEmpty` was a share with no sample floor, and
+ * `strong` took two Touch of Karma presses and left one of them on a quiet stretch — a `bad` off a
+ * denominator of two. The metric goes through `shareOf` now and is refused on that pull, which left
+ * `karma` at `ok` and the headline where it stood, because that metric carries weight nought and was
+ * never in the mean. One red section under a `good` headline is all this argument ever needed, and
+ * `cleave` brings two.
  */
 describe('the good headline does not deny the faults under it', () => {
 	it('is printed over a pull one of whose sections it grades bad', () => {
-		const strong = fx('strong');
-		const card = scoreAnalysis(strong, resolveBands(strong.targets, 'auto'));
+		const cleave = fx('cleave');
+		const card = scoreAnalysis(cleave, resolveBands(cleave.targets, 'auto'));
 		expect(card.overall).toBe('good');
-		// Nothing here is excused by a thin denominator: 15 of 17 is 88% of the weight the spec offered,
+		// Nothing here is excused by a thin denominator: 14 of 16 is 87.5% of the weight the spec offered,
 		// and the two it could not read are the weave rule this capture predates. It is not the *worst*
 		// case, which is measured in the block at the foot of this file.
-		expect(card.judged).toEqual({ measured: 15, total: 17, unmeasurable: false });
+		expect(card.judged).toEqual({ measured: 14, total: 16, unmeasurable: false });
 		const bad = Object.entries(card.sections)
 			.filter(([, score]) => !score.unmeasurable && score.grade === 'bad')
 			.map(([key]) => key)
 			.sort();
-		expect(bad).toEqual(['brew']);
+		expect(bad).toEqual(['casts', 'debuff']);
 
 		// Any apostrophe in the sentence comes back HTML-escaped out of `renderToStaticMarkup`, which is
 		// why the two assertions above this block could compare the raw string and this one cannot. The
 		// escape is a no-op on today's wording and is kept so a rewrite that reintroduces one still passes.
-		const html = render(strong);
+		const html = render(cleave);
 		expect(html).toContain(t('overall.good').replaceAll("'", '&#x27;'));
 		expect(html).not.toContain(t('overall.ok'));
 	});
@@ -275,8 +294,10 @@ describe('the good headline does not deny the faults under it', () => {
  * What a `good` letter actually permits, taken off the engine rather than off a fixture.
  *
  * The block above proves the shape on one committed pull. This one establishes the bound, because the
- * sentence has to be true at the bound and `strong` is not it: `strong` letters `good` at 76.7% of its
- * points with two sections red, and the arithmetic allows worse on all three axes at once.
+ * sentence has to be true at the bound and `cleave` is not it: `cleave` letters `good` at 75.00% of its
+ * points with two sections red and nothing unread, and the arithmetic allows worse on the other two
+ * axes at the same time. (`strong` stood in that sentence at 76.7% until the globals lines were
+ * anchored per encounter; it letters `ok` at 73.33% now — see the block above.)
  *
  * Measured on the Windwalker's own weights — `snapshotRate` 4, `tigerPalmWaste` 3, `gcdUtilisation`,
  * `rskUptime` and `weaveRate` 2, four more at 1, and `snapshotDepth`, the two Karma metrics and the two

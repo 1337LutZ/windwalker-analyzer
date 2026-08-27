@@ -192,6 +192,13 @@ describe('what the committed pulls can say about rule 5', () => {
 	 *
 	 * The metric itself is `good` and the section is `good` in all nine cells at both weights, which is the
 	 * other half of what makes the table above the *whole* difference.
+	 *
+	 * **The percentages in that table have since moved, and what it measures has not.** When
+	 * `gcdUtilisation` stopped grading against one fixed pair per spec and started resolving against each
+	 * encounter's own p90/p50, `phased` went from `ok` to `good` on that metric and its `auto` mean rose
+	 * from 75.00% to 76.32% over the same fourteen points. The table is kept as the measurement it was —
+	 * what *this rule* cost, on the tree it was priced on — and the letters a reader gets today are the
+	 * nine pinned in the assertion below.
 	 */
 	it('what the weight costs the three committed cards, at every reading', () => {
 		const cards = FIXTURES.flatMap((name) => {
@@ -216,9 +223,19 @@ describe('what the committed pulls can say about rule 5', () => {
 		// rule: `phased` fills 94.44% of its globals and `cleave` 89.18%, which the old 80/65 pair called
 		// `good` on both. The three `multi` readings are unmoved: the metric is inside their six, but those
 		// cards are already `unmeasurable` under the judged-weight floor and the letter cannot move.
+		//
+		// **Two more moved when those 95/90 lines became each encounter's own p90/p50, and again none of
+		// them under this rule.** `phased` is Iron Juggernaut, whose Elemental reference row is p90 94.16 /
+		// p50 91.08 over four kills; 94.44% clears the p90, so `gcdUtilisation` grades `good` where the flat
+		// 95 had it half a point short, and `phased/auto` and `phased/single` letter `good` with it. The
+		// other seven cells are unchanged — `unbroken` is the same fight at 92.87% and still `ok` between the
+		// two lines, `cleave` is Blackfuse at 89.18% against p90 95.01 / p50 92.32 and still `bad`, and the
+		// three `multi` cards stay refusals under the judged-weight floor whatever the metric says. The
+		// weight this test is about is `fireElementalHasteUptime`, and it is worth exactly what it was: the
+		// nine denominators below are the same nine.
 		expect(cards).toEqual([
-			'phased/auto ok 19/24',
-			'phased/single ok 19/24',
+			'phased/auto good 19/24',
+			'phased/single good 19/24',
 			'phased/multi ok 11/24',
 			'unbroken/auto ok 19/24',
 			'unbroken/single ok 19/24',

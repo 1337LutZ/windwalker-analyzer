@@ -221,9 +221,17 @@ describe('a good totem section that clipped a totem', () => {
 		);
 		// Two whole-pull letters moved with `gcdUtilisation`'s lines going to 95/90 — `cleave` to `bad` off
 		// 89.18% and `phased` to `ok` off 94.44%. Neither totem letter moved, which is what this test asks.
+		//
+		// **`phased` moved a second time, to `good`, when those lines stopped being one pair per spec.**
+		// `gcdUtilisation` resolves against the encounter's own p90 and p50 now, and Iron Juggernaut's
+		// Elemental row is p90 94.16 / p50 91.08 over four kills — so the same 94.44% that missed a flat 95
+		// by half a point clears its own fight's best pulls. `addsThenBoss` is the other pull the change
+		// reaches and its letter stands: Galakras is suppressed, so that metric is withheld rather than
+		// graded, and the `bad` below is earned by the sections it was always earned by. Every totem letter
+		// here is where it was, which is again all this test asks.
 		expect(letters).toEqual({
 			cleave: ['good', 'bad'],
-			phased: ['ok', 'ok'],
+			phased: ['ok', 'good'],
 			unbroken: ['bad', 'ok'],
 			// The one pull that never lays a totem, and the only letter here this file did not pin itself.
 			// It used to read `ok` with `unmeasurable` set — both metrics declined, so the section had no

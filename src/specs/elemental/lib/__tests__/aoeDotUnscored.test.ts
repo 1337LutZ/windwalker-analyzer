@@ -350,11 +350,18 @@ describe('the card, and the pair that has to move together', () => {
 		// reason `judged` exists at all: a verdict has to say how much of the card it is a verdict on.
 		for (const name of FIXTURES) {
 			const scored = scoreAnalysis(fx(name));
-			// Nineteen on the three pulls whose Ascendance presses could be judged, fifteen on
+			// Nineteen on the three pulls whose Ascendance presses could be judged, thirteen on
 			// `addsThenBoss`, whose opener came back `nothing-to-hit` and whose later presses had no
 			// two-piece to pair with — it pays the four new rules' offered weight and collects none of it.
+			//
+			// **Fifteen until `gcdUtilisation` was anchored per encounter, and thirteen since.** That pull is
+			// Galakras, one of the three Siege fights `lib/reference/specProfile.ts` suppresses this metric on
+			// — tower duty takes the player out of contact by design, median contact share 82.7% against 94%
+			// or better on the other eleven — so the figure prints without a letter and its two points leave
+			// the denominator. The other three keep nineteen. Nothing in this file's own subject moved: the
+			// dot rules are as unasked, and as asked, as they were.
 			expect(scored.judged, name).toEqual({
-				measured: name === 'addsThenBoss' ? 15 : 19,
+				measured: name === 'addsThenBoss' ? 13 : 19,
 				total: 24,
 				unmeasurable: false,
 			});
@@ -362,12 +369,13 @@ describe('the card, and the pair that has to move together', () => {
 		// The overalls beside it, so a change that moved a grade without moving the denominator cannot pass
 		// here either. Two of the four are the multi-target pulls this file is about.
 		expect(Object.fromEntries(FIXTURES.map((name) => [name, scoreAnalysis(fx(name)).overall]))).toEqual({
-			// The four moved once, under `gcdUtilisation`'s 95/90 lines, and not under anything this file
-			// changes: the pulls fill 83.38%, 89.18%, 94.44% and 92.87% of their globals, which the old
-			// 80/65 pair called `good` on all four.
+			// The four moved once under `gcdUtilisation`'s 95/90 lines, and again when those lines became each
+			// encounter's own p90/p50 — never under anything this file changes. The pulls fill 83.38%, 89.18%,
+			// 94.44% and 92.87% of their globals: `phased` is `good` now because Iron Juggernaut's own p90 is
+			// 94.16 over four kills and it cleared it, where no fixture could ever clear a flat 95.
 			addsThenBoss: 'bad',
 			cleave: 'bad',
-			phased: 'ok',
+			phased: 'good',
 			unbroken: 'ok',
 		});
 	});

@@ -344,14 +344,31 @@ describe('the committed pulls', () => {
 	 * all. What moved is this call's unbanded baseline. Kept bare because the claim being guarded is
 	 * about the metric and not about the ladder; `windwalker/__fixtures__/bands.test.ts` is where the
 	 * reader's reading is pinned.
+	 *
+	 * **Two of the six moved again, and the mover is `gcdUtilisation` rather than anything in this file.**
+	 * That metric no longer grades against a fixed `good 85 / ok 75` on every fight in the tier; it
+	 * resolves against the encounter's own p90 and p50, read off `src/generated/reference.json`. It carries
+	 * weight 2, and on both of these pulls it goes `ok` → `bad`, which takes a full point off a mean drawn
+	 * over fifteen:
+	 *
+	 *   - `strong` is Garrosh, whose row is p90 86.01 / p50 83.82 over nine kills. 82.83% is a point below
+	 *     the median Garrosh pull, so 12.0 of 15 becomes 11.0 — 73.33%, just under the 75% a `good` needs.
+	 *   - `cleave` is Kor'kron Dark Shaman, p90 85.78 / p50 80.64 over ten kills. 77.75% is under both, so
+	 *     11.5 of 15 becomes 10.5 — 70.00%.
+	 *
+	 * `waves` is the third pull the change touches and its letter does not move: it is Galakras, one of the
+	 * three suppressed encounters, so its 75.18% prints without a letter and the metric's two points leave
+	 * the denominator entirely — 9.5 of 13 rather than 10.5 of 15, `ok` either way. The guard's own claim is
+	 * untouched again: `brewShortUses` still re-letters nobody, and the baseline it is written against has
+	 * moved under it a second time.
 	 */
 	it('moves no overall verdict', () => {
 		// no-change guard
 		expect(cases.map(([name, analysis]) => [name, scoreAnalysis(analysis).overall])).toEqual([
-			['strong', 'good'],
+			['strong', 'ok'],
 			['mixed', 'ok'],
 			['poor', 'bad'],
-			['cleave', 'good'],
+			['cleave', 'ok'],
 			['weave', 'good'],
 			['waves', 'ok'],
 		]);

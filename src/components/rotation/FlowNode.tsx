@@ -1,13 +1,13 @@
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { FlowEntry } from '~/specs/windwalker/lib/view/rotationFlow';
+import type { FlowEntry } from '~/lib/view/rotationFlow';
 
 import { Pill, SpellIcon } from '~/components/primitives';
 
 /**
  * One rung of the priority list, drawn as the decision it is: a question, a **yes** edge, the button
- * that answer presses, and the two paragraphs behind it.
+ * that answer presses, and the paragraph behind it.
  *
  * ## Why a decision and an action rather than one box
  *
@@ -24,9 +24,9 @@ import { Pill, SpellIcon } from '~/components/primitives';
  * ## The node is a label; the prose is a disclosure
  *
  * This is the design problem of drawing this list, and it is a content problem rather than a drawing
- * one. Every rung carries a short `test` and a longer `why`; the Tigereye Brew explanations still run
- * several hundred characters. Nothing that holds that much text is a node — it is a card, and a column
- * of cards is what this section used to be.
+ * one. A Windwalker rung carries a short `test` and a longer `why`; the Tigereye Brew explanations
+ * still run several hundred characters. Nothing that holds that much text is a node — it is a card,
+ * and a column of cards is what both of the sections this replaced used to be.
  *
  * So the decision box holds a one-line `test` naming the condition, and the `why` moves into a panel
  * the action box discloses.
@@ -42,6 +42,17 @@ import { Pill, SpellIcon } from '~/components/primitives';
  * The short `test` is separate from `why` rather than a truncation of the explanation: clipping a
  * sentence at sixty characters produces "energy will not cap during the channel, you are not inside an
  * Ener…", which is a lie by omission on the one rung that has three conditions.
+ *
+ * ## `details`, and the rung that has nothing to disclose
+ *
+ * A spec whose copy is a one-line rule per rung and no paragraph behind it passes `details={false}`,
+ * and then the name is a label rather than a button. That is not a lesser rung, it is the same
+ * argument read the other way: the disclosure exists because the prose is too long to be a node, so a
+ * rung whose whole rule already fits in the node has nothing to put behind a press. Offering the
+ * button anyway would open a panel repeating the box beside it, which teaches a reader that the
+ * affordance is not worth using — and the copy this chart most needs them to open is the Windwalker's.
+ * The decision is per chart rather than per rung, because a chart where some boxes are pressable and
+ * others are not is a chart a reader has to probe.
  *
  * ## What a screen reader gets
  *
@@ -59,6 +70,7 @@ export default function FlowNode({
 	onToggle,
 	horizontal,
 	showGate,
+	details,
 }: {
 	entry: FlowEntry;
 	heading: 'h4' | 'h5';
@@ -71,11 +83,14 @@ export default function FlowNode({
 	 */
 	horizontal: boolean;
 	/**
-	 * False when `FlowChart` has already drawn this rung's gate across the line above it, which is
-	 * what it does for the four target-count crossovers. Two chips saying `3+ targets` on one rung is
-	 * one chip too many, and the one on the line is the one that means something in a chart.
+	 * False when `FlowChart` has already drawn a band across the line above this rung, which is what it
+	 * does for the Windwalker's four target-count crossovers and for the Elemental's stage headings.
+	 * Two chips saying `3+ targets` on one rung is one chip too many, and the one on the line is the one
+	 * that means something in a chart.
 	 */
 	showGate: boolean;
+	/** Whether this spec's copy carries a `rotation.entry.<key>.why` for the box to disclose. */
+	details: boolean;
 }) {
 	const { t } = useTranslation('report');
 	const Heading = heading;
@@ -106,6 +121,29 @@ export default function FlowNode({
 		</div>
 	);
 
+	/**
+	 * The ability's name and its chip, which are the same words whether or not there is a panel behind
+	 * them.
+	 *
+	 * Written once and placed twice, because the two placements differ only in what wraps them: a
+	 * `<button>` where the rung has prose to disclose, a plain `span` where it has not. Duplicating the
+	 * stack instead is how the chip stops being drawn on one of the two paths.
+	 */
+	const label = (
+		<span className="flex min-w-0 flex-1 flex-col gap-1">
+			<span className="font-mono text-base font-semibold text-ink">{t(`rotation.entry.${entry.key}.name`)}</span>
+			{/* A chip naming what this rung needs before it is asked at all — a talent row, whether the Rune
+			    is equipped, which half of a split rung this is. The bands the whole chart is cut by are drawn
+			    across the line instead, by `FlowChart`, because there they are a boundary rather than a label
+			    on a box. */}
+			{entry.gated && showGate ? (
+				<span className="-mb-1.5">
+					<Pill>{t(`rotation.gate.${entry.key}`)}</Pill>
+				</span>
+			) : null}
+		</span>
+	);
+
 	return (
 		<div className="flex flex-col">
 			<div className={`flex flex-col items-stretch ${horizontal ? 'lg:flex-row lg:items-stretch lg:gap-1' : ''}`}>
@@ -114,8 +152,9 @@ export default function FlowNode({
 				    whatever the button did not want. With the question on `flex-1` against a fixed `w-72`
 				    button, a 1040px article gave the question about 710px and the button 288 — two and a half
 				    to one, with the widest box being the one that is only a label and the narrowest the one
-				    the reader is meant to press. The `test` strings are capped at 64 characters, so half a row
-				    is already more than any of them needs. */}
+				    the reader is meant to press. The Windwalker's `test` strings are capped at 64 characters, so
+				    half a row is already more than any of them needs; the Elemental's two longest run to 156 and
+				    230, and they wrap, which is the case the whole flex layout above is arranged to survive. */}
 				<div
 					className={`flex min-w-0 flex-1 items-start gap-2.5 rounded-sm border border-line bg-bg px-3 py-2.5 ${horizontal ? 'lg:basis-0 lg:items-center' : ''}`}
 				>
@@ -159,70 +198,64 @@ export default function FlowNode({
 						//
 						// The vertical padding is on the button rather than here, so the button is as tall as the
 						// frame it fills. With `py` on the frame the press target would have been the 24px the
-						// text needs rather than the 44 the box already reserves.
-						className={`flex items-center gap-2.5 rounded-sm border px-3 transition-colors ${
+						// text needs rather than the 44 the box already reserves. A chart with no panels behind
+						// its boxes has no press target to reserve for, so it takes the padding here instead.
+						className={`flex items-center gap-2.5 rounded-sm border px-3 transition-colors ${details ? '' : 'py-2.5'} ${
 							open ? 'border-kick bg-raised' : 'border-line bg-surface hover:border-muted hover:bg-raised'
 						}`}
 					>
 						<SpellIcon id={entry.id} size="sm" />
-						<button
-							type="button"
-							id={buttonId}
-							aria-expanded={open}
-							aria-controls={panelId}
-							onClick={onToggle}
-							// `flex-wrap` so the **details** affordance drops below the name rather than widening the box
-							// past its column. The name stack's floor is its widest gate chip — "Rune of Re-Origination
-							// equipped" — and with the affordance beside it that floor was 3px more than the `1fr` rung
-							// track has at 320px, which made the whole section scroll sideways. Wrapping changes nothing at
-							// any width where the two already fit on one line.
-							className="flex min-h-11 min-w-0 flex-1 flex-wrap items-center gap-2.5 py-2.5 text-left"
-						>
-							<span className="flex min-w-0 flex-1 flex-col gap-1">
-								<span className="font-mono text-base font-semibold text-ink">
-									{t(`rotation.entry.${entry.key}.name`)}
-								</span>
-								{/* A gate naming something other than the target count — whether the Rune is equipped,
-								    which half of a split rung this is. The target-count gates on rungs that own a whole
-								    row are drawn across the line instead, by `FlowChart`, because there they are a
-								    boundary in the chart rather than a label on a box. */}
-								{entry.gated && showGate ? (
-									<span className="-mb-1.5">
-										<Pill>{t(`rotation.gate.${entry.key}`)}</Pill>
+						{details ? (
+							<button
+								type="button"
+								id={buttonId}
+								aria-expanded={open}
+								aria-controls={panelId}
+								onClick={onToggle}
+								// `flex-wrap` so the **details** affordance drops below the name rather than widening the box
+								// past its column. The name stack's floor is its widest gate chip — "Rune of Re-Origination
+								// equipped" — and with the affordance beside it that floor was 3px more than the `1fr` rung
+								// track has at 320px, which made the whole section scroll sideways. Wrapping changes nothing at
+								// any width where the two already fit on one line.
+								className="flex min-h-11 min-w-0 flex-1 flex-wrap items-center gap-2.5 py-2.5 text-left"
+							>
+								{label}
+								{/* The affordance, named rather than left as a bare glyph: the one way this chart could be
+								    worse than the list it replaced is a reader not realising the paragraphs are still
+								    here. The word is the same word the panel labels its paragraph with. */}
+								<span className="flex shrink-0 items-center gap-1.5">
+									<span className="font-mono text-sm font-medium tracking-[0.1em] uppercase text-muted">
+										{t('rotation.flow.details')}
 									</span>
-								) : null}
-							</span>
-							{/* The affordance, named rather than left as a bare glyph: the one way this chart could be
-							    worse than the list it replaced is a reader not realising the paragraphs are still
-							    here. The word is the same word the panel labels its second paragraph with. */}
-							<span className="flex shrink-0 items-center gap-1.5">
-								<span className="font-mono text-sm font-medium tracking-[0.1em] uppercase text-muted">
-									{t('rotation.flow.details')}
+									<span
+										aria-hidden="true"
+										className={`h-2 w-2 border-r border-b border-muted transition-transform ${open ? 'rotate-[225deg]' : 'rotate-45'}`}
+									/>
 								</span>
-								<span
-									aria-hidden="true"
-									className={`h-2 w-2 border-r border-b border-muted transition-transform ${open ? 'rotate-[225deg]' : 'rotate-45'}`}
-								/>
-							</span>
-						</button>
+							</button>
+						) : (
+							label
+						)}
 					</span>
 				</Heading>
 			</div>
 
 			{/* `hidden` rather than unmounted, so the panel keeps one identity for `aria-controls` to point
 				    at whether it is showing or not. */}
-			<div id={panelId} hidden={!open} className="mt-2 rounded-sm border border-line bg-bg p-3">
-				<dl className="m-0 flex flex-col gap-2.5">
-					<div className="flex flex-col gap-0.5">
-						<dt className="font-mono text-sm font-medium tracking-[0.1em] uppercase text-muted">
-							{t('rotation.field.why')}
-						</dt>
-						<dd className="m-0 max-w-[70ch] text-base leading-relaxed text-muted">
-							{t(`rotation.entry.${entry.key}.why`)}
-						</dd>
-					</div>
-				</dl>
-			</div>
+			{details ? (
+				<div id={panelId} hidden={!open} className="mt-2 rounded-sm border border-line bg-bg p-3">
+					<dl className="m-0 flex flex-col gap-2.5">
+						<div className="flex flex-col gap-0.5">
+							<dt className="font-mono text-sm font-medium tracking-[0.1em] uppercase text-muted">
+								{t('rotation.field.why')}
+							</dt>
+							<dd className="m-0 max-w-[70ch] text-base leading-relaxed text-muted">
+								{t(`rotation.entry.${entry.key}.why`)}
+							</dd>
+						</div>
+					</dl>
+				</div>
+			) : null}
 		</div>
 	);
 }

@@ -60,3 +60,7 @@ docs/tone-of-voice-migration.md
 # forgotten one used to fail `npm run check` for every other lane and could be swept into a commit
 # by a `git add -A`.
 probe*.config.mjs
+
+# Fetched WarcraftLogs datasets and the per-pull detail behind src/generated/reference.json.
+# The derived table is committed; the hundreds of megabytes it was computed from are not.
+.reference-cache/

@@ -116,7 +116,16 @@ describe('a pull that never laid a totem', () => {
 		expect(card.sections['searingTotem']?.unmeasurable).toBe(false);
 		expect(card.sections['searingTotem']?.grade).toBe('bad');
 		// One more point in the denominator than the refusal collected, and the header says so.
-		expect(card.judged).toEqual({ measured: 15, total: 24, unmeasurable: false });
+		//
+		// **Thirteen and not fifteen, and the two that left are `gcdUtilisation`'s.** This pull is Galakras,
+		// one of the three encounters `lib/reference/specProfile.ts` suppresses that metric on — tower duty
+		// takes the player out of contact by design, median contact share 82.7% against 94% or better on the
+		// other eleven — so the figure prints without a letter and its weight leaves the judged half. That is
+		// the opposite direction from this test's own subject and it is worth keeping the two apart: the
+		// totem rule *gained* its point here by answering a question it used to decline, and the globals rule
+		// lost its two by being refused for a reason the player had no part in. 13 of 24 is still over
+		// `MIN_JUDGED_WEIGHT_SHARE`, so the header still prints a denominator rather than a refusal.
+		expect(card.judged).toEqual({ measured: 13, total: 24, unmeasurable: false });
 	});
 
 	/**

@@ -487,13 +487,35 @@ describe('a Windwalker pull with too few Touch of Karma presses to read a share 
 	 * its own `ok` line of 75: the captures were old enough that the engine's global arithmetic had
 	 * drifted a third of a point under them. Karma's own share moved too — `ok` 0.00 to `bad` 27.25 —
 	 * and changed nothing above it, which is this test's claim stated by a pull rather than by a weight.
+	 *
+	 * ---
+	 *
+	 * **Two entries have moved since, and `gcdUtilisation` moved both — it is still not Karma.** That
+	 * metric no longer grades against a fixed `good 85 / ok 75` on every fight in the tier: it resolves
+	 * against the pull's own encounter row in `src/generated/reference.json`, and three Siege fights are
+	 * suppressed outright because they take the player out of contact by design.
+	 *
+	 *   - `strong` is Garrosh, whose row is p90 86.01 / p50 83.82 over nine kills. This pull fills 82.83%
+	 *     of its globals — a point below the median Garrosh pull — so the metric goes `ok` → `bad`, and at
+	 *     weight 2 that takes the mean from 12.0 of 15 to 11.0, or 73.33%: `ok` rather than `good`. The
+	 *     denominator is untouched at 15 of 15, which is the half this table exists to watch.
+	 *   - `waves` is Galakras, and Galakras is suppressed. The 75.18% prints without a letter, so the
+	 *     metric's two points leave the *denominator* — 12 of 14 rather than 14 of 14 — and the paragraph
+	 *     above about that figure crossing a line at 75 no longer describes anything, because there is no
+	 *     longer a line there to cross. The letter stays `good`: 9.5 points over 12 is 79.17%, further
+	 *     clear of the 75% a `good` needs than the 10.5 over 14 it used to be.
+	 *
+	 * Those two are the reason this table pins the denominator beside the letter. A guard that read only
+	 * the letter would have called `waves` a no-change and missed two points leaving the reckoning; one
+	 * that read only the count would have missed `strong` entirely. Karma still moves neither, which is
+	 * the claim, and it is now stated by six pulls across two threshold regimes rather than by a weight.
 	 */
 	const HEADLINES = {
 		cleave: 'good over 14 of 16',
 		mixed: 'ok over 15 of 17',
 		poor: 'bad over 15 of 17',
-		strong: 'good over 15 of 17',
-		waves: 'good over 14 of 16',
+		strong: 'ok over 15 of 17',
+		waves: 'good over 12 of 16',
 		weave: 'good over 14 of 17',
 	};
 

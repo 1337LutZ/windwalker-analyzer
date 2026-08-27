@@ -341,3 +341,41 @@ describe('the scorecard grid', () => {
 		expect(markup).toContain('target 95% or better');
 	});
 });
+
+describe('a rule this fight never asked', () => {
+	/**
+	 * **`exempt` and `unmeasurable` are different findings, and only one of them earns a row.**
+	 *
+	 * `flameShockMultiDot` declares `bands: [2]` — it means something only where a second target was up.
+	 * Iron Juggernaut never has one: `resolveBands` reads `[1]`, the intersection is empty, and `metricOf`
+	 * marks the metric `exempt`. It used to draw anyway, as a row headed *Dot the second target* reading
+	 * "not measured", which invites a reader to wonder what they missed on a fight that never offered it.
+	 *
+	 * The pair below is the whole distinction. `unbroken` is single-target and the row is gone; `cleave`
+	 * visits every band, so the same rule is asked, answered and drawn.
+	 */
+	it('is not drawn on a pull that never entered its bands', () => {
+		const label = i18n.t('summary.takeaways.metric.flameShockMultiDot.label', { ns: 'report' });
+		expect(label).not.toBe('summary.takeaways.metric.flameShockMultiDot.label');
+		expect(html(fixture('unbroken'))).not.toContain(label);
+		expect(html(fixture('cleave'))).toContain(label);
+	});
+
+	/**
+	 * **A metric that was asked and could not answer keeps its row**, because "we looked and the pull was
+	 * too thin" is something a reader can act on — it is a reason to open another pull, where an exempt
+	 * rule is a reason to do nothing at all.
+	 *
+	 * `cleave` made one judged Flame Shock refresh all fight, under `MIN_GRADED_SAMPLE`, so
+	 * `flameShockWaste` is `unmeasurable` and **not** `exempt`. It stays on the card — and it keeps its
+	 * count, `0/1`, under a note saying the sample is too thin to grade. That pairing is the point: the
+	 * reader is told what was seen *and* that it was not enough, where an exempt rule has nothing to show
+	 * and nothing to say.
+	 */
+	it('still draws a rule that was asked and went unanswered', () => {
+		const label = i18n.t('summary.takeaways.metric.flameShockWaste.label', { ns: 'report' });
+		const markup = html(fixture('cleave'));
+		expect(markup).toContain(label);
+		expect(markup).toContain(i18n.t('summary.scorecard.tooThin', { ns: 'report' }));
+	});
+});

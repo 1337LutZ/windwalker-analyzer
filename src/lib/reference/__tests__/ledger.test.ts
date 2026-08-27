@@ -1,0 +1,174 @@
+// The ledger, on the two things that make an automated refresh safe to leave running.
+//
+// **It must not spend.** The planner's job is to drop every candidate already answered before a point is
+// bought, and a regression there is invisible: the sweep still works, the table still builds, and the
+// only symptom is a bill. Nothing else in the tree would notice, so the assertions are here.
+//
+// **It must not name anybody.** The ledger is committed to a public repository and describes real
+// players' pulls. Character names and report codes survive only as one-way keys, and a future edit that
+// carries a name through — for debugging, for a nicer log line — is the kind of change that looks
+// harmless in review. So the shape is asserted rather than trusted.
+
+import { describe, expect, it } from 'vitest';
+
+import {
+	ANALYSER_REV,
+	knownKeys,
+	measuredPulls,
+	mergeLedger,
+	needBy,
+	planJobs,
+	playerKeyOf,
+	pullKeyOf,
+	rowFrom,
+	stalePulls,
+} from '../../../../scripts/reference-ledger.mjs';
+
+const job = (over: Record<string, unknown> = {}) => ({
+	spec: 'windwalker',
+	encounterID: 1595,
+	code: 'AbcDef123',
+	fightID: 7,
+	player: 'Someone',
+	...over,
+});
+
+const pull = (over: Record<string, unknown> = {}) => ({
+	...job(),
+	encounterName: 'Immerseus',
+	value: 80,
+	rankPercent: 99,
+	isSpec: true,
+	kill: true,
+	difficulty: 4,
+	durationMs: 300_000,
+	contactShare: 0.95,
+	deaths: 0,
+	...over,
+});
+
+const ledgerOf = (rows: ReturnType<typeof rowFrom>[]) => ({ builtAt: null, pulls: rows });
+
+describe('what a row carries', () => {
+	/** The privacy assertion, and it is deliberately blunt: the name must not appear anywhere in the row. */
+	it('carries no character name and no report code', () => {
+		const row = rowFrom(pull({ player: 'Thøth', code: 'LDkYypRT8a4XGM6v' }));
+		const serialised = JSON.stringify(row);
+		expect(serialised).not.toContain('Thøth');
+		expect(serialised).not.toContain('LDkYypRT8a4XGM6v');
+		expect(row).not.toHaveProperty('player');
+		expect(row).not.toHaveProperty('code');
+		expect(row).not.toHaveProperty('fightID');
+	});
+
+	/** Dedup depends on this being stable across runs, and across machines. */
+	it('gives one pull one key, whoever asks', () => {
+		expect(pullKeyOf(job())).toBe(pullKeyOf(job()));
+		expect(pullKeyOf(job())).not.toBe(pullKeyOf(job({ fightID: 8 })));
+	});
+
+	/**
+	 * **The player key is stable across reports, and that is a requirement rather than a nicety.** The
+	 * variance split counts how many encounters one person covers; a key that changed per report would
+	 * make every pull a different person and turn the split back into the degrees-of-freedom artefact the
+	 * analysis harness exists to avoid.
+	 */
+	it('gives one player one key across different reports', () => {
+		expect(playerKeyOf('Thøth')).toBe(playerKeyOf('Thøth'));
+		expect(playerKeyOf('Thøth')).not.toBe(playerKeyOf('Someone'));
+	});
+});
+
+describe('what the planner refuses to buy', () => {
+	/** The headline: a candidate already in the ledger is never fetched again. */
+	it('drops a candidate it has already measured', () => {
+		const ledger = ledgerOf([rowFrom(pull())]);
+		const planned = planJobs(ledger, [job(), job({ fightID: 8 })], { targetN: 40 });
+		expect(planned.jobs).toHaveLength(1);
+		expect(planned.jobs[0]?.fightID).toBe(8);
+		expect(planned.skippedKnown).toBe(1);
+	});
+
+	/**
+	 * A gated pull cost exactly what a good one cost. Remembering only the good ones would re-buy every
+	 * off-spec ranked player, every week, for ever — and the sweeps found seventeen of those.
+	 */
+	it('drops a candidate it has already found to be off-spec', () => {
+		const ledger = ledgerOf([rowFrom(pull({ isSpec: false }), 'gated')]);
+		expect(planJobs(ledger, [job()], { targetN: 40 }).jobs).toHaveLength(0);
+	});
+
+	/** And a report that could not be read is just as expensive to re-discover. */
+	it('drops a candidate that has already failed, unless asked to retry', () => {
+		const ledger = ledgerOf([rowFrom(pull(), 'failed')]);
+		expect(planJobs(ledger, [job()], { targetN: 40 }).jobs).toHaveLength(0);
+		expect(planJobs(ledger, [job()], { targetN: 40, retryFailed: true }).jobs).toHaveLength(1);
+	});
+
+	/** A cell that has reached the target needs nothing, and a forty-first pull is a pure cost. */
+	it('drops a candidate whose cell is already full', () => {
+		const full = Array.from({ length: 4 }, (_, i) => rowFrom(pull({ fightID: i })));
+		const planned = planJobs(ledgerOf(full), [job({ fightID: 99 })], { targetN: 4 });
+		expect(planned.jobs).toHaveLength(0);
+		expect(planned.skippedFull).toBe(1);
+	});
+
+	/**
+	 * **Order is the optimisation that matters when a run is cut short.** A budget-limited sweep gets
+	 * through a prefix of the list, so the thinnest cell has to be at the front — otherwise weeks of
+	 * partial runs top up cells that were already fine.
+	 */
+	it('buys the thinnest cell first', () => {
+		const ledger = ledgerOf([rowFrom(pull({ encounterID: 1595 })), rowFrom(pull({ encounterID: 1595, fightID: 2 }))]);
+		const planned = planJobs(ledger, [job({ encounterID: 1595, fightID: 9 }), job({ encounterID: 1600, fightID: 9 })], {
+			targetN: 40,
+		});
+		expect(planned.jobs[0]?.encounterID).toBe(1600);
+	});
+
+	/** The hard credit cap, and it reports what it put off rather than dropping it silently. */
+	it('stops at the limit and says how many it deferred', () => {
+		const jobs = Array.from({ length: 10 }, (_, i) => job({ fightID: i }));
+		const planned = planJobs(ledgerOf([]), jobs, { targetN: 40, limit: 3 });
+		expect(planned.jobs).toHaveLength(3);
+		expect(planned.deferred).toBe(7);
+	});
+
+	it('counts what a cell still needs', () => {
+		const ledger = ledgerOf([rowFrom(pull()), rowFrom(pull({ fightID: 2 }))]);
+		expect(needBy(ledger, 40)(job())).toBe(38);
+		expect(needBy(ledger, 40)(job({ encounterID: 9999 }))).toBe(40);
+	});
+});
+
+describe('a value measured by an older analyser', () => {
+	const stale = { ...rowFrom(pull()), rev: '2020-01-01-something-else' };
+
+	/** It must not reach the table: two generations averaged in one cell describe neither. */
+	it('is excluded from the table', () => {
+		expect(measuredPulls(ledgerOf([stale]))).toHaveLength(0);
+		expect(stalePulls(ledgerOf([stale]))).toHaveLength(1);
+	});
+
+	/** And it must not count as known, or it would never be corrected. */
+	it('is bought again rather than trusted', () => {
+		expect(knownKeys(ledgerOf([stale]))).not.toContain(stale.key);
+		expect(planJobs(ledgerOf([stale]), [job()], { targetN: 40 }).jobs).toHaveLength(1);
+	});
+
+	/** A row from the current analyser is the opposite of all that. */
+	it('is kept when it is current', () => {
+		const fresh = rowFrom(pull());
+		expect(fresh.rev).toBe(ANALYSER_REV);
+		expect(measuredPulls(ledgerOf([fresh]))).toHaveLength(1);
+	});
+});
+
+describe('folding a run in', () => {
+	it('adds new rows and replaces a repeated key with the newer reading', () => {
+		const before = ledgerOf([rowFrom(pull({ value: 70 }))]);
+		const after = mergeLedger(before, [rowFrom(pull({ value: 85 })), rowFrom(pull({ fightID: 2 }))]);
+		expect(after.pulls).toHaveLength(2);
+		expect(after.pulls.find((row: { key: string; value: number }) => row.key === pullKeyOf(job()))?.value).toBe(85);
+	});
+});

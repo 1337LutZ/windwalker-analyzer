@@ -440,13 +440,32 @@ describe('the dot’s own timeline, off the spawn the press was aimed at', () =>
 	 * *lower* on a metric where lower is better, while the fault behind it nearly doubles. It is a wash
 	 * inside a band whose `ok` edge is 30%, not a pull being flattered: nothing moved from a worse grade
 	 * to a better one anywhere, which is the property asserted below.
+	 *
+	 * **`gcdUtilisation` is no longer graded on this pull at all, and the figure it is not graded on is
+	 * still 83.378%.** `addsThenBoss` is Galakras, one of the three encounters `lib/reference/specProfile.ts`
+	 * suppresses this metric on: the fight puts the player on a tower by design — measured median contact
+	 * share 82.7% against 94% or better on the other eleven — so the clock the share divides by is the
+	 * encounter's doing. That is why the assertion below reads the figure off `cpm` and the state off the
+	 * metric. **This test's own claim is untouched by it**: what the aimed-dot change costs is four more
+	 * charged globals, and the measurement that carries them is exactly where it was. A suppressed metric
+	 * carries `value: 0` and `grade: 'ok'` with `unmeasurable: true` — the parked pair `metricOf` gives
+	 * every refusal — so reading the figure off the metric would have measured the suppression, not the
+	 * globals.
 	 */
 	it('charges four more globals and seven wasted refreshes instead of four', () => {
 		expect(addsThenBoss.cpm.wastedGcds).toBe(10);
-		expect(graded(addsThenBoss, 'gcdUtilisation')?.value).toBeCloseTo(83.377_925, 5);
-		// `bad` since `gcdUtilisation`'s lines went from 80/65 to 95/90 — 83.38% is the lowest of the four
-		// committed pulls, and the old pair called every one of them `good`.
-		expect(graded(addsThenBoss, 'gcdUtilisation')?.grade).toBe('bad');
+		// The measurement, off the audit, where the four charged globals actually land.
+		expect(addsThenBoss.cpm.gcdUtilisationPct).toBeCloseTo(83.377_925, 5);
+		// And the state of the graded metric beside it. It was `bad` when the lines went from 80/65 to
+		// 95/90 — 83.38% is the lowest of the four committed pulls, and the old pair called every one of
+		// them `good` — and it is withheld now that Galakras is suppressed. Pinned exactly rather than
+		// loosened: `value` 0 and `grade` `ok` are what a refused metric carries, and a real `ok` here
+		// would have to come with `unmeasurable: false`.
+		expect(graded(addsThenBoss, 'gcdUtilisation')).toMatchObject({
+			value: 0,
+			grade: 'ok',
+			unmeasurable: true,
+		});
 		const waste = graded(addsThenBoss, 'flameShockWaste');
 		expect(waste?.value).toBeCloseTo(77.777_778, 5);
 		expect(waste?.sampleSize).toBe(9);
@@ -500,6 +519,16 @@ describe('the dot’s own timeline, off the spawn the press was aimed at', () =>
 	 * that moved only the last would still be a change to what a reader is told. The two graded metrics
 	 * above both stay in the band they were in, so nothing above them moves either — asserted rather
 	 * than assumed.
+	 *
+	 * **Three of the four cards below have since moved, and none of them under this file's change.**
+	 * `gcdUtilisation` stopped grading against one fixed pair per spec and now resolves against the
+	 * encounter's own p90 and p50 from `src/generated/reference.json`. `addsThenBoss` is Galakras and is
+	 * *suppressed* — the letter is withheld and its two points leave the denominator, 15 of 24 to 13 —
+	 * `phased` clears Iron Juggernaut's p90 of 94.16 with 94.44% and goes `ok` → `good`, carrying the whole
+	 * card with it, and `unbroken` sits between the same row's two lines at 92.87% and stays `ok`. `cleave`
+	 * is Blackfuse at 89.18% against p90 95.01 / p50 92.32 and stays `bad`. The claim this test makes is
+	 * still the claim it made: the aimed-dot change moves nothing here, and the letters that did move can
+	 * be read off a table nobody in this file wrote.
 	 */
 	it('leaves every metric, section and overall grade where it was on all four pulls', () => {
 		const card = (el: Analysis & ElementalAuditResult) => {
@@ -521,8 +550,11 @@ describe('the dot’s own timeline, off the spawn the press was aimed at', () =>
 			// 21.9s and 4.5s, so the first now lands between the two lines rather than under both.
 			lightningShield: 'ok',
 			mana: 'ok',
-			// The section is `gcdUtilisation` alone, so its letter is that metric's — and under 95/90 the
-			// four pulls split rather than reading `good` together: 83.38, 89.18, 92.87, 94.44.
+			// The section is `gcdUtilisation` alone, so its letter is that metric's — and the four pulls
+			// split rather than reading `good` together. Under 95/90 they split three-one on 83.38, 89.18,
+			// 92.87 and 94.44; against each encounter's own p90/p50 the same four figures split four ways,
+			// which is why every pull below overrides this key except `cleave`. The base value is `cleave`'s:
+			// 89.18% under Blackfuse's p50 of 92.32.
 			casts: 'bad',
 			// The cooldown's own section, four rules. `bad` on the two pulls whose second press found too
 			// little Elemental Discharge, `good` on `unbroken`, and `ok` on `addsThenBoss` — where every press
@@ -531,12 +563,16 @@ describe('the dot’s own timeline, off the spawn the press was aimed at', () =>
 		};
 		// `addsThenBoss` never laid a Searing Totem, so its totem letter is `bad` off nought per cent and
 		// its judged weight is one higher than the other three. Nothing here aimed a dot at either.
+		// `addsThenBoss` is also the one pull here the globals metric is suppressed on — Galakras — so its
+		// `casts` section parks at `ok` with nothing decided, exactly as `ascendance` does, and the two
+		// points leave the judged weight. 13 of 24 is still over `MIN_JUDGED_WEIGHT_SHARE`, so the headline
+		// is still a verdict and it is still `bad`.
 		expect(card(addsThenBoss)).toEqual({
 			overall: 'bad',
-			judged: { measured: 15, total: 24, unmeasurable: false },
-			sections: { ...sections, searingTotem: 'bad', ascendance: 'ok' },
+			judged: { measured: 13, total: 24, unmeasurable: false },
+			sections: { ...sections, searingTotem: 'bad', ascendance: 'ok', casts: 'ok' },
 			flameShockWaste: 'bad',
-			gcdUtilisation: 'bad',
+			gcdUtilisation: 'ok',
 		});
 		expect(card(cleavePull)).toEqual({
 			overall: 'bad',
@@ -545,12 +581,16 @@ describe('the dot’s own timeline, off the spawn the press was aimed at', () =>
 			flameShockWaste: 'ok',
 			gcdUtilisation: 'bad',
 		});
+		// `phased` is the whole-card move: 94.44% clears Iron Juggernaut's own p90 of 94.16, over the four
+		// kills the reference holds for that fight, where it missed the flat 95 by half a point. `casts`
+		// goes `ok` → `good` and the headline with it — the first `good` this spec has on this metric on
+		// any committed pull.
 		expect(card(phasedPull)).toEqual({
-			overall: 'ok',
+			overall: 'good',
 			judged: { measured: 19, total: 24, unmeasurable: false },
-			sections: { ...sections, flameShock: 'ok', fireElemental: 'good', lightningShield: 'bad', casts: 'ok' },
+			sections: { ...sections, flameShock: 'ok', fireElemental: 'good', lightningShield: 'bad', casts: 'good' },
 			flameShockWaste: 'ok',
-			gcdUtilisation: 'ok',
+			gcdUtilisation: 'good',
 		});
 		expect(card(unbrokenPull)).toEqual({
 			overall: 'ok',

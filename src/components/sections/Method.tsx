@@ -5,6 +5,8 @@ import { useSpec } from '~/components/report/specContext';
 
 import { Note, Prose, Section } from '../primitives';
 
+import ReferenceNote from './ReferenceNote';
+
 /** What the numbers were measured against, and the three things the log cannot answer. */
 export default function Method({ analysis }: { analysis: Analysis }) {
 	const { t } = useReportCopy(analysis);
@@ -25,6 +27,10 @@ export default function Method({ analysis }: { analysis: Analysis }) {
 				<Note>{t('method.engaged')}</Note>
 				<Note>{t('method.energy', { context: spec.key })}</Note>
 				<Note>{t('method.spec', { context: spec.key })}</Note>
+				{/* Fourth note, and the only one that is about data rather than about a limit: where the
+				    grading lines came from, and when they were last refreshed. It is generic — the block
+				    reads the registry's own spec key and says so plainly when no sweep has covered it. */}
+				<ReferenceNote analysis={analysis} />
 			</div>
 		</Section>
 	);

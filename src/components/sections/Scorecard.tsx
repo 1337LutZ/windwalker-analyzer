@@ -73,6 +73,24 @@ const silent = (metric: Metric): boolean =>
 	!metric.unmeasurable && !metric.higherIsBetter && metric.good === 0 && metric.value === 0;
 
 /**
+ * A rule this pull was never asked, which is a different thing from one it could not answer.
+ *
+ * **`exempt` and `unmeasurable` are not the same finding, and only one of them is worth a row.** A
+ * metric declares the target counts it means anything at (`MetricRule.bands`), and `metricOf` marks it
+ * `exempt` when the pull never entered any of them — the rule does not apply to this fight at all. *Dot
+ * the second target* on Iron Juggernaut is the case: that pull never has a second target, so there was
+ * no second dot to want, and a row reading "not measured" invites a reader to wonder what they missed.
+ *
+ * A merely `unmeasurable` metric keeps its row, because "we asked and the pull could not answer" is
+ * information a reader can act on — a thin sample is a reason to look at more pulls. `cleave`'s Flame
+ * Shock waste is exactly that: two refreshes all fight, under `MIN_GRADED_SAMPLE`, and worth saying.
+ *
+ * The section's own grade is untouched: `section()` already reads its verdict off decided primaries, so
+ * an exempt metric was never contributing a letter. This hides a row, not a number.
+ */
+const neverAsked = (metric: Metric): boolean => metric.exempt === true;
+
+/**
  * The card's own ground, washed in its verdict.
  *
  * A stripe down one edge is what `Takeaways` used and it was right for three cards; across twenty it is
@@ -267,7 +285,7 @@ export default function Scorecard({ analysis }: { analysis: Analysis }) {
 					const anchor = anchors[section];
 					// Rows worth drawing. A card can lose all of them — a section whose every rule counts a fault
 					// none of which happened — and says so in a sentence rather than rendering an empty column.
-					const shown = score.metrics.filter((metric) => !silent(metric));
+					const shown = score.metrics.filter((metric) => !silent(metric) && !neverAsked(metric));
 					// The grade, as the one thing on the card that is not a number — see the docblock. The stripe
 					// comes from `GRADE`, which is where every verdict colour on the page comes from; the wash is
 					// the same tone at a strength a card can carry behind text.
