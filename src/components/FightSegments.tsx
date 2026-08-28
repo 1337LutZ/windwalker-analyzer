@@ -14,12 +14,13 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Tooltip } from '@base-ui/react/tooltip';
 
 import SessionProvider from './auth/SessionProvider';
 import SignInPanel from './auth/SignInPanel';
 import { useSession } from '~/lib/auth';
 import SegmentStrip from './sections/SegmentStrip';
-import { DataGrid, Note, Prose, Section, type GridColumn, type GridRow } from './primitives';
+import { DataGrid, Note, Prose, Section, Skeleton, type GridColumn, type GridRow } from './primitives';
 import { formatClock } from '~/lib/format';
 import { SPECS } from '~/lib/spec';
 import { fetchFightDataset, listReportFights } from '~/lib/wcl/fetchFight';
@@ -40,6 +41,12 @@ import '~/lib/i18n';
  * Off the player's own damage: the same evidence the count series is built from, so a segment that reads
  * `aoe` lists the three enemies that made it so. Ticks and pets included exactly as they arrive — this is
  * a roster for a tooltip, not a second derivation to disagree with the first.
+ *
+ * **Which is why an `idle` segment can still name an enemy, and that is not a contradiction.** The mode
+ * comes from a count series taken over a trailing window and then held to a floor and a hysteresis; this
+ * is the raw hits inside the bounds. A stretch with one hit at its edge reads idle by the derivation and
+ * lists that one enemy here, and the pair is the most informative thing on the row — it is the evidence
+ * for why the span went the way it did.
  */
 export function targetsInSegments(dataset: FightDataset, segments: readonly FightSegment[]): Map<number, string> {
 	const names = new Map((dataset.actors ?? []).map((actor) => [actor.id, actor.name]));
@@ -84,8 +91,18 @@ interface FightRow {
 interface ReportRows {
 	code: string;
 	fights: FightRow[];
+	/**
+	 * True while the report's own fight list is still being fetched, before any pull is known.
+	 *
+	 * Distinct from a report with no fights yet *found*: one is a question still being asked and the other
+	 * is an answer. The rail says "reading…" for the first and nothing for the second.
+	 */
+	listing: boolean;
 	error: string | null;
 }
+
+/** A pull that has been named but not yet read. Derived, so it cannot disagree with the fields it reads. */
+const isPending = (fight: FightRow): boolean => fight.analysis === null && fight.error === null;
 
 /**
  * A report code, or the code out of a pasted WarcraftLogs URL.
@@ -116,25 +133,43 @@ const COLUMNS: GridColumn[] = [
 ];
 
 /**
- * The enemies cell: a button whose tooltip is the roster.
+ * The enemies cell: a button that opens the roster on hover or focus.
  *
- * A button rather than the names inline, because a busy segment names a dozen enemies and a table cell
- * that wide pushes every other column off the screen. `title` carries it on hover, and the count on the
- * face means the cell still says something without one — a reader scanning for "which stretch had four
- * things in it" does not have to hover at all.
+ * A button rather than the names inline, because a busy segment names a dozen enemies and a cell that
+ * wide pushes every other column off the screen. The count on the face means the row still says
+ * something without hovering — a reader scanning for "which stretch had four things in it" never has to.
+ *
+ * **A real tooltip rather than a `title` attribute.** `title` is the browser's own: it waits about a
+ * second, cannot be styled, never opens on keyboard focus, and on a touch screen does not open at all.
+ * Base UI's is the same primitive this codebase already uses for its dialogs, menus and toolbars, and it
+ * answers a pointer and a focus ring alike.
  */
 function TargetsCell({ roster }: { roster: string | undefined }) {
 	if (!roster) return <span className="text-ink-3">—</span>;
 	const count = roster.split(', ').length;
 	return (
-		<button
-			type="button"
-			title={roster}
-			aria-label={`Enemies in this segment: ${roster}`}
-			className="cursor-help rounded-sm border border-line px-2 py-0.5 font-mono text-xs text-ink-2"
-		>
-			{`${count} enem${count === 1 ? 'y' : 'ies'}`}
-		</button>
+		<Tooltip.Root>
+			<Tooltip.Trigger
+				render={
+					<button
+						type="button"
+						// Still announced to a screen reader from the button itself: the popup is only rendered
+						// while open, so a label that lived solely in there would be nothing to announce.
+						aria-label={`Enemies in this segment: ${roster}`}
+						className="cursor-help rounded-sm border border-line px-2 py-0.5 font-mono text-xs text-ink-2 hover:border-muted hover:text-ink"
+					/>
+				}
+			>
+				{`${count} enem${count === 1 ? 'y' : 'ies'}`}
+			</Tooltip.Trigger>
+			<Tooltip.Portal>
+				<Tooltip.Positioner sideOffset={6}>
+					<Tooltip.Popup className="max-w-80 rounded-sm border border-line bg-surface px-3 py-2 font-mono text-xs leading-relaxed text-ink shadow-lg">
+						{roster}
+					</Tooltip.Popup>
+				</Tooltip.Positioner>
+			</Tooltip.Portal>
+		</Tooltip.Root>
 	);
 }
 
@@ -156,12 +191,29 @@ function rowsOf(analysis: Analysis, targets: Map<number, string>): GridRow[] {
 	}));
 }
 
-function Fight({ fight }: { fight: FightRow }) {
+/** The anchor a fight is reached at, shared by the nav and the heading so neither can invent one. */
+const anchorOf = (code: string, fightID: number): string => `fight-${code}-${fightID}`;
+
+function Fight({ code, fight }: { code: string; fight: FightRow }) {
 	if (fight.error !== null) {
 		return (
-			<div className="flex flex-col gap-2">
+			<div id={anchorOf(code, fight.id)} className="flex scroll-mt-16 flex-col gap-2">
 				<h3 className="font-mono text-sm text-ink">{`${fight.id} · ${fight.name}`}</h3>
 				<Note>{fight.error}</Note>
+			</div>
+		);
+	}
+	if (isPending(fight)) {
+		return (
+			<div id={anchorOf(code, fight.id)} className="flex scroll-mt-16 flex-col gap-3.5">
+				<h3 className="font-mono text-sm text-ink">
+					{`${fight.id} · ${fight.name}`}
+					<span className="ml-2 animate-pulse text-ink-3">reading…</span>
+				</h3>
+				{/* Shaped like what is coming — a strip, then a table — so the page does not resize under the
+				    reader when it lands. The heights are the drawn ones: `SegmentLane` is `h-9`. */}
+				<Skeleton className="h-9 w-full animate-pulse" />
+				<Skeleton className="h-24 w-full animate-pulse" />
 			</div>
 		);
 	}
@@ -170,7 +222,7 @@ function Fight({ fight }: { fight: FightRow }) {
 	const segments = analysis.segments?.segments ?? [];
 
 	return (
-		<div className="flex flex-col gap-3.5">
+		<div id={anchorOf(code, fight.id)} className="flex scroll-mt-16 flex-col gap-3.5">
 			<h3 className="font-mono text-sm text-ink">
 				{`${fight.id} · ${fight.name}`}
 				<span className="ml-2 text-ink-3">
@@ -179,7 +231,10 @@ function Fight({ fight }: { fight: FightRow }) {
 			</h3>
 			{/* `SegmentStrip` draws nothing for a pull it cannot divide — under two segments there is no
 			    shape to show — so the table below is what carries such a pull. */}
-			<SegmentStrip analysis={analysis} detailOf={(segment) => fight.targets.get(segment.index)} />
+			{/* Always a string, never `undefined`: a bar whose tooltip silently dropped its third line looks
+			    exactly like one the feature does not work on, and the two are worth telling apart. A stretch
+			    with nothing in it says so. */}
+			<SegmentStrip analysis={analysis} detailOf={(segment) => fight.targets.get(segment.index) ?? 'no enemies hit'} />
 			<DataGrid
 				caption={`Segments of ${fight.name}`}
 				columns={COLUMNS}
@@ -199,6 +254,64 @@ function Fight({ fight }: { fight: FightRow }) {
  */
 const snapshot = (reports: readonly ReportRows[]): ReportRows[] =>
 	reports.map((entry) => ({ ...entry, fights: [...entry.fights] }));
+
+/**
+ * The reports and their kills, as a sticky rail.
+ *
+ * **Not `SectionNav`**, which is the tempting reuse and the wrong one: that component is built on
+ * `ReportSection` — an id, a translation key and one of four declared groups — and everything here is a
+ * report code or a boss name that no translation file knows. Forcing these through it would mean
+ * inventing keys for data that arrives at runtime. The look is matched instead: the same rule, the same
+ * indent for a child, the same sticky column the report page puts its nav in.
+ *
+ * Hidden below `lg` for the same reason the report's nav is. On a narrow screen the rail costs more width
+ * than the jump is worth, and the headings are still in the document to scroll to.
+ */
+function ReportNav({ reports }: { reports: readonly ReportRows[] }) {
+	if (reports.length === 0) return null;
+	return (
+		<nav
+			aria-label="Reports and fights"
+			// `self-start` is load-bearing: stretched to the row's height there would be no room left to
+			// travel and `sticky` would do nothing. Same note as `SectionNav`, same reason.
+			className="hidden lg:sticky lg:top-14 lg:block lg:max-h-[calc(100vh_-_5rem)] lg:self-start lg:overflow-y-auto"
+		>
+			<ol className="m-0 flex list-none flex-col p-0">
+				{reports.map((report) => (
+					<li key={report.code}>
+						<a
+							href={`#report-${report.code}-heading`}
+							className="flex min-h-11 items-center border-l-2 border-line py-2 pr-2 pl-3 font-mono text-sm font-semibold tracking-[0.1em] text-muted uppercase transition-colors hover:border-muted hover:text-ink-2"
+						>
+							{report.code}
+						</a>
+						<ol className="m-0 flex list-none flex-col p-0">
+							{report.listing ? (
+								<li className="flex min-h-11 animate-pulse items-center border-l-2 border-line py-2 pr-2 pl-6 leading-snug text-ink-3">
+									reading…
+								</li>
+							) : null}
+							{report.fights.map((fight) => (
+								<li key={fight.id}>
+									<a
+										href={`#${anchorOf(report.code, fight.id)}`}
+										// A pull still being read is still a place to jump to — the heading is already in
+										// the document — so it stays a link and says what it is rather than going inert.
+										className={`flex min-h-11 items-center border-l-2 border-line py-2 pr-2 pl-6 leading-snug transition-colors hover:border-muted hover:text-ink-2 ${
+											isPending(fight) ? 'animate-pulse text-ink-3' : 'text-muted'
+										}`}
+									>
+										{fight.name}
+									</a>
+								</li>
+							))}
+						</ol>
+					</li>
+				))}
+			</ol>
+		</nav>
+	);
+}
 
 function Runner() {
 	const { token } = useSession();
@@ -224,14 +337,17 @@ function Runner() {
 		try {
 			for (const code of codes) {
 				setProgress(`Reading ${code}…`);
-				const report: ReportRows = { code, fights: [], error: null };
+				const report: ReportRows = { code, fights: [], listing: true, error: null };
 				out.push(report);
+				setReports(snapshot(out));
+				await new Promise((resolve) => setTimeout(resolve, 0));
 				try {
 					const list = await listReportFights(client, code);
 					const mine = list.fights.filter(
 						(fight) =>
 							fight.kill && (fight.roster ?? []).some((actor) => actor.name.toLowerCase() === name.toLowerCase()),
 					);
+					report.listing = false;
 					if (mine.length === 0) {
 						report.error = `No kills in this report have ${name} in them.`;
 					}
@@ -247,6 +363,11 @@ function Runner() {
 							error: null,
 						};
 						report.fights.push(row);
+						// Published before the fetch rather than after it: the row is what the rail and the
+						// skeleton are drawn from, and a pull that only appears once it is finished cannot show
+						// that it is being worked on. This is the whole of the loading state.
+						setReports(snapshot(out));
+						await new Promise((resolve) => setTimeout(resolve, 0));
 						try {
 							const dataset = await fetchFightDataset(client, { code, fightID: fight.id, playerName: name });
 							// The spec the pull reads as. Every spec runs the same core, so segments would exist
@@ -271,6 +392,7 @@ function Runner() {
 				} catch (error) {
 					report.error = error instanceof Error ? error.message : String(error);
 				}
+				report.listing = false;
 				setReports(snapshot(out));
 			}
 		} finally {
@@ -281,58 +403,65 @@ function Runner() {
 	}, [codesKey, player, token]);
 
 	return (
-		<div className="flex flex-col gap-6">
-			<Section id="fight-segments" title="Fight segments">
-				<Prose>
-					Every kill in the reports below, divided into segments the way the analyser divides them — one stretch of the
-					pull per target-count mode, after the floor and the hysteresis have had their say. Segments are a reading of
-					one player’s contact, so a name is required.
-				</Prose>
-				<div className="mt-4.5 flex flex-col gap-3">
-					<label className="flex flex-col gap-1.5">
-						<span className="font-mono text-xs tracking-wider text-ink-3 uppercase">Reports</span>
-						<textarea
-							value={input}
-							onChange={(event) => setInput(event.target.value)}
-							rows={3}
-							spellCheck={false}
-							placeholder="codes or URLs, separated by commas"
-							className="w-full rounded-sm border border-line bg-surface p-3 font-mono text-sm text-ink"
-						/>
-					</label>
-					<label className="flex flex-col gap-1.5">
-						<span className="font-mono text-xs tracking-wider text-ink-3 uppercase">Player</span>
-						<input
-							value={player}
-							onChange={(event) => setPlayer(event.target.value)}
-							spellCheck={false}
-							className="w-full rounded-sm border border-line bg-surface p-3 font-mono text-sm text-ink"
-						/>
-					</label>
-					<div className="flex items-center gap-3">
-						<button
-							type="button"
-							disabled={!ready}
-							onClick={() => void run()}
-							className="rounded-sm border border-line bg-surface px-4 py-2 font-mono text-sm text-ink disabled:opacity-50"
-						>
-							{busy ? 'Reading…' : `Read ${codes.length || ''} report${codes.length === 1 ? '' : 's'}`.trim()}
-						</button>
-						{progress !== null ? <span className="font-mono text-xs text-ink-3">{progress}</span> : null}
-					</div>
-				</div>
-			</Section>
-
-			{reports.map((report) => (
-				<Section key={report.code} id={`report-${report.code}`} title={report.code}>
-					{report.error !== null ? <Note>{report.error}</Note> : null}
-					<div className="mt-4.5 flex flex-col gap-8">
-						{report.fights.map((fight) => (
-							<Fight key={fight.id} fight={fight} />
-						))}
+		/* The rail only exists once there is something to list, and so does the column that holds it —
+		   a grid whose first child is `null` puts the *content* in the 13rem track and squeezes the form
+		   into a gutter. Before any results the page is one column, which is also the better shape for a
+		   form nobody has filled in yet. */
+		<div className={reports.length > 0 ? 'lg:grid lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-8' : 'flex flex-col'}>
+			<ReportNav reports={reports} />
+			<div className="flex flex-col gap-6">
+				<Section id="fight-segments" title="Fight segments">
+					<Prose>
+						Every kill in the reports below, divided into segments the way the analyser divides them — one stretch of
+						the pull per target-count mode, after the floor and the hysteresis have had their say. Segments are a
+						reading of one player’s contact, so a name is required.
+					</Prose>
+					<div className="mt-4.5 flex flex-col gap-3">
+						<label className="flex flex-col gap-1.5">
+							<span className="font-mono text-xs tracking-wider text-ink-3 uppercase">Reports</span>
+							<textarea
+								value={input}
+								onChange={(event) => setInput(event.target.value)}
+								rows={3}
+								spellCheck={false}
+								placeholder="codes or URLs, separated by commas"
+								className="w-full rounded-sm border border-line bg-surface p-3 font-mono text-sm text-ink"
+							/>
+						</label>
+						<label className="flex flex-col gap-1.5">
+							<span className="font-mono text-xs tracking-wider text-ink-3 uppercase">Player</span>
+							<input
+								value={player}
+								onChange={(event) => setPlayer(event.target.value)}
+								spellCheck={false}
+								className="w-full rounded-sm border border-line bg-surface p-3 font-mono text-sm text-ink"
+							/>
+						</label>
+						<div className="flex items-center gap-3">
+							<button
+								type="button"
+								disabled={!ready}
+								onClick={() => void run()}
+								className="rounded-sm border border-line bg-surface px-4 py-2 font-mono text-sm text-ink disabled:opacity-50"
+							>
+								{busy ? 'Reading…' : `Read ${codes.length || ''} report${codes.length === 1 ? '' : 's'}`.trim()}
+							</button>
+							{progress !== null ? <span className="font-mono text-xs text-ink-3">{progress}</span> : null}
+						</div>
 					</div>
 				</Section>
-			))}
+
+				{reports.map((report) => (
+					<Section key={report.code} id={`report-${report.code}`} title={report.code}>
+						{report.error !== null ? <Note>{report.error}</Note> : null}
+						<div className="mt-4.5 flex flex-col gap-8">
+							{report.fights.map((fight) => (
+								<Fight key={fight.id} code={report.code} fight={fight} />
+							))}
+						</div>
+					</Section>
+				))}
+			</div>
 		</div>
 	);
 }
@@ -347,7 +476,11 @@ export default function FightSegments() {
 	return (
 		<QueryClientProvider client={queryClient}>
 			<SessionProvider>
-				<Gate />
+				{/* One provider for the page: it is what lets a second tooltip open instantly once the first
+				    has, rather than each waiting out its own delay. */}
+				<Tooltip.Provider>
+					<Gate />
+				</Tooltip.Provider>
 			</SessionProvider>
 		</QueryClientProvider>
 	);

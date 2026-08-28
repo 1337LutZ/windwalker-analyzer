@@ -3,6 +3,7 @@ import { realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 import { defineConfig } from 'astro/config';
+import { loadEnv } from 'vite';
 import react from '@astrojs/react';
 import tailwindcss from '@tailwindcss/vite';
 
@@ -16,6 +17,24 @@ import tailwindcss from '@tailwindcss/vite';
 // This reaches past assets: OAuth redirects back to `window.location`, and WarcraftLogs matches the
 // registered redirect URI byte for byte. Moving where the site is served means registering the new
 // URL with WarcraftLogs as well, or sign-in fails with a message that blames the client id instead.
+/**
+ * Whether this process is `astro dev`, read off the command rather than off `NODE_ENV`.
+ *
+ * `defineConfig` takes an object, not a function, so Astro never hands this file a `command` — and
+ * `NODE_ENV` is not set by the CLI. The argument list is what actually distinguishes a dev server from a
+ * build, and it is checked as an exact element so a path containing the word cannot pass for it.
+ */
+const isDev = process.argv.slice(2).includes('dev');
+
+/**
+ * A development-only token, so a local dev server can skip the sign-in panel.
+ *
+ * Null in every build. `loadEnv` is what reads `.env` here at all: Astro loads that file into
+ * `import.meta.env` for the app, not into `process.env` for this config — the same distinction
+ * `.env.example` draws about `SITE_URL`.
+ */
+const devToken = isDev ? (loadEnv('development', process.cwd(), '').WCL_TOKEN ?? null) : null;
+
 const site = process.env.SITE_URL ?? 'https://windwalker-analyzer.pages.dev';
 const base = process.env.BASE_PATH ?? '';
 
@@ -45,5 +64,23 @@ export default defineConfig({
 	vite: {
 		plugins: [tailwindcss()],
 		server: { fs: { allow: ['.', nodeModules] } },
+		/**
+		 * A development-only shortcut past the sign-in panel.
+		 *
+		 * **Why it is a `define` and not a `PUBLIC_` variable.** Astro exposes `PUBLIC_`-prefixed values to
+		 * the browser in *every* build, so naming the token that way would inline a live credential into
+		 * whatever Cloudflare publishes. This is substituted only when the command is `dev`; a build
+		 * substitutes the literal `null`, so there is nothing to inline and nothing to leak even if the
+		 * variable is set in the environment that runs the build.
+		 *
+		 * `loadEnv` with an empty prefix is what reads `.env` at all here: Astro loads that file into
+		 * `import.meta.env` for the app, not into `process.env` for this config, which is the same
+		 * distinction `.env.example` draws about `SITE_URL`.
+		 *
+		 * `WCL_TOKEN` keeps its unprefixed name precisely so that forgetting this block cannot expose it.
+		 */
+		define: {
+			'import.meta.env.DEV_WCL_TOKEN': JSON.stringify(devToken),
+		},
 	},
 });

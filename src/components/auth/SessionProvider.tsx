@@ -20,6 +20,7 @@ import {
 } from '~/lib/auth';
 // Straight from the modules rather than through the barrel, exactly as `lib/wcl/client.ts` already
 // imports `lib/auth/token`. This is the expiry path, and it is new.
+import { devToken } from '~/lib/auth/devToken';
 import { restoreSession } from '~/lib/auth/restore';
 import { clearSilentRetry, forgetToken, markSilentRetry, silentRetryUsed } from '~/lib/auth/storage';
 
@@ -81,6 +82,24 @@ export default function SessionProvider({ children }: { children: ReactNode }) {
 	useEffect(() => {
 		const id = readClientID();
 		setClientID(id);
+		/**
+		 * A local dev server with a token in `.env` signs itself in.
+		 *
+		 * Ahead of `restoreSession` because it is meant to be unconditional while developing: a stored
+		 * session from an earlier OAuth round would otherwise win, and the point of this is not having to
+		 * think about which token is in play. `devToken` answers null in every build — see its docblock —
+		 * so nothing below is reachable on the published site.
+		 *
+		 * Reported as `manual`, which is what it is: a token supplied out of band rather than one this tab
+		 * fetched. The panel then says so, which keeps a developer from mistaking it for a real sign-in.
+		 */
+		const dev = devToken();
+		if (dev !== null) {
+			setToken(dev);
+			setSource('manual');
+			setStatus('signed-in');
+			return;
+		}
 		const restored = restoreSession();
 		const held = restored.session;
 		const settle = (next: StoredToken | null) => {
