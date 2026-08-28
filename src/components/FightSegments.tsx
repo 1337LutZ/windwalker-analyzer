@@ -646,111 +646,131 @@ function Runner() {
 	}, [codesKey, input, player, token]);
 
 	return (
-		/* The rail only exists once there is something to list, and so does the column that holds it —
-		   a grid whose first child is `null` puts the *content* in the 13rem track and squeezes the form
-		   into a gutter. Before any results the page is one column, which is also the better shape for a
-		   form nobody has filled in yet. */
-		<div className={reports.length > 0 ? 'lg:grid lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-8' : 'flex flex-col'}>
-			<ReportNav reports={reports} />
-			<div className="flex flex-col gap-6">
-				<Section id="fight-segments" title="Fight segments">
-					<Prose>
-						Every kill in the reports below, divided into segments the way the analyser divides them — one stretch of
-						the pull per target-count mode, after the floor and the hysteresis have had their say. Segments are a
-						reading of one player’s contact, so a name is required.
-					</Prose>
-					<div className="mt-4.5 flex flex-col gap-3">
-						{/* The form's own controls, not new ones: `controls.ts` already owns how a field, a label and
-						    a button look here, and a page that spells them out again is a page that drifts the
-						    first time any of the three changes. */}
-						<label className="flex flex-col gap-1.5">
-							<span className={labelClass}>Reports</span>
-							<textarea
-								value={input}
-								onChange={(event) => setInput(event.target.value)}
-								rows={3}
-								spellCheck={false}
-								placeholder="codes or URLs, separated by commas"
-								// `min-h-11` is a control's height and wrong for a box meant to hold three lines.
-								className={`${fieldClass} min-h-24 py-3`}
-							/>
-						</label>
-						<label className="flex flex-col gap-1.5">
-							<span className={labelClass}>Player</span>
-							<input
-								value={player}
-								onChange={(event) => setPlayer(event.target.value)}
-								spellCheck={false}
-								className={fieldClass}
-							/>
-						</label>
-						<div className="flex items-center gap-3">
-							{/* The primary action on the page, in the shape every other primary action takes — hover,
-							    disabled and focus states included, none of which the hand-rolled one had. */}
-							<button type="button" disabled={!ready} onClick={() => void run()} className={primaryButtonClass}>
-								{busy ? 'Reading…' : `Read ${codes.length || ''} report${codes.length === 1 ? '' : 's'}`.trim()}
-							</button>
-							{progress !== null ? <span className="font-mono text-xs text-ink-3">{progress}</span> : null}
-						</div>
-						{/*
-						 * The hour's budget, and how many pulls are left in it.
-						 *
-						 * **Beside the button rather than under the results, because this is the page that can
-						 * spend the lot.** A report page reads one pull; this one reads every kill in every report
-						 * it is given, so a list of five raid nights is a hundred-odd pulls — and the reader
-						 * should see what that costs before pressing, not after. `ApiCredits` already answers it,
-						 * and is the same component the sign-in panel uses reading the same `useApiCredits`, so
-						 * the two cannot disagree about a number the reader may have seen a moment ago.
-						 */}
-						{/*
-						 * Boxed here and bare in the sign-in panel, which is the difference between a paragraph and
-						 * a figure. There it is one more thing to read on the way to signing in; here it is a number
-						 * the reader checks against what they are about to spend, so it gets the same border and
-						 * ground the tiles under it have and reads as something to look *at*.
-						 *
-						 * Wrapped rather than built into `ApiCredits`: the component is shared, and giving it a box
-						 * of its own would put one around the sign-in panel's copy too.
-						 */}
-						{/* `self-start`, so the card is as wide as what it says rather than as wide as the page. */}
-						<div className="self-start rounded-sm border border-line bg-surface px-4 py-3.5 sm:px-[18px] sm:py-4">
-							<ApiCredits />
-						</div>
+		/* A single column of blocks, one of which is itself two columns: the rail belongs to the results
+		   and lives inside them, not beside the whole page. The grid below argues why. */
+		<div className="flex flex-col gap-6">
+			<Section id="fight-segments" title="Fight segments">
+				<Prose>
+					Every kill in the reports below, divided into segments the way the analyser divides them — one stretch of the
+					pull per target-count mode, after the floor and the hysteresis have had their say. Segments are a reading of
+					one player’s contact, so a name is required.
+				</Prose>
+				<div className="mt-4.5 flex flex-col gap-3">
+					{/* The form's own controls, not new ones: `controls.ts` already owns how a field, a label and
+					    a button look here, and a page that spells them out again is a page that drifts the
+					    first time any of the three changes. */}
+					<label className="flex flex-col gap-1.5">
+						<span className={labelClass}>Reports</span>
+						<textarea
+							value={input}
+							onChange={(event) => setInput(event.target.value)}
+							rows={3}
+							spellCheck={false}
+							placeholder="codes or URLs, separated by commas"
+							// `min-h-11` is a control's height and wrong for a box meant to hold three lines.
+							className={`${fieldClass} min-h-24 py-3`}
+						/>
+					</label>
+					<label className="flex flex-col gap-1.5">
+						<span className={labelClass}>Player</span>
+						<input
+							value={player}
+							onChange={(event) => setPlayer(event.target.value)}
+							spellCheck={false}
+							className={fieldClass}
+						/>
+					</label>
+					<div className="flex items-center gap-3">
+						{/* The primary action on the page, in the shape every other primary action takes — hover,
+						    disabled and focus states included, none of which the hand-rolled one had. */}
+						<button type="button" disabled={!ready} onClick={() => void run()} className={primaryButtonClass}>
+							{busy ? 'Reading…' : `Read ${codes.length || ''} report${codes.length === 1 ? '' : 's'}`.trim()}
+						</button>
+						{progress !== null ? <span className="font-mono text-xs text-ink-3">{progress}</span> : null}
 					</div>
-				</Section>
+					{/*
+					 * The hour's budget, and how many pulls are left in it.
+					 *
+					 * **Beside the button rather than under the results, because this is the page that can
+					 * spend the lot.** A report page reads one pull; this one reads every kill in every report
+					 * it is given, so a list of five raid nights is a hundred-odd pulls — and the reader
+					 * should see what that costs before pressing, not after. `ApiCredits` already answers it,
+					 * and is the same component the sign-in panel uses reading the same `useApiCredits`, so
+					 * the two cannot disagree about a number the reader may have seen a moment ago.
+					 */}
+					{/*
+					 * Boxed here and bare in the sign-in panel, which is the difference between a paragraph and
+					 * a figure. There it is one more thing to read on the way to signing in; here it is a number
+					 * the reader checks against what they are about to spend, so it gets the same border and
+					 * ground the tiles under it have and reads as something to look *at*.
+					 *
+					 * Wrapped rather than built into `ApiCredits`: the component is shared, and giving it a box
+					 * of its own would put one around the sign-in panel's copy too.
+					 */}
+					{/* `self-start`, so the card is as wide as what it says rather than as wide as the page. */}
+					<div className="self-start rounded-sm border border-line bg-surface px-4 py-3.5 sm:px-[18px] sm:py-4">
+						<ApiCredits />
+					</div>
+				</div>
+			</Section>
 
-				{reports.map((report) => (
-					<Section
-						key={report.code}
-						id={`report-${report.code}`}
-						title={report.code}
-						/*
-						 * Back to the log the numbers came from. This page argues from figures a reader cannot
-						 * check on it, so the way to check them is one click away — and it uses the app's own
-						 * `openInLogs` wording rather than a new phrase for the same act.
-						 *
-						 * A new tab, because leaving loses the run: it is held in memory and coming back is
-						 * another fetch of every pull. `noreferrer` with `noopener` for the ordinary reason.
-						 */
-						action={
-							<a
-								className={secondaryButtonClass}
-								href={`${WCL_REPORT_BASE}/${report.code}`}
-								target="_blank"
-								rel="noopener noreferrer"
+			{/*
+			 * The results and their rail, in the report page's own two-column grid: the same 13rem track,
+			 * the same `minmax(0,1fr)` beside it and the same gap `Report` spells out, so a reader moving
+			 * between the two pages finds the rail in the same place at the same width. Copied rather than
+			 * shared for the reason `ReportSkeleton` copies it too — the pages are separate layouts that
+			 * agree by choice, not two halves of one that must line up.
+			 *
+			 * **Only around the results, which is the whole point of the wrapper being here rather than
+			 * around the page.** The form above it is a full-width block: the rail lists reports and their
+			 * kills, so beside a form nobody has run yet it would be an empty 13rem gutter next to the one
+			 * control that starts the work — and the textarea would lose that width for nothing. Sticky
+			 * positioning travels within its own wrapper, so the rail now begins at the first report
+			 * heading and ends at the last, which is exactly the range it indexes.
+			 *
+			 * Rendered only once there is something to list, for the reason the whole-page grid needed the
+			 * same condition: `ReportNav` renders nothing for an empty list, and a grid whose first child
+			 * is `null` puts the *content* in the 13rem track and squeezes it into the gutter.
+			 */}
+			{reports.length > 0 ? (
+				<div className="lg:grid lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-8">
+					<ReportNav reports={reports} />
+					<div className="flex flex-col gap-6">
+						{reports.map((report) => (
+							<Section
+								key={report.code}
+								id={`report-${report.code}`}
+								title={report.code}
+								/*
+								 * Back to the log the numbers came from. This page argues from figures a reader cannot
+								 * check on it, so the way to check them is one click away — and it uses the app's own
+								 * `openInLogs` wording rather than a new phrase for the same act.
+								 *
+								 * A new tab, because leaving loses the run: it is held in memory and coming back is
+								 * another fetch of every pull. `noreferrer` with `noopener` for the ordinary reason.
+								 */
+								action={
+									<a
+										className={secondaryButtonClass}
+										href={`${WCL_REPORT_BASE}/${report.code}`}
+										target="_blank"
+										rel="noopener noreferrer"
+									>
+										{t('summary.openInLogs')}
+									</a>
+								}
 							>
-								{t('summary.openInLogs')}
-							</a>
-						}
-					>
-						{report.error !== null ? <Note>{report.error}</Note> : null}
-						<div className="mt-4.5 flex flex-col gap-12">
-							{report.fights.map((fight) => (
-								<Fight key={fight.id} code={report.code} fight={fight} />
-							))}
-						</div>
-					</Section>
-				))}
-			</div>
+								{report.error !== null ? <Note>{report.error}</Note> : null}
+								<div className="mt-4.5 flex flex-col gap-12">
+									{report.fights.map((fight) => (
+										<Fight key={fight.id} code={report.code} fight={fight} />
+									))}
+								</div>
+							</Section>
+						))}
+					</div>
+				</div>
+			) : null}
 		</div>
 	);
 }
