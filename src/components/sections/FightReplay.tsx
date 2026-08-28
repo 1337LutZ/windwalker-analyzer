@@ -17,7 +17,7 @@
 // Nothing here grades. There is no range ring and no distance verdict: a coordinate pair knows nothing
 // about the wall between two actors, which `UNITS_PER_YARD` states where the scale is defined.
 
-import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
+import { type CSSProperties, useEffect, useMemo, useState } from 'react';
 import { Dialog } from '@base-ui/react/dialog';
 import { useTranslation } from 'react-i18next';
 
@@ -97,7 +97,17 @@ function ReplayStage({ analysis }: { analysis: Analysis }) {
 	const { t } = useTranslation('report');
 	const replay = analysis.replay;
 	const segments = analysis.segments?.segments ?? [];
-	const [frame, setFrame] = useState(0);
+	/**
+	 * Where playback is, in frames — and a fraction of one.
+	 *
+	 * **The whole number was the jerk.** The track is sampled once a second, so stepping an integer
+	 * teleported every dot a second's worth of ground at a time; at 1× that is a dot standing still and
+	 * then jumping, which reads as the drawing stuttering rather than as somebody walking. A fractional
+	 * index is not a smoothing filter over the data — `buildReplay` already interpolates linearly
+	 * between the samples it has, and this is that same line asked at a finer step. Nothing is invented
+	 * that was not already being claimed by the frame either side.
+	 */
+	const [at, setAt] = useState(0);
 	const [playing, setPlaying] = useState(false);
 	const [speed, setSpeed] = useState<number>(DEFAULT_SPEED);
 	/**
@@ -121,34 +131,37 @@ function ReplayStage({ analysis }: { analysis: Analysis }) {
 	 */
 	const [theme, setTheme] = useState<ChartTheme | null>(null);
 	useEffect(() => setTheme(readTheme()), []);
-	const timer = useRef<ReturnType<typeof setInterval> | null>(null);
-
 	const frames = replay?.frames ?? [];
 	const last = Math.max(0, frames.length - 1);
+	const stepMs = replay?.stepMs ?? 1000;
 
-	// Playback is an interval rather than rAF: the track is sampled at a fixed second and the frames
-	// are what is being stepped through, so there is no sub-frame state for a smoother clock to buy.
+	/**
+	 * Playback, advanced against the clock rather than by a fixed step.
+	 *
+	 * `requestAnimationFrame` and a real elapsed time, so the pull runs at the speed it says it does on
+	 * a frame the browser dropped as well as on one it did not — an interval stepping a whole frame per
+	 * tick drifts as soon as the tab is busy, and drifts differently at each speed.
+	 *
+	 * The reader's speed is a multiple of the fight's own clock: `dt / stepMs` is how many samples that
+	 * many milliseconds covers in real time, so multiplying by it is what `2×` means.
+	 */
 	useEffect(() => {
 		if (!playing) return;
-		timer.current = setInterval(
-			() => {
-				setFrame((f) => {
-					if (f >= last) return f;
-					return f + 1;
-				});
-				// The track is sampled once a second, so a multiple of real time is that step divided by it.
-			},
-			(replay?.stepMs ?? 1000) / speed,
-		);
-		return () => {
-			if (timer.current !== null) clearInterval(timer.current);
-			timer.current = null;
+		let raf = 0;
+		let prev = performance.now();
+		const tick = (now: number) => {
+			const dt = now - prev;
+			prev = now;
+			setAt((p) => Math.min(last, p + (dt / stepMs) * speed));
+			raf = requestAnimationFrame(tick);
 		};
-	}, [playing, last, speed, replay?.stepMs]);
+		raf = requestAnimationFrame(tick);
+		return () => cancelAnimationFrame(raf);
+	}, [playing, last, speed, stepMs]);
 
 	useEffect(() => {
-		if (frame >= last) setPlaying(false);
-	}, [frame, last]);
+		if (at >= last) setPlaying(false);
+	}, [at, last]);
 
 	const projected = useMemo(() => {
 		if (replay === undefined) return null;
@@ -182,11 +195,48 @@ function ReplayStage({ analysis }: { analysis: Analysis }) {
 		return <p className="m-0 text-sm leading-relaxed text-muted">{t('summary.shape.replay.missing')}</p>;
 	}
 
-	const here = frames[Math.min(frame, last)];
-	if (here === undefined) return null;
-	const segment = segmentAt(segments, here.ms);
+	/**
+	 * The pair of samples playback is between, and how far between them it is.
+	 *
+	 * `here` stays the frame a *reading* comes from — the hit flags, the roster of bodies, the target
+	 * mode — because those are facts about a sampled second and blending them would invent a state the
+	 * log never recorded. Only the coordinates are interpolated, which is the one thing on this drawing
+	 * that was continuous in the first place.
+	 */
+	const clamped = Math.max(0, Math.min(at, last));
+	const i0 = Math.floor(clamped);
+	const blend = clamped - i0;
+	const here = frames[Math.round(clamped)];
+	const from = frames[i0];
+	const to = frames[Math.min(i0 + 1, last)];
+	if (here === undefined || from === undefined || to === undefined) return null;
+	const lerp = (a: number, b: number) => a + (b - a) * blend;
+	/** Where the player is now: between the two samples when both have them, and nowhere when either does not. */
+	const selfAt: readonly [number, number] | null =
+		from.self === null || to.self === null
+			? from.self
+			: [lerp(from.self[0], to.self[0]), lerp(from.self[1], to.self[1])];
+	/**
+	 * The bodies, at the point between the two samples.
+	 *
+	 * Walked from the frame being left rather than from the merged set of both: a body that appears only
+	 * in the frame ahead has no line to be drawn along, and drawing it at its arrival point for the
+	 * fraction of a second before it arrives is a claim about where it was. It waits for its own frame.
+	 */
+	const foesAt = from.foes.map((foe) => {
+		const next = to.foes.find((other) => other.key === foe.key);
+		return {
+			...foe,
+			hit: (blend < 0.5 ? foe : (next ?? foe)).hit,
+			x: next === undefined ? foe.x : lerp(foe.x, next.x),
+			y: next === undefined ? foe.y : lerp(foe.y, next.y),
+		};
+	});
+	/** The moment on the fight's clock, blended with the positions so the readout matches the drawing. */
+	const nowMs = lerp(from.ms, to.ms);
+	const segment = segmentAt(segments, nowMs);
 	const present = KEY_ORDER.filter((mode) => segments.some((s) => s.mode === mode));
-	const fraction = last > 0 ? Math.min(frame, last) / last : 0;
+	const fraction = last > 0 ? clamped / last : 0;
 	const grid = 20 * projected.scale;
 
 	return (
@@ -211,7 +261,7 @@ function ReplayStage({ analysis }: { analysis: Analysis }) {
 				    trackpad, and growing the mark itself would make a room full of adds read as a room full of
 				    bigger ones. A body the actor table did not name falls back to its key, which is at least
 				    something to match against the log. */}
-				{here.foes.map((foe) => (
+				{foesAt.map((foe) => (
 					<g
 						key={foe.key}
 						onMouseEnter={(e) =>
@@ -222,7 +272,7 @@ function ReplayStage({ analysis }: { analysis: Analysis }) {
 									title: foe.name === '' ? foe.key : foe.name,
 									tone: foe.hit ? 'miss' : 'ink2',
 									rows: [
-										[t('summary.shape.replay.tipAt'), formatClockFixed(here.ms)],
+										[t('summary.shape.replay.tipAt'), formatClockFixed(nowMs)],
 										[
 											t('summary.shape.replay.tipHit'),
 											t(foe.hit ? 'summary.shape.replay.hitYes' : 'summary.shape.replay.hitNo'),
@@ -250,7 +300,24 @@ function ReplayStage({ analysis }: { analysis: Analysis }) {
 						/>
 					</g>
 				))}
-				{here.self !== null ? (
+				{/* **How far the player could reach, drawn where they were standing.**
+				    The map's whole subject is distance, and a reader has no way to judge one on a room they
+				    have never seen: the ring turns "the pack is over there" into "the pack is two rings
+				    away". Nominal range, not effective — a boss's hitbox adds several yards to melee that
+				    this deliberately leaves out, because a ring nobody can check against the game's own
+				    numbers is a ring that has to be trusted rather than read.
+
+				    Under the marks, and faint: it is the scale the drawing is read at, not a thing on it. */}
+				{selfAt !== null ? (
+					<circle
+						cx={projected.px(selfAt[0])}
+						cy={projected.py(selfAt[1])}
+						r={replay.reach * projected.scale}
+						className="pointer-events-none fill-kick/5 stroke-kick/30"
+						strokeWidth={1}
+					/>
+				) : null}
+				{selfAt !== null ? (
 					<g
 						onMouseEnter={(e) =>
 							setHover({
@@ -259,21 +326,16 @@ function ReplayStage({ analysis }: { analysis: Analysis }) {
 								content: {
 									title: t('summary.shape.replay.you'),
 									tone: 'kick',
-									rows: [[t('summary.shape.replay.tipAt'), formatClockFixed(here.ms)]],
+									rows: [[t('summary.shape.replay.tipAt'), formatClockFixed(nowMs)]],
 								},
 							})
 						}
 						onMouseLeave={() => setHover(null)}
 					>
+						<circle cx={projected.px(selfAt[0])} cy={projected.py(selfAt[1])} r={HIT} className="fill-transparent" />
 						<circle
-							cx={projected.px(here.self[0])}
-							cy={projected.py(here.self[1])}
-							r={HIT}
-							className="fill-transparent"
-						/>
-						<circle
-							cx={projected.px(here.self[0])}
-							cy={projected.py(here.self[1])}
+							cx={projected.px(selfAt[0])}
+							cy={projected.py(selfAt[1])}
 							r={6}
 							className="pointer-events-none fill-kick stroke-track"
 							strokeWidth={2}
@@ -355,10 +417,14 @@ function ReplayStage({ analysis }: { analysis: Analysis }) {
 						type="range"
 						min={0}
 						max={last}
-						value={Math.min(frame, last)}
+						// `step="any"` so the handle rides the same continuous position the drawing does. With a
+						// step of one it snapped to whole samples while the dots moved between them, and the
+						// bar and the map disagreed about where the pull was by up to half a second.
+						step="any"
+						value={clamped}
 						onChange={(e) => {
 							setPlaying(false);
-							setFrame(Number(e.target.value));
+							setAt(Number(e.target.value));
 						}}
 						style={{ '--range-track': 'transparent' } as CSSProperties}
 						className="relative w-full"
@@ -376,7 +442,7 @@ function ReplayStage({ analysis }: { analysis: Analysis }) {
 					    fractional digits here would be three zeroes on every frame — a precision the readout
 					    would be claiming and the data does not have. The padding is what it is here for,
 					    since this string changes while the reader drags. */}
-					{t('summary.shape.replay.clock', { at: here.ms, of: analysis.durationMs })}
+					{t('summary.shape.replay.clock', { at: nowMs, of: analysis.durationMs })}
 				</span>
 			</div>
 

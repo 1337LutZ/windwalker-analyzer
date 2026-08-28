@@ -39,6 +39,22 @@ import { isCast, isDamage, type WclEvent } from '~/lib/events';
 export const UNITS_PER_YARD = 100;
 
 /**
+ * The two ranges a replay draws around the player, in yards.
+ *
+ * Nominal weapon ranges, not effective ones: a boss's hitbox adds several yards to melee in practice,
+ * and a ring that quietly included it would be a ring nobody could check against the game's own
+ * numbers. The drawing is a sense of scale — "the pack is two rings away" — and never a test.
+ *
+ * Which of the two a spec gets is the spec's own answer — `SpecDefinition.reachYards`, taken from the
+ * sim's model of it. It was briefly inferred here from how far the player stood from what they hit,
+ * which reads well and is the wrong shape: a caster who spent a pull in melee would have been handed a
+ * melee ring, and the question "how far can this spec reach" has an answer that does not depend on one
+ * pull. A new spec declares it the way it declares its GCD.
+ */
+export const MELEE_YARDS = 5;
+export const CASTER_YARDS = 40;
+
+/**
  * How often the track is sampled.
  *
  * One second, which is the resolution the rest of the report's timelines are read at and fine enough
@@ -104,6 +120,8 @@ export interface ReplayTrack {
 	bounds: { minX: number; maxX: number; minY: number; maxY: number };
 	/** The map the positions are on. Every frame of a pull shares one; a pull that spans two is dropped. */
 	mapID: number;
+	/** How far this spec reaches, in yards — `SpecDefinition.reachYards`, carried so the drawing has it. */
+	reach: number;
 	frames: readonly ReplayFrame[];
 }
 
@@ -177,12 +195,14 @@ function sampledNear(samples: readonly Sample[], ms: number, tol: number): boole
  * @param events the player's own stream, in timestamp order
  * @param fightStartMs absolute report time of the pull's start, to make frames fight-relative
  * @param durationMs the pull's length
+ * @param reach how far this spec reaches, in yards — `SpecDefinition.reachYards`
  * @param nameOf report actor ids to names, so each body can carry its own label
  */
 export function buildReplay(
 	events: readonly WclEvent[],
 	fightStartMs: number,
 	durationMs: number,
+	reach: number,
 	nameOf?: ReadonlyMap<number, string>,
 ): ReplayTrack | undefined {
 	if (durationMs <= 0) return undefined;
@@ -266,6 +286,7 @@ export function buildReplay(
 		stepMs: REPLAY_STEP_MS,
 		bounds: { minX: Math.floor(minX), maxX: Math.ceil(maxX), minY: Math.floor(minY), maxY: Math.ceil(maxY) },
 		mapID,
+		reach,
 		frames,
 	};
 }

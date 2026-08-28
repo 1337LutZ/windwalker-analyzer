@@ -129,6 +129,19 @@ export interface SpecDefinition {
 	analyse(dataset: FightDataset, settings?: AnalysisSettings, mode?: AnalysisMode): Analysis;
 	/** One global's length, from the engine config so the two cannot disagree. */
 	gcdMs: number;
+	/**
+	 * How far this spec reaches, in yards: `MELEE_YARDS` for a melee spec, `CASTER_YARDS` for a caster.
+	 *
+	 * **Declared, not inferred, and the sim is where the answer comes from.** The replay draws this as a
+	 * ring around the player, which is the only thing on that map that turns a distance into something a
+	 * reader can judge. It was briefly measured off each pull's own hit distances instead — which reads
+	 * well and answers the wrong question: a caster who spent one pull in melee would have got a melee
+	 * ring, and how far a spec can reach is not a fact about one pull.
+	 *
+	 * A new spec sets it the way it sets `gcdMs` — from the sim's model of the spec, not from a guess
+	 * about the class. See the spec checklist in `.claude/skills/wcl-analyzer/SKILL.md`.
+	 */
+	reachYards: number;
 	/** Whether a pull's events are actually this spec — the refusal hook. */
 	identify(h: Handles): boolean;
 	/**
@@ -284,6 +297,7 @@ export const SPECS: SpecDefinition[] = [
 		registry: windwalkerRegistry,
 		analyse,
 		gcdMs: WW_SPEC.gcdMs,
+		reachYards: WW_SPEC.reachYards,
 		identify: WW_SPEC.identify,
 		score: scoreAnalysis,
 		weightsFor,
@@ -311,6 +325,7 @@ export const SPECS: SpecDefinition[] = [
 		registry: elementalRegistry,
 		analyse: analyseElemental,
 		gcdMs: ELEMENTAL_SPEC.gcdMs,
+		reachYards: ELEMENTAL_SPEC.reachYards,
 		identify: ELEMENTAL_SPEC.identify,
 		score: scoreElemental,
 		weightsFor: weightsForElemental,
@@ -339,6 +354,7 @@ export const SPECS: SpecDefinition[] = [
 		registry: protectionRegistry,
 		analyse: analyseProtection,
 		gcdMs: PROTECTION_SPEC.gcdMs,
+		reachYards: PROTECTION_SPEC.reachYards,
 		identify: PROTECTION_SPEC.identify,
 		score: scoreProtection,
 		weightsFor: weightsForProtection,

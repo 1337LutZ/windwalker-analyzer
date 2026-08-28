@@ -486,9 +486,9 @@ copy itself follows — say it once, outside the arms.
      src/lib/i18n/__tests__/conventionsCensus.test.ts. Re-run the block above and paste the whole set
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
-As of the fight replay, it prints 1766 leaves, 835 prose, 27,673
-words; median 27, p75 45, p90 65, p95 78, p99 110, max 204; longest 9% carry 24%; report.json 758 prose
-leaves, 1,350 sentences, median 17, 287 past 25 (21.3%), 294 em-dashes in 253 sentences (18.7%);
+As of the fight replay, it prints 1766 leaves, 835 prose, 27,692
+words; median 27, p75 45, p90 65, p95 79, p99 110, max 204; longest 9% carry 24%; report.json 758 prose
+leaves, 1,351 sentences, median 17, 287 past 25 (21.2%), 294 em-dashes in 253 sentences (18.7%);
 71 / 30 / 1 / 2 on the quote lines.
 
 Eight leaves and three sentences, the smallest block to move this census in some time: six column
@@ -551,7 +551,9 @@ sentence was added to the note, which is the only string in the family to have g
 for the same reason: the map keeps learning to say something a reader would otherwise have to infer from
 a colour. The last two are the playback speed's label and the `{{rate}}×` its four switches are drawn
 from — two leaves for a control with four positions, which is what a formatted label buys over four
-spelled-out ones.
+spelled-out ones. The note took its third sentence in the same pass — the ring around the player — and
+that is what moved p95 by a word: it is now the second-longest string in the family, and the family is
+small enough for one sentence to shift a percentile.
 
 **The note is the one long string, and it is long on purpose.** A replay that draws a dot where the log
 last saw someone invites two wrong readings — that a missing enemy was not there, and that a short

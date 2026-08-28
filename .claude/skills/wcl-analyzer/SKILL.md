@@ -276,6 +276,12 @@ does owe:
 - **`Ability.castIds` and `damageIds` in full.** One button logs under several ids: Jab has one per
   weapon type. A spec that declares one of them drops every cast by anyone holding the other weapon,
   and on the compare page it splits one button into two half-empty rows.
+- **`SpecConfig.reachYards`** — `MELEE_YARDS` or `CASTER_YARDS` from `lib/analysis/replay`, taken from
+  **the sim's model of the spec** rather than from a guess about the class. The replay draws it as a
+  ring around the player, and it is the only thing on that map that turns a distance into something a
+  reader can judge. It is not inferred from the pull: measuring how far the player stood from what they
+  hit reads well and answers a different question, and would hand a caster who spent one pull in melee a
+  five-yard ring. Mirror it onto `SpecDefinition` beside `gcdMs`, the way `gcdMs` itself is mirrored.
 - **A regenerated `spells.json`, once the spec's fixtures are committed.** Discovery reads both fixture
   shapes — an `Analysis` through `damage.abilities` and `casts`, a `FightDataset` through the captured
   actor's own events — so committing the fixtures and re-running the generator is the whole step.

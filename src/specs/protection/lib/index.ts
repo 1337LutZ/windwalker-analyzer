@@ -18,6 +18,7 @@
 // the fight enforced, and what is left over for the player. Neither is subtracted from the other,
 // which is the fork's rule and the reason the section can be read at all.
 
+import { MELEE_YARDS } from '~/lib/analysis/replay';
 import { enforcedDowntime, type EnforcedDowntime } from '~/lib/analysis/enforced';
 import { executeWindows } from '~/lib/analysis/execute';
 import { buildHasteCurve, checkHaste, SEAL_OF_INSIGHT_HASTE, type HasteCurve } from '~/lib/analysis/haste';
@@ -639,6 +640,7 @@ function protectionAudit(h: Handles): ProtectionAudit {
 		chi: { max: 0, points: [] },
 		regenPerSec: 0,
 		gcdMs: GCD_MS,
+		// The sim models Protection in melee; Avenger's Shield and Judgment are the two ranged presses and
 		pullMs: h.duration,
 		auras: aplAuras,
 		fofChannelSec: 0,
@@ -813,6 +815,8 @@ export const PROTECTION_SPEC: SpecConfig = {
 	// median at this, and Sanctity of Battle puts every geared pull on the floor — so a cap of 1500
 	// here would let a mis-measured median through as a plausible number.
 	gcdMs: GCD_MS,
+	// The sim models Protection in melee: the two ranged presses are openers, not where it stands.
+	reachYards: MELEE_YARDS,
 	extraNames: EXTRA_NAMES,
 	extraGlobals: EXTRA_GLOBALS,
 	/**

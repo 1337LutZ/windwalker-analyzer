@@ -11,6 +11,7 @@
 //
 // Ids are verified against qDZ2J7v4CP98aQmV #57 and KvCazMYkqZxfjRBg #48 (Garrosh HC 25).
 
+import { MELEE_YARDS } from '~/lib/analysis/replay';
 import { abilityIdOf, instanceKey, isAbsorbed, isCast, isResourceChange, resourceActorOf } from '~/lib/events';
 import { formatGap } from '~/lib/format';
 import type { Ability, Aura, Channel, GameData } from '~/lib/game/model';
@@ -1742,6 +1743,8 @@ export const WW_SPEC: SpecConfig = {
 	specName: 'Windwalker',
 	registry,
 	gcdMs: GCD_MS,
+	// Every Windwalker button is swung: the sim models the whole ladder at melee range.
+	reachYards: MELEE_YARDS,
 	extraNames: EXTRA_NAMES,
 	extraGlobals: EXTRA_GLOBALS,
 	// The two bars the rotation spends, named by the sim's own vocabulary and audited by the engine:

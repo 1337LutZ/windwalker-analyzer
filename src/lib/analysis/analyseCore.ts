@@ -316,6 +316,16 @@ export interface SpecConfig {
 	registry: Registry;
 	/** One global's length. Windwalker's abilities cost energy and chi, so haste does not shorten it. */
 	gcdMs: number;
+	/**
+	 * How far this spec reaches, in yards — `MELEE_YARDS` or `CASTER_YARDS` from `./replay`.
+	 *
+	 * **Declared, and the sim is where the answer comes from.** The replay draws it as a ring around the
+	 * player, which is the only thing on that map turning a distance into something a reader can judge.
+	 * It was briefly measured off each pull's own hit distances instead, which reads well and answers a
+	 * different question: a caster who spent one pull in melee would have been handed a melee ring, and
+	 * how far a spec reaches is not a fact about one pull. Set it the way `gcdMs` is set.
+	 */
+	reachYards: number;
 	/** Names for ids the model deliberately does not carry — see the module doc in `spec/windwalker`. */
 	extraNames: Record<number, string>;
 	/**
@@ -1290,7 +1300,7 @@ export function analyseCore(
 	 * resource block the fetch already asks for. Undefined on a capture taken before `includeResources`
 	 * reached this query, which is why the field is optional — see `buildReplay`.
 	 */
-	const replay = buildReplay(events, t0, duration, actorNames);
+	const replay = buildReplay(events, t0, duration, spec.reachYards, actorNames);
 	/**
 	 * The stretches the **aoe** priority list was the applicable one — three enemies or more.
 	 *
