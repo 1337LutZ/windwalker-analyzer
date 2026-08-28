@@ -52,8 +52,6 @@ export default function ReferenceNote({ analysis }: { analysis: Analysis }) {
 		(acc, { cell }) => ({ lowest: Math.min(acc.lowest, cell.p50), highest: Math.max(acc.highest, cell.p50) }),
 		{ lowest: Infinity, highest: -Infinity },
 	);
-	const thinnest = rows.reduce((worst, row) => (row.cell.n < worst.cell.n ? row : worst), rows[0]!);
-
 	// The typical give-or-take across this spec's encounters. Median rather than mean, so one very thin
 	// encounter does not describe the rest.
 	const widths = rows.map(({ cell }) => cell.ci).filter((ci): ci is number => typeof ci === 'number');
@@ -92,7 +90,6 @@ export default function ReferenceNote({ analysis }: { analysis: Analysis }) {
 				description={t('method.reference.dialogIntent', {
 					pulls: mine.sourcePulls,
 					builtAt: table.builtAt ?? '—',
-					thinnest: thinnest.cell.n,
 				})}
 			>
 				{typical === null ? null : (

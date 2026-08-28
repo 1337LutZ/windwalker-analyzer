@@ -428,7 +428,7 @@
       "summary": "The globals target on each fight is read off real kills rather than picked: {{pulls}} heroic Siege kills across {{encounters}} encounters, last refreshed {{builtAt}}. It matters because the fight moves this number further than the player does — the easiest encounter in the set sits at {{highest, percent}} and the hardest at {{lowest, percent}}, a swing of {{swing, decimal}} points before anyone presses a button.",
       "open": "See the per-encounter figures",
       "dialogTitle": "What each fight actually costs",
-      "dialogIntent": "Each bar is the whole scale from 50 to 100, cut where ok begins and again where good begins, in the same three colours the scorecard uses. A wide middle stretch is a fight that leaves room between the two. Drawn from {{pulls}} kills, last refreshed {{builtAt}}. The thinnest encounter rests on {{thinnest}} kills.",
+      "dialogIntent": "ok is the median kill on a fight, good its ninetieth percentile. Read off {{pulls}} heroic kills spanning the full range of parses, refreshed {{builtAt}}.",
       "none": "No reference sweep has covered this spec yet, so its globals target is still a fixed number rather than one read off the encounter. Said here rather than left implied, because a missing reference and an easy raid look identical on the page.",
       "firmness": "On a different draw of the same kills, where good sits would typically move about {{typical}} points either way. Treat a difference smaller than that as the sample talking, not the fight.",
       "colEncounter": "Fight",
