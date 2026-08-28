@@ -1,43 +1,15 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { FightSegment, SegmentMode } from '~/lib/analysis/segments';
+import type { FightSegment } from '~/lib/analysis/segments';
 import type { Analysis } from '~/lib/types';
 
 import ChartKey from '../charts/ChartKey';
 import FightReplay from './FightReplay';
-import { KEY_ORDER, segmentLabel, segmentLength } from './segmentCopy';
+import { KEY_ORDER, segmentLabel, segmentLength, shortOf } from './segmentCopy';
 import ScrollableTrack from '../charts/ScrollableTrack';
 import SegmentLane, { type LaneSpan } from '../charts/SegmentLane';
 import { ChartFigure } from '../primitives';
-
-/**
- * What goes inside a bar wide enough to hold it. Never the only thing that says which mode it is.
- *
- * `mixed` is absent on purpose: a bare `~` says only "it moved", which is the one thing the bar's own
- * hatch already says, and it left the longest stretch of some pulls as the least informative bar on
- * the chart — a reader looking at 86 seconds of Garrosh was told nothing about what was in it.
- * `shortOf` fills it from the segment's own median instead.
- */
-const SHORT: Record<Exclude<SegmentMode, 'mixed'>, string> = {
-	single: '1',
-	cleave: '2',
-	aoe: '3+',
-	idle: '—',
-};
-
-/**
- * The count to write on a bar, which for a mixed stretch is the middle of what it held.
- *
- * `~2` reads as "about two, and it moved", which is both halves of what `mixed` means and is what the
- * segment already measured — `medianEnemies` is the median over the stretch's own clock. A count of
- * three or more takes the same `3+` the aoe bars use, so the two are read off one scale.
- */
-function shortOf(segment: { mode: SegmentMode; medianEnemies: number }): string {
-	if (segment.mode !== 'mixed') return SHORT[segment.mode];
-	const median = Math.round(segment.medianEnemies);
-	return median >= 3 ? '~3+' : `~${Math.max(1, median)}`;
-}
 
 /**
  * The pull cut into the stretches it was actually fought in, drawn once across the top of the report.
@@ -165,4 +137,4 @@ export default function SegmentStrip({
 	);
 }
 
-export { KEY_ORDER, segmentLabel, segmentLength };
+export { KEY_ORDER, segmentLabel, segmentLength, shortOf };

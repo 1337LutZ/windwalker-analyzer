@@ -486,7 +486,7 @@ copy itself follows — say it once, outside the arms.
      src/lib/i18n/__tests__/conventionsCensus.test.ts. Re-run the block above and paste the whole set
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
-As of the fight replay, it prints 1769 leaves, 836 prose, 27,705
+As of the target-mode band, it prints 1770 leaves, 836 prose, 27,705
 words; median 27, p75 45, p90 65, p95 79, p99 110, max 204; longest 9% carry 24%; report.json 758 prose
 leaves, 1,351 sentences, median 17, 287 past 25 (21.2%), 294 em-dashes in 253 sentences (18.7%);
 71 / 30 / 1 / 2 on the quote lines.

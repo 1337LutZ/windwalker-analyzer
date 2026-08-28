@@ -7,7 +7,10 @@
 // the other at module scope. Nothing here renders — an order and two functions of a segment and a
 // translator — which is why this is the half that moves.
 //
-// All three stay re-exported from `SegmentStrip` so existing callers are untouched.
+// All four stay re-exported from `SegmentStrip` so existing callers are untouched. `shortOf` joined
+// them when the timeline grew a shape row of its own: `charts/` cannot import `sections/SegmentStrip`
+// without closing the cycle that module already imports `charts/` to make, and this file imports
+// nothing from `charts/`, which is the whole point of it.
 
 import { type TFunction } from 'i18next';
 
@@ -57,4 +60,32 @@ export function segmentLabel(segment: FightSegment, t: TFunction<'report'>): str
 /** How long it ran, in the strip's own words. Exported beside `segmentLabel`, for the same reason. */
 export function segmentLength(segment: FightSegment, t: TFunction<'report'>): string {
 	return t('summary.shape.length', { seconds: Math.round((segment.endMs - segment.startMs) / 1000) });
+}
+
+/**
+ * What goes inside a bar wide enough to hold it. Never the only thing that says which mode it is.
+ *
+ * `mixed` is absent on purpose: a bare `~` says only "it moved", which is the one thing the bar's own
+ * hatch already says, and it left the longest stretch of some pulls as the least informative bar on
+ * the chart — a reader looking at 86 seconds of Garrosh was told nothing about what was in it.
+ * `shortOf` fills it from the segment's own median instead.
+ */
+const SHORT: Record<Exclude<SegmentMode, 'mixed'>, string> = {
+	single: '1',
+	cleave: '2',
+	aoe: '3+',
+	idle: '—',
+};
+
+/**
+ * The count to write on a bar, which for a mixed stretch is the middle of what it held.
+ *
+ * `~2` reads as "about two, and it moved", which is both halves of what `mixed` means and is what the
+ * segment already measured — `medianEnemies` is the median over the stretch's own clock. A count of
+ * three or more takes the same `3+` the aoe bars use, so the two are read off one scale.
+ */
+export function shortOf(segment: { mode: SegmentMode; medianEnemies: number }): string {
+	if (segment.mode !== 'mixed') return SHORT[segment.mode];
+	const median = Math.round(segment.medianEnemies);
+	return median >= 3 ? '~3+' : `~${Math.max(1, median)}`;
 }

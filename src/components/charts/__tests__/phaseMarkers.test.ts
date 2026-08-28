@@ -78,7 +78,7 @@ const asPct = (value: string): number => Number.parseFloat(value);
  * top rather than centred.
  */
 const gutterHeights = (html: string): [number | null, number | null] => [
-	Number.parseInt(/style="width:[\d.]+px;height:(\d+)px"/.exec(html)?.[1] ?? '', 10) || null,
+	Number.parseInt(/data-band="phases"[^>]*style="width:[\d.]+px;height:(\d+)px"/.exec(html)?.[1] ?? '', 10) || null,
 	Number.parseInt(/items-start[^"]*"\s*style="height:(\d+)px"/.exec(html)?.[1] ?? '', 10) || null,
 ];
 

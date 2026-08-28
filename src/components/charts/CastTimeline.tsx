@@ -51,10 +51,11 @@ import { GCD_ICON_PX, commitOf, packCasts } from './castRows';
 import { DEFAULT_ZOOM, ZOOM_LADDER, tickStepMs, useDragScroll } from './scroll';
 import ResourceTrack, { type Shade, type ShadeWindow } from './ResourceTrack';
 import { cappedOf, emptiedOf } from './capped';
-import { BAND } from './tones';
+import { BAND, COUNT } from './tones';
 import { RESOURCE_TYPE } from '~/lib/game/resources';
 import { HIDDEN_CASTS, drawnCastsOf, drawnLanesOf, hiddenNames } from './hidden';
 import { collapseTargets, perTargetBlock } from './targetLanes';
+import { segmentLabel, segmentLength, shortOf } from '~/components/sections/segmentCopy';
 import { useSpec } from '~/components/report/specContext';
 import { led, rowRank } from './timelineOrder';
 import type { Registry } from '~/lib/game/registry';
@@ -282,6 +283,38 @@ interface PhaseMark {
 }
 /** Stable identity for a pull WarcraftLogs reports no phases for, which is 6 of the 14 in this zone. */
 const NO_PHASES: PhaseMark[] = [];
+
+/**
+ * The target-mode band: one row, above everything, drawn in the enemy-count ramp.
+ *
+ * **The same reading `SegmentStrip` draws in the summary, on the axis a reader is actually scrubbing.**
+ * The strip upstairs is a proportional lane and this chart pans and zooms, so holding one against the
+ * other worked for exactly as long as it took to scrub once. Here it shares the track's own box and
+ * the same percentages, which is what makes "was this press in AoE" a question a reader answers by
+ * looking up rather than by scrolling.
+ *
+ * **Above the phase gutter, not below it.** Both are context rather than the player's doing, and of
+ * the two this is the one every row underneath is read against — a cooldown pressed into three
+ * enemies is a different press from the same one on a boss. The boss's script comes second.
+ *
+ * `ROW_PX` for the reason the phase gutter takes it: 24px is one row's worth of annotation, and a
+ * band that claims space here claims it in the label column too or every name below it slides.
+ */
+const SHAPE_ROW_PX = ROW_PX;
+
+/**
+ * How wide a character of the band's own label is, against the 10px marks `LABEL_CHAR_PX` was measured
+ * on.
+ *
+ * The band is set at `text-sm` to match the strip in the summary — the same reading drawn twice should
+ * not be drawn at two sizes — and 14px mono is half again as wide as the type every other label on this
+ * chart uses. Without this `labelFits` would clear a bar at ten pixels a character and the browser
+ * would then clip it at fourteen, which is the one failure a fit test exists to prevent.
+ */
+const SHAPE_CHAR_PX = 9;
+
+/** The band label's own `px-1`, both sides — what it needs on top of its characters. */
+const SHAPE_LABEL_PAD_PX = 8;
 
 /**
  * One row of the phase gutter: 24px, the request's own number, and one row of the chart.
@@ -1613,6 +1646,30 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 	 * entirely, so "no phases" is the common case and not the edge. A band reserved for markers that do
 	 * not exist would push every one of those reports down by a row to say nothing.
 	 */
+	/**
+	 * The pull cut into stretches of one target count — `analysis.segments`, in this chart's vocabulary.
+	 *
+	 * Nothing under two stretches, which is the rule `SegmentStrip` already keeps: one bar spanning the
+	 * whole clock is a whole-pull reading, and a band that says only "this was a single-target fight"
+	 * costs a row to repeat the headline.
+	 *
+	 * The copy comes from `sections/segmentCopy` rather than being written again here — the strip and
+	 * this band are two drawings of one reading, and a reader who hovers a bar in each should not meet
+	 * two spellings of the same answer.
+	 */
+	const shapeSpans = useMemo(() => {
+		const segments = analysis.segments?.segments ?? [];
+		if (segments.length < 2) return [];
+		return segments.map((segment) => ({
+			startMs: segment.startMs,
+			endMs: segment.endMs,
+			mode: segment.mode,
+			label: segmentLabel(segment, t),
+			lengthLabel: segmentLength(segment, t),
+			short: shortOf(segment),
+		}));
+	}, [analysis.segments, t]);
+	const shapeGutterPx = shapeSpans.length === 0 ? 0 : SHAPE_ROW_PX;
 	const phaseGutterPx = phases.length === 0 ? 0 : phaseRows * PHASE_ROW_PX;
 	const stepMs = tickStepMs(pxPerSec);
 	// Room for two digits and a breath, converted from pixels into fight time at the current zoom —
@@ -2463,6 +2520,14 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 					    first row of labels instead of between the two. No hairline, unlike every row below:
 					    the rule under a lane separates it from the next lane, and what is under this is the
 					    chart. */}
+					{/* The target-mode band's row in this column, first of all because the band is first on the
+					    track. Named, not a spacer, for the reason the phase row states: the two columns line up
+					    only because they draw the same rows in the same order at the same heights. */}
+					{shapeGutterPx === 0 ? null : (
+						<div className="flex items-center gap-2 pr-2" style={{ height: shapeGutterPx }}>
+							<span className="truncate font-mono text-sm text-ink-2">{t('castLog.shape.title')}</span>
+						</div>
+					)}
 					{phaseGutterPx === 0 ? null : (
 						<div className="flex items-start gap-2 pr-2" style={{ height: phaseGutterPx }}>
 							<span className="truncate font-mono text-sm leading-6 text-ink-2">{t('castLog.phase.title')}</span>
@@ -2572,8 +2637,79 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 					    Nothing at all when the pull has no phases — see `phaseGutterPx`. The label column opens
 					    with the matching row, named, at the same height and read off the same number, which is
 					    what keeps the two columns agreeing about which row is which. */}
+					{/* The pull's shape, above everything, in the count ramp.
+
+					    Inside the scroller and the same `trackPx` wide as the track, which is the whole reason
+					    it is here rather than in the summary: the percentages resolve against the same box, so a
+					    bar sits over its own moment at every zoom and pans with the presses beneath it. It is
+					    also inside the pointer listener that fills the shared tooltip, so each stretch names
+					    itself in words the way every other mark on this chart does.
+
+					    **The colour is never the only thing carrying the count.** The row is named in the
+					    column beside it, every bar wide enough writes its own count, and every bar whatever its
+					    width says which mode it is on hover — the three the strip in the summary keeps, and the
+					    condition for a ramp being usable at all. `border-r border-bg` is the hairline that makes
+					    a run of stretches read as a run: these tile the clock, so one ends exactly where the
+					    next begins. */}
+					{shapeGutterPx === 0 ? null : (
+						// Named, because two bands now carry a width and a height together and "the first box that
+						// does" was how the tests told the phase gutter apart from everything else.
+						<div data-band="target-mode" className="relative" style={{ width: trackPx, height: shapeGutterPx }}>
+							{shapeSpans.map((stretch) => (
+								<span
+									key={stretch.startMs}
+									// `overflow-clip` and deliberately not `overflow-hidden`, which is what this was: hidden
+									// makes the bar a scroll container, and a scroll container is what a sticky descendant
+									// resolves against — so the count below would have stuck to the bar it is already inside
+									// and never moved. Clip does the same painting job without becoming one, which leaves
+									// the horizontal scroller as the nearest scrollport and the sticky rule meaningful.
+									className={`pointer-events-auto absolute inset-y-0 flex items-center overflow-clip border-r border-bg ${COUNT[stretch.mode].fill}`}
+									style={{
+										left: pct(stretch.startMs, span),
+										width: pct(stretch.endMs - stretch.startMs, span),
+									}}
+									title={`${stretch.label} · ${stretch.lengthLabel}`}
+									data-tip={stretch.label}
+									// The ramp is three steps of one violet and the theme has no title colour for it, so
+									// it reads as `rune` — the violet the report already spends on procs — and `idle` as
+									// `track`, the grey every chart uses for time it left out of its figures. The title
+									// line names the mode in words, so the tint is never what says which bar it is.
+									data-tip-tone={stretch.mode === 'idle' ? 'track' : 'rune'}
+									data-tip-from={formatStamp(stretch.startMs)}
+									data-tip-to={formatStamp(stretch.endMs)}
+								>
+									{/* The count, stuck to the left edge of the scroller for as long as its own stretch is
+									    on screen.
+
+									    **A stretch is minutes long and the viewport is seconds wide.** Scrolled into the
+									    middle of one, a centred label is off screen in one direction or the other, so the
+									    reader is looking at a colour and has to scrub to either end to learn what it means —
+									    on a chart whose whole argument is "what was up when I pressed this". Sticky is the
+									    one mechanism that answers it without drawing the label more than once: the browser
+									    clamps it to its own bar, so it slides in at the stretch's leading edge, rides the
+									    scroll, and stops at the trailing edge rather than wandering into the next mode.
+
+									    Still gated on `labelFits`, which is a question about the *bar* and not about the
+									    label's position: a stretch too narrow to hold two characters is too narrow whether
+									    they are pinned or centred, and the tooltip is what serves it. */}
+									{labelFits(
+										stretch.short,
+										stretch.endMs - stretch.startMs,
+										pxPerSec,
+										stretch.short.length * (SHAPE_CHAR_PX - LABEL_CHAR_PX) + SHAPE_LABEL_PAD_PX,
+									) ? (
+										<span
+											className={`sticky left-0 px-1 font-mono text-sm font-semibold tabular ${COUNT[stretch.mode].ink}`}
+										>
+											{stretch.short}
+										</span>
+									) : null}
+								</span>
+							))}
+						</div>
+					)}
 					{phaseGutterPx === 0 ? null : (
-						<div className="relative" style={{ width: trackPx, height: phaseGutterPx }}>
+						<div data-band="phases" className="relative" style={{ width: trackPx, height: phaseGutterPx }}>
 							{placedPhases.map(({ mark, label, row }) => (
 								<span
 									// Both, because the id repeats within a pull and only the pair is unique.

@@ -1980,8 +1980,9 @@ describe('CastTimeline, the boss’s phases', () => {
 		// No row in the label column either, named or otherwise: the column opens on its first resource.
 		expect(bare).not.toContain('>Phase</span>');
 		expect(bare).not.toContain('<div class="flex items-start gap-2 pr-2"');
-		// And no gutter, which is the only box on the chart carrying a width and a height together.
-		expect(bare).not.toMatch(/style="width:[\d.]+px;height:/);
+		// And no gutter. Named rather than "the only box carrying a width and a height together", which it
+		// stopped being when the target-mode band arrived above it carrying exactly that pair.
+		expect(bare).not.toContain('data-band="phases"');
 	});
 
 	/**

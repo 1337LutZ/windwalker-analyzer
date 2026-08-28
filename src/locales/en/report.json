@@ -477,6 +477,9 @@
   },
   "castLog": {
     "title": "Timeline",
+    "shape": {
+      "title": "Target mode"
+    },
     "intent": "Every press as its own icon at the moment it went out, with buffs, procs and the Rising Sun Kick debuff drawn as bars underneath. Read down from a button to see what was up when you pressed it. Turn off what you are not looking at, zoom to separate one global from the next, and scroll sideways through the pull.",
     "empty": "No casts and no buff windows were recorded for this pull, so there is nothing to draw.",
     "expand": "Open full width",
