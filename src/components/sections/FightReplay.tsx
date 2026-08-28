@@ -31,6 +31,7 @@ import Tooltip from '../charts/Tooltip';
 import type { TipContent } from '../charts/tooltip';
 import { COUNT } from '../charts/tones';
 import { DialogShell, StatTiles } from '../primitives';
+import { compactChoiceClass } from '../primitives/controls';
 import { buttonClass } from '../primitives/controls';
 import { KEY_ORDER } from './segmentCopy';
 
@@ -59,8 +60,20 @@ const PAD = 26;
 const HIT = 11;
 /** How far the card sits from the pointer, and off the viewport edges. Matches the cast timeline. */
 const TIP_OFFSET_PX = 14;
-/** How fast playback runs, in real ms per frame. Roughly 12× — a seven-minute pull in about 35 seconds. */
-const TICK_MS = 80;
+/**
+ * How much faster than the fight playback may run.
+ *
+ * It used to be one hidden number — a frame every 80ms, so a seven-minute pull in about 35 seconds —
+ * and that is far too quick for the thing this is for: a reader watching *where somebody was* has to
+ * be able to follow one dot, and at 12× an add wave arrives and dies between glances.
+ *
+ * Real time is the floor and the honest reading, and it is unusable on its own — nobody watches seven
+ * minutes of a raid boss to check a position — so it is offered rather than imposed. The default is
+ * the middle of the range: quick enough to cross a pull in under a minute, slow enough that a wave
+ * lands as an event rather than as a flicker.
+ */
+const SPEEDS = [1, 2, 5, 10] as const;
+const DEFAULT_SPEED = 5;
 
 /**
  * The segment covering a moment, or undefined before the first and after the last.
@@ -86,6 +99,7 @@ function ReplayStage({ analysis }: { analysis: Analysis }) {
 	const segments = analysis.segments?.segments ?? [];
 	const [frame, setFrame] = useState(0);
 	const [playing, setPlaying] = useState(false);
+	const [speed, setSpeed] = useState<number>(DEFAULT_SPEED);
 	/**
 	 * The mark under the pointer, and where to put the card that names it.
 	 *
@@ -116,17 +130,21 @@ function ReplayStage({ analysis }: { analysis: Analysis }) {
 	// are what is being stepped through, so there is no sub-frame state for a smoother clock to buy.
 	useEffect(() => {
 		if (!playing) return;
-		timer.current = setInterval(() => {
-			setFrame((f) => {
-				if (f >= last) return f;
-				return f + 1;
-			});
-		}, TICK_MS);
+		timer.current = setInterval(
+			() => {
+				setFrame((f) => {
+					if (f >= last) return f;
+					return f + 1;
+				});
+				// The track is sampled once a second, so a multiple of real time is that step divided by it.
+			},
+			(replay?.stepMs ?? 1000) / speed,
+		);
 		return () => {
 			if (timer.current !== null) clearInterval(timer.current);
 			timer.current = null;
 		};
-	}, [playing, last]);
+	}, [playing, last, speed, replay?.stepMs]);
 
 	useEffect(() => {
 		if (frame >= last) setPlaying(false);
@@ -202,22 +220,33 @@ function ReplayStage({ analysis }: { analysis: Analysis }) {
 								y: e.clientY,
 								content: {
 									title: foe.name === '' ? foe.key : foe.name,
-									tone: 'ink2',
-									rows: [[t('summary.shape.replay.tipAt'), formatClockFixed(here.ms)]],
+									tone: foe.hit ? 'miss' : 'ink2',
+									rows: [
+										[t('summary.shape.replay.tipAt'), formatClockFixed(here.ms)],
+										[
+											t('summary.shape.replay.tipHit'),
+											t(foe.hit ? 'summary.shape.replay.hitYes' : 'summary.shape.replay.hitNo'),
+										],
+									],
 								},
 							})
 						}
 						onMouseLeave={() => setHover(null)}
 					>
 						<circle cx={projected.px(foe.x)} cy={projected.py(foe.y)} r={HIT} className="fill-transparent" />
+						{/* **Red is "you hit this, here, now" and nothing else.** A body only reaches this track
+						    attached to damage the player caused, so the frames between its hits are the drawing
+						    saying where it must have been — worth showing, and not worth confusing with the
+						    moment a press landed on it. Drawn a shade larger as well as redder, so the
+						    distinction survives a reader who cannot separate the two colours. */}
 						<rect
-							x={projected.px(foe.x) - 3.6}
-							y={projected.py(foe.y) - 3.6}
-							width={7.2}
-							height={7.2}
+							x={projected.px(foe.x) - (foe.hit ? 4.6 : 3.6)}
+							y={projected.py(foe.y) - (foe.hit ? 4.6 : 3.6)}
+							width={foe.hit ? 9.2 : 7.2}
+							height={foe.hit ? 9.2 : 7.2}
 							transform={`rotate(45 ${projected.px(foe.x)} ${projected.py(foe.y)})`}
-							className="pointer-events-none fill-ink-2"
-							opacity={0.65}
+							className={foe.hit ? 'pointer-events-none fill-miss' : 'pointer-events-none fill-ink-2'}
+							opacity={foe.hit ? 1 : 0.65}
 						/>
 					</g>
 				))}
@@ -273,6 +302,23 @@ function ReplayStage({ analysis }: { analysis: Analysis }) {
 				>
 					{playing ? '⏸' : '▶'}
 				</button>
+				{/* Beside the button it changes the behaviour of, and drawn as the choice it is: one of these
+				    is on, and pressing another moves it. `compactChoiceClass` is the same switch the target
+				    mode block uses, so a reader meets one shape of "pick one of these" on this page. */}
+				<div className="flex shrink-0 gap-1" role="radiogroup" aria-label={t('summary.shape.replay.speedLabel')}>
+					{SPEEDS.map((rate) => (
+						<button
+							key={rate}
+							type="button"
+							role="radio"
+							aria-checked={rate === speed}
+							className={compactChoiceClass(rate === speed)}
+							onClick={() => setSpeed(rate)}
+						>
+							{t('summary.shape.replay.speed', { rate })}
+						</button>
+					))}
+				</div>
 				{/* **The pull's own shape, behind the handle that moves along it.**
 				    The bar was a plain two-tone track, which left the reader holding the mode strip above in
 				    their head while dragging. Drawn behind it, the segments answer "when does the aoe part

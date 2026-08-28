@@ -45,7 +45,7 @@ describe('buildReplay', () => {
 	it('reads the player off resourceActor 1 and the enemy off resourceActor 2', () => {
 		const track = buildReplay([self(0, 100, 200), foe(0, 42, 1, 110, 200)], T0, 2000);
 		expect(track?.frames[0]?.self).toEqual([100, 200]);
-		expect(track?.frames[0]?.foes).toEqual([{ key: '42:1', name: '', x: 110, y: 200 }]);
+		expect(track?.frames[0]?.foes).toEqual([{ key: '42:1', name: '', hit: true, x: 110, y: 200 }]);
 	});
 
 	it('tells two spawns of one actor id apart by targetInstance', () => {
@@ -72,7 +72,7 @@ describe('buildReplay', () => {
 	it('drops an enemy from the frames either side of the hits that reveal it', () => {
 		const track = buildReplay([self(0, 0, 0), foe(20_000, 42, 1, 5, 5), self(40_000, 0, 0)], T0, 40_000);
 		expect(track?.frames[0]?.foes).toEqual([]);
-		expect(track?.frames[20]?.foes).toEqual([{ key: '42:1', name: '', x: 5, y: 5 }]);
+		expect(track?.frames[20]?.foes).toEqual([{ key: '42:1', name: '', hit: true, x: 5, y: 5 }]);
 		expect(track?.frames[40]?.foes).toEqual([]);
 	});
 
@@ -86,9 +86,16 @@ describe('buildReplay', () => {
 			new Map([[42, 'Crawler Mine']]),
 		);
 		expect(named?.frames[0]?.foes).toEqual([
-			{ key: '42:1', name: 'Crawler Mine', x: 100, y: 100 },
-			{ key: '77:0', name: '', x: 120, y: 100 },
+			{ key: '42:1', name: 'Crawler Mine', hit: true, x: 100, y: 100 },
+			{ key: '77:0', name: '', hit: true, x: 120, y: 100 },
 		]);
+	});
+
+	it('marks the frame a hit landed on, and only that frame', () => {
+		// A body's position only ever arrives attached to damage the player caused, so the frames between
+		// its hits are interpolation — where it must have been, not a press landing on it.
+		const track = buildReplay([foe(0, 42, 1, 10, 10), foe(6000, 42, 1, 10, 10)], T0, 6000);
+		expect(track?.frames.map((f) => f.foes[0]?.hit)).toEqual([true, false, false, false, false, false, true]);
 	});
 
 	it('has nothing to say about a stream with no resource block', () => {

@@ -486,9 +486,9 @@ copy itself follows — say it once, outside the arms.
      src/lib/i18n/__tests__/conventionsCensus.test.ts. Re-run the block above and paste the whole set
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
-As of the fight replay, it prints 1761 leaves, 835 prose, 27,646
+As of the fight replay, it prints 1766 leaves, 835 prose, 27,673
 words; median 27, p75 45, p90 65, p95 78, p99 110, max 204; longest 9% carry 24%; report.json 758 prose
-leaves, 1,349 sentences, median 17, 286 past 25 (21.2%), 294 em-dashes in 253 sentences (18.8%);
+leaves, 1,350 sentences, median 17, 287 past 25 (21.3%), 294 em-dashes in 253 sentences (18.7%);
 71 / 30 / 1 / 2 on the quote lines.
 
 Eight leaves and three sentences, the smallest block to move this census in some time: six column
@@ -545,7 +545,13 @@ a dialog with nothing to click past has to carry its own way out. Two more follo
 way and therefore draws no chart. That last one is the only prose in the family after the note, and it is
 the pass's one real reminder that a section which refuses to draw still has to say something. `At` is the
 thirteenth and the shortest string in the family — one word, labelling the clock on a hovered mark — and
-it arrived when the map stopped using the browser's own tooltip and started drawing the report's.
+it arrived when the map stopped using the browser's own tooltip and started drawing the report's. Three
+more came with the red mark on a body the player hit — a label and the two words it takes — and one
+sentence was added to the note, which is the only string in the family to have grown twice. Both times
+for the same reason: the map keeps learning to say something a reader would otherwise have to infer from
+a colour. The last two are the playback speed's label and the `{{rate}}×` its four switches are drawn
+from — two leaves for a control with four positions, which is what a formatted label buys over four
+spelled-out ones.
 
 **The note is the one long string, and it is long on purpose.** A replay that draws a dot where the log
 last saw someone invites two wrong readings — that a missing enemy was not there, and that a short

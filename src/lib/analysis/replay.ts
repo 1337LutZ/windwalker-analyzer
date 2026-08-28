@@ -72,6 +72,18 @@ export interface ReplayFoe {
 	 * as the bare key rather than as an unlabelled mark.
 	 */
 	name: string;
+	/**
+	 * Whether the player landed damage on this body at this frame.
+	 *
+	 * **Read off the samples rather than counted separately, because the samples *are* the hits.** A
+	 * body's position only ever reaches this stream attached to a damage event the player caused, so a
+	 * real sample near a frame is a hit near that frame by construction. What the frames in between
+	 * carry is interpolation — a body drawn where it must have been, not one being hit — and that is the
+	 * distinction this flag draws.
+	 *
+	 * Half a step either side, so every hit marks exactly one frame and no hit marks none.
+	 */
+	hit: boolean;
 	x: number;
 	y: number;
 }
@@ -138,6 +150,21 @@ function at(samples: readonly Sample[], ms: number): readonly [number, number] |
 	const span = b.ms - a.ms;
 	const f = span > 0 ? (ms - a.ms) / span : 0;
 	return [a.x + (b.x - a.x) * f, a.y + (b.y - a.y) * f];
+}
+
+/** Whether any sample sits within `tol` of `ms` — a landed hit, as opposed to an interpolated frame. */
+function sampledNear(samples: readonly Sample[], ms: number, tol: number): boolean {
+	let lo = 0;
+	let hi = samples.length - 1;
+	while (lo <= hi) {
+		const mid = (lo + hi) >> 1;
+		const at = samples[mid];
+		if (at === undefined) break;
+		if (Math.abs(at.ms - ms) <= tol) return true;
+		if (at.ms < ms) lo = mid + 1;
+		else hi = mid - 1;
+	}
+	return false;
 }
 
 /**
@@ -215,7 +242,13 @@ export function buildReplay(
 		for (const [key, track] of foes) {
 			const p = at(track.samples, ms);
 			if (p === null) continue;
-			bodies.push({ key, name: track.name, x: Math.round(p[0]), y: Math.round(p[1]) });
+			bodies.push({
+				key,
+				name: track.name,
+				hit: sampledNear(track.samples, ms, REPLAY_STEP_MS / 2),
+				x: Math.round(p[0]),
+				y: Math.round(p[1]),
+			});
 			stretch(p[0], p[1]);
 		}
 		if (here !== null) stretch(here[0], here[1]);
