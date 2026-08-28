@@ -36,7 +36,8 @@ import {
 	type GridRow,
 } from './primitives';
 import { useCurrentAnchor } from '~/hooks/useCurrentAnchor';
-import { fieldClass, labelClass, primaryButtonClass } from './primitives/controls';
+import { fieldClass, labelClass, primaryButtonClass, secondaryButtonClass } from './primitives/controls';
+import { WCL_REPORT_BASE } from '~/lib/wcl/endpoint';
 import { formatClock, formatPercentValue, formatSeconds } from '~/lib/format';
 import { SPECS } from '~/lib/spec';
 import { fetchFightDataset, listReportFights } from '~/lib/wcl/fetchFight';
@@ -520,6 +521,7 @@ function ReportNav({ reports }: { reports: readonly ReportRows[] }) {
 
 function Runner() {
 	const { token } = useSession();
+	const { t } = useTranslation('report');
 	const [input, setInput] = useState('');
 	const [player, setPlayer] = useState('');
 	/**
@@ -717,7 +719,29 @@ function Runner() {
 				</Section>
 
 				{reports.map((report) => (
-					<Section key={report.code} id={`report-${report.code}`} title={report.code}>
+					<Section
+						key={report.code}
+						id={`report-${report.code}`}
+						title={report.code}
+						/*
+						 * Back to the log the numbers came from. This page argues from figures a reader cannot
+						 * check on it, so the way to check them is one click away — and it uses the app's own
+						 * `openInLogs` wording rather than a new phrase for the same act.
+						 *
+						 * A new tab, because leaving loses the run: it is held in memory and coming back is
+						 * another fetch of every pull. `noreferrer` with `noopener` for the ordinary reason.
+						 */
+						action={
+							<a
+								className={secondaryButtonClass}
+								href={`${WCL_REPORT_BASE}/${report.code}`}
+								target="_blank"
+								rel="noopener noreferrer"
+							>
+								{t('summary.openInLogs')}
+							</a>
+						}
+					>
 						{report.error !== null ? <Note>{report.error}</Note> : null}
 						<div className="mt-4.5 flex flex-col gap-12">
 							{report.fights.map((fight) => (
