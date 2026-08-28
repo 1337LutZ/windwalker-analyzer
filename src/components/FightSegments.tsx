@@ -327,73 +327,88 @@ function Runner() {
 	const codesKey = codes.join(',');
 	const ready = token !== null && codes.length > 0 && player.trim().length > 0 && !busy;
 
+	/**
+	 * Two passes, and the split is the whole shape of the loading state.
+	 *
+	 * **Discovery first, for every report, before a single pull is read.** Listing a report's fights is one
+	 * cheap call; reading a pull is a full event stream and an analysis. Interleaving them meant the second
+	 * report's kills did not exist on the page until the first report had been read end to end — so the
+	 * rail grew a few entries at a time and never told a reader how much was coming. Now the skeleton is
+	 * complete before the expensive pass starts: every report, every kill, every one of them named and
+	 * marked pending.
+	 *
+	 * The reading pass then walks the whole set in order, publishing after each pull. Each pass yields to
+	 * the browser between items, because an analysis is a long synchronous block and React cannot paint the
+	 * row it has just been handed while one is running.
+	 */
 	const run = useCallback(async () => {
 		if (token === null) return;
 		setBusy(true);
-		setReports([]);
 		const name = player.trim();
 		const client = new WclClient({ token });
-		const out: ReportRows[] = [];
+		// Every report is on the page from the first frame, listing, so the rail has its full height at once.
+		const out: ReportRows[] = codes.map((code) => ({ code, fights: [], listing: true, error: null }));
+		setReports(snapshot(out));
+		const breathe = () => new Promise((resolve) => setTimeout(resolve, 0));
+
 		try {
-			for (const code of codes) {
-				setProgress(`Reading ${code}…`);
-				const report: ReportRows = { code, fights: [], listing: true, error: null };
-				out.push(report);
-				setReports(snapshot(out));
-				await new Promise((resolve) => setTimeout(resolve, 0));
+			for (const report of out) {
+				setProgress(`Listing ${report.code}…`);
 				try {
-					const list = await listReportFights(client, code);
+					const list = await listReportFights(client, report.code);
 					const mine = list.fights.filter(
 						(fight) =>
 							fight.kill && (fight.roster ?? []).some((actor) => actor.name.toLowerCase() === name.toLowerCase()),
 					);
-					report.listing = false;
-					if (mine.length === 0) {
-						report.error = `No kills in this report have ${name} in them.`;
-					}
-					for (const fight of mine) {
-						setProgress(`${code} · ${fight.name}…`);
-						const row: FightRow = {
-							id: fight.id,
-							name: fight.name,
-							durationMs: fight.endTime - fight.startTime,
-							analysis: null,
-							specName: null,
-							targets: new Map<number, string>(),
-							error: null,
-						};
-						report.fights.push(row);
-						// Published before the fetch rather than after it: the row is what the rail and the
-						// skeleton are drawn from, and a pull that only appears once it is finished cannot show
-						// that it is being worked on. This is the whole of the loading state.
-						setReports(snapshot(out));
-						await new Promise((resolve) => setTimeout(resolve, 0));
-						try {
-							const dataset = await fetchFightDataset(client, { code, fightID: fight.id, playerName: name });
-							// The spec the pull reads as. Every spec runs the same core, so segments would exist
-							// whichever was used — but the target-count exclusions belong to the spec, and the wrong
-							// one would quietly change them.
-							const spec = SPECS.map((candidate) => ({ candidate, result: candidate.analyse(dataset) })).find(
-								(pair) => pair.result.isSpec,
-							);
-							if (spec === undefined) {
-								row.error = 'No registered spec recognised this pull.';
-							} else {
-								row.analysis = spec.result;
-								row.specName = spec.candidate.specName;
-								row.targets = targetsInSegments(dataset, spec.result.segments?.segments ?? []);
-							}
-						} catch (error) {
-							row.error = error instanceof Error ? error.message : String(error);
-						}
-						// Published as the walk goes, so a long report shows its early pulls rather than nothing.
-						setReports(snapshot(out));
-					}
+					report.fights = mine.map((fight) => ({
+						id: fight.id,
+						name: fight.name,
+						durationMs: fight.endTime - fight.startTime,
+						analysis: null,
+						specName: null,
+						targets: new Map<number, string>(),
+						error: null,
+					}));
+					if (mine.length === 0) report.error = `No kills in this report have ${name} in them.`;
 				} catch (error) {
 					report.error = error instanceof Error ? error.message : String(error);
 				}
 				report.listing = false;
 				setReports(snapshot(out));
+				await breathe();
+			}
+
+			const total = out.reduce((sum, report) => sum + report.fights.length, 0);
+			let read = 0;
+			for (const report of out) {
+				for (const fight of report.fights) {
+					read += 1;
+					setProgress(`${report.code} · ${fight.name} · ${read} of ${total}`);
+					try {
+						const dataset = await fetchFightDataset(client, {
+							code: report.code,
+							fightID: fight.id,
+							playerName: name,
+						});
+						// The spec the pull reads as. Every spec runs the same core, so segments would exist
+						// whichever was used — but the target-count exclusions belong to the spec, and the wrong
+						// one would quietly change them.
+						const spec = SPECS.map((candidate) => ({ candidate, result: candidate.analyse(dataset) })).find(
+							(pair) => pair.result.isSpec,
+						);
+						if (spec === undefined) {
+							fight.error = 'No registered spec recognised this pull.';
+						} else {
+							fight.analysis = spec.result;
+							fight.specName = spec.candidate.specName;
+							fight.targets = targetsInSegments(dataset, spec.result.segments?.segments ?? []);
+						}
+					} catch (error) {
+						fight.error = error instanceof Error ? error.message : String(error);
+					}
+					setReports(snapshot(out));
+					await breathe();
+				}
 			}
 		} finally {
 			setBusy(false);
