@@ -99,7 +99,31 @@ export default function SegmentStrip({
 		[segments, t, detailOf],
 	);
 
-	if (segments === undefined || segments.length < 2) return null;
+	/**
+	 * A pull with one stretch draws no chart — and still opens the replay.
+	 *
+	 * The lane is what goes: one bar spanning one lane is a whole-pull reading the headline already
+	 * made, which is the argument the docstring above sets out and it has not changed. What did change
+	 * is that this section became the way in to the pull's geometry, and a fight that held one rotation
+	 * throughout is not a fight with nothing to look at — Iron Juggernaut and Malkorok are the two
+	 * Windwalker pulls this hits, and both are worth seeing walked.
+	 *
+	 * So the heading and the button survive the refusal and the chart does not. `FightReplay` draws
+	 * nothing of its own when the analysis carried no track, so a pull with one stretch *and* no
+	 * positions still renders nothing at all rather than a bare heading.
+	 */
+	if (segments === undefined || segments.length < 2) {
+		if (analysis.replay === undefined) return null;
+		return (
+			<div className="flex flex-col gap-3.5">
+				<h3 className="m-0 font-mono text-sm font-semibold tracking-[0.14em] text-muted uppercase">
+					{t('summary.shape.title')}
+				</h3>
+				<p className="m-0 max-w-[66ch] leading-relaxed text-muted">{t('summary.shape.oneStretch')}</p>
+				<FightReplay analysis={analysis} />
+			</div>
+		);
+	}
 
 	/**
 	 * Only the modes this pull actually held.

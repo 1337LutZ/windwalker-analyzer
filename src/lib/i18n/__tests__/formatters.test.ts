@@ -2,6 +2,8 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
+import { FORMATTERS } from '../config';
+
 const copy = JSON.parse(
 	readFileSync(resolve(import.meta.dirname, '../../../locales/en/report.json'), 'utf8'),
 ) as Record<string, unknown>;
@@ -69,17 +71,12 @@ describe('percentages in the copy', () => {
 	it('only names formatters that exist', () => {
 		// A typo in a formatter name does not throw — i18next quietly prints the raw value — so the set
 		// is checked against the one the config registers.
-		const known = new Set([
-			'percent',
-			'integer',
-			'decimal',
-			'compact',
-			'clock',
-			'duration',
-			'seconds',
-			'gap',
-			'millis',
-		]);
+		//
+		// Read off `FORMATTERS` rather than written out again here. The list used to be a copy, and the
+		// comment above already claimed it was not: a formatter added to the config failed this test on
+		// its way in, which is the one case the assertion is not supposed to catch. It is here to catch a
+		// *typo in the copy*, and a second list of names is a second thing to keep in step.
+		const known = new Set(Object.keys(FORMATTERS));
 		const unknown = new Set<string>();
 		for (const { text } of strings(copy)) {
 			for (const match of text.matchAll(INTERPOLATION)) {

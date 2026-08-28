@@ -1195,19 +1195,21 @@
       "length": "{{seconds}}s",
       "chartLabel": "The whole pull in order, one bar per stretch, coloured by how many enemies you had in front of you at the time. The stretches where you hit nothing are grey.",
       "note": "What you press changes at two enemies, and changes again at three. This is the order those stretches came in across the pull. The grey is time you landed nothing in — usually because no enemy was up, sometimes because the fight had you stunned or moved away. None of it counts for or against you either way.",
+      "oneStretch": "You fought the same shape the whole way here, so there is no order of stretches to draw. The replay still has the pull.",
       "replay": {
         "open": "Replay",
         "close": "Close",
         "title": "Where the pull happened",
         "description": "Your position and the bodies you were hitting, once a second, with the target mode the report grades each moment under.",
         "modeLabel": "Grading this moment as",
-        "clock": "{{at}}s / {{of}}s",
+        "clock": "{{at, clockFixed}} / {{of, clockFixed}}",
         "scale": "20 yd",
         "play": "Play the pull",
         "pause": "Pause",
         "scrub": "Move through the pull",
         "chartLabel": "A top-down view of the pull. The filled dot is you; the diamonds are enemies you landed damage on, drawn where they stood at that second.",
         "note": "Positions come from the log itself, so an enemy only appears while you are hitting it and you disappear for any stretch you pressed nothing. Distance here is flat distance — it says nothing about walls, tower floors or line of sight.",
+        "you": "You",
         "missing": "This pull was fetched before positions were being read, so there is nothing to play back."
       }
     },

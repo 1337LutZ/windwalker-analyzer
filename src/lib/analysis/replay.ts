@@ -62,6 +62,16 @@ const STALE_MS = 6000;
 export interface ReplayFoe {
 	/** `targetID:targetInstance` — the key `SpawnRecord` uses, so the two can be joined. */
 	key: string;
+	/**
+	 * What to call it on screen.
+	 *
+	 * Carried per body rather than looked up by the drawing, because the report's actor table is a fact
+	 * about the *fetch* and this track is a fact about the pull: a component holding an analysis has no
+	 * route back to the names, and threading one there to label a dot would put the whole actor list
+	 * behind a tooltip. The empty string is a body the actor table did not name, which the drawing shows
+	 * as the bare key rather than as an unlabelled mark.
+	 */
+	name: string;
 	x: number;
 	y: number;
 }
@@ -140,16 +150,18 @@ function at(samples: readonly Sample[], ms: number): readonly [number, number] |
  * @param events the player's own stream, in timestamp order
  * @param fightStartMs absolute report time of the pull's start, to make frames fight-relative
  * @param durationMs the pull's length
+ * @param nameOf report actor ids to names, so each body can carry its own label
  */
 export function buildReplay(
 	events: readonly WclEvent[],
 	fightStartMs: number,
 	durationMs: number,
+	nameOf?: ReadonlyMap<number, string>,
 ): ReplayTrack | undefined {
 	if (durationMs <= 0) return undefined;
 
 	const self: Sample[] = [];
-	const foes = new Map<string, Sample[]>();
+	const foes = new Map<string, { name: string; samples: Sample[] }>();
 	const maps = new Set<number>();
 
 	for (const e of events) {
@@ -172,8 +184,8 @@ export function buildReplay(
 		if (p.actor === 2 && isDamage(e) && (e.targetID ?? 0) > 0) {
 			const key = `${e.targetID}:${e.targetInstance ?? 0}`;
 			const track = foes.get(key);
-			if (track) track.push({ ms, x, y });
-			else foes.set(key, [{ ms, x, y }]);
+			if (track) track.samples.push({ ms, x, y });
+			else foes.set(key, { name: nameOf?.get(e.targetID ?? 0) ?? '', samples: [{ ms, x, y }] });
 		}
 	}
 
@@ -182,7 +194,7 @@ export function buildReplay(
 	// Nothing in Siege does it; a transition that did would draw as a teleport, so refuse instead.
 	if (maps.size !== 1) return undefined;
 
-	for (const track of foes.values()) track.sort((a, b) => a.ms - b.ms);
+	for (const track of foes.values()) track.samples.sort((a, b) => a.ms - b.ms);
 	self.sort((a, b) => a.ms - b.ms);
 
 	const frames: ReplayFrame[] = [];
@@ -201,9 +213,9 @@ export function buildReplay(
 		const here = at(self, ms);
 		const bodies: ReplayFoe[] = [];
 		for (const [key, track] of foes) {
-			const p = at(track, ms);
+			const p = at(track.samples, ms);
 			if (p === null) continue;
-			bodies.push({ key, x: Math.round(p[0]), y: Math.round(p[1]) });
+			bodies.push({ key, name: track.name, x: Math.round(p[0]), y: Math.round(p[1]) });
 			stretch(p[0], p[1]);
 		}
 		if (here !== null) stretch(here[0], here[1]);

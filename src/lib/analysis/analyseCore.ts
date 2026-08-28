@@ -1290,7 +1290,7 @@ export function analyseCore(
 	 * resource block the fetch already asks for. Undefined on a capture taken before `includeResources`
 	 * reached this query, which is why the field is optional — see `buildReplay`.
 	 */
-	const replay = buildReplay(events, t0, duration);
+	const replay = buildReplay(events, t0, duration, actorNames);
 	/**
 	 * The stretches the **aoe** priority list was the applicable one — three enemies or more.
 	 *

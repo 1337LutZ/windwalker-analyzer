@@ -45,7 +45,7 @@ describe('buildReplay', () => {
 	it('reads the player off resourceActor 1 and the enemy off resourceActor 2', () => {
 		const track = buildReplay([self(0, 100, 200), foe(0, 42, 1, 110, 200)], T0, 2000);
 		expect(track?.frames[0]?.self).toEqual([100, 200]);
-		expect(track?.frames[0]?.foes).toEqual([{ key: '42:1', x: 110, y: 200 }]);
+		expect(track?.frames[0]?.foes).toEqual([{ key: '42:1', name: '', x: 110, y: 200 }]);
 	});
 
 	it('tells two spawns of one actor id apart by targetInstance', () => {
@@ -72,8 +72,23 @@ describe('buildReplay', () => {
 	it('drops an enemy from the frames either side of the hits that reveal it', () => {
 		const track = buildReplay([self(0, 0, 0), foe(20_000, 42, 1, 5, 5), self(40_000, 0, 0)], T0, 40_000);
 		expect(track?.frames[0]?.foes).toEqual([]);
-		expect(track?.frames[20]?.foes).toEqual([{ key: '42:1', x: 5, y: 5 }]);
+		expect(track?.frames[20]?.foes).toEqual([{ key: '42:1', name: '', x: 5, y: 5 }]);
 		expect(track?.frames[40]?.foes).toEqual([]);
+	});
+
+	it('labels a body from the actor table, and falls back to its key when it cannot', () => {
+		// The name is carried per body rather than looked up by the drawing — a component holding an
+		// analysis has no route back to the report's actor table.
+		const named = buildReplay(
+			[foe(0, 42, 1, 100, 100), foe(0, 77, 0, 120, 100)],
+			T0,
+			1000,
+			new Map([[42, 'Crawler Mine']]),
+		);
+		expect(named?.frames[0]?.foes).toEqual([
+			{ key: '42:1', name: 'Crawler Mine', x: 100, y: 100 },
+			{ key: '77:0', name: '', x: 120, y: 100 },
+		]);
 	});
 
 	it('has nothing to say about a stream with no resource block', () => {

@@ -908,6 +908,10 @@ describe('stripping the templates hides no violation', () => {
 			'sef.lanes.shortLived_one: {{rule, duration}}',
 			'sef.lanes.shortLived_other: {{rule, duration}}',
 			'sef.unjustified: {{rule, duration}}',
+			// The eleventh and twelfth, and the same shape as the `clock` entries at the top of the list:
+			// `clockFixed` is a formatter name and the word a reader sees is the timestamp it renders.
+			'summary.shape.replay.clock: {{at, clockFixed}}',
+			'summary.shape.replay.clock: {{of, clockFixed}}',
 		]);
 	});
 });

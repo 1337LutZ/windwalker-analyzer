@@ -24,7 +24,7 @@ import {
 	formatMillis,
 	formatSecondsValue,
 } from '~/lib/format';
-import { formatClock } from '~/lib/format';
+import { formatClock, formatClockFixed, formatStamp } from '~/lib/format';
 
 import en from '~/locales/en';
 
@@ -44,7 +44,7 @@ export const NAMESPACES = ['report', 'ui'] as const;
  * Named for the *unit* rather than the function, so the copy reads as copy: `{{pct, percent}}`,
  * `{{ms, clock}}`. A translator never has to know which helper is behind one.
  */
-const FORMATTERS: Record<string, (value: unknown) => string> = {
+export const FORMATTERS: Record<string, (value: unknown) => string> = {
 	// A percentage already expressed 0–100, which is how the analysis carries them.
 	percent: (v) => formatPercentValue(Number(v)),
 	integer: (v) => formatInteger(Number(v)),
@@ -52,6 +52,11 @@ const FORMATTERS: Record<string, (value: unknown) => string> = {
 	compact: (v) => formatCompact(Number(v)),
 	// Milliseconds as a fight clock, `4:39`.
 	clock: (v) => formatClock(Number(v)),
+	// The same clock to the millisecond, `04:39.512`. For a readout of one moment the reader chose,
+	// rather than a label on a hundred of them — `formatStamp` argues the split.
+	stamp: (v) => formatStamp(Number(v)),
+	// The clock at a fixed width, `04:39`. For a readout that changes while the reader watches it.
+	clockFixed: (v) => formatClockFixed(Number(v)),
 	// Milliseconds as a duration, `15s`.
 	duration: (v) => formatSeconds(Number(v)),
 	// Seconds that are already seconds.

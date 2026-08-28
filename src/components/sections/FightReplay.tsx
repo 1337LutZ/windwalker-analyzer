@@ -25,7 +25,7 @@ import type { FightSegment } from '~/lib/analysis/segments';
 import type { Analysis } from '~/lib/types';
 
 import { COUNT } from '../charts/tones';
-import { DialogShell } from '../primitives';
+import { DialogShell, StatTiles } from '../primitives';
 import { buttonClass } from '../primitives/controls';
 import { KEY_ORDER } from './segmentCopy';
 
@@ -138,58 +138,11 @@ function ReplayStage({ analysis }: { analysis: Analysis }) {
 	if (here === undefined) return null;
 	const segment = segmentAt(segments, here.ms);
 	const present = KEY_ORDER.filter((mode) => segments.some((s) => s.mode === mode));
-	const seconds = Math.round(here.ms / 1000);
+	const fraction = last > 0 ? Math.min(frame, last) / last : 0;
 	const grid = 20 * projected.scale;
 
 	return (
 		<div className="flex flex-col gap-3">
-			<div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-				{/* **The whole scale, with this moment's reading lit** — not one chip that rewrites itself.
-				    A label that changes as the scrubber moves makes the reader read before they can compare;
-				    a fixed row lets them see at a glance that the pull has an aoe reading at all and watch it
-				    arrive. It is the chart key from the strip behind this dialog, in the same order and with
-				    the same words, so the two cannot come to disagree about what the modes are called.
-
-				    `present` rather than all five, which is the rule `SegmentStrip` already applies to its
-				    key: a swatch for a bar the reader cannot find is a swatch they go looking for. */}
-				<div className="flex flex-wrap items-center gap-2">
-					<span className="font-mono text-xs tracking-[0.14em] text-muted uppercase">
-						{t('summary.shape.replay.modeLabel')}
-					</span>
-					{present.map((mode) => {
-						const on = segment?.mode === mode;
-						const tone = COUNT[mode];
-						return (
-							<span
-								key={mode}
-								// The live one is announced as the current item of the set rather than by its colour
-								// alone, which is the same reason the bars on the strip carry their count as text.
-								aria-current={on ? 'true' : undefined}
-								className={
-									on
-										? `rounded-sm px-2 py-[3px] font-mono text-xs font-semibold ${tone.fill} ${tone.ink}`
-										: 'rounded-sm border border-line px-2 py-[3px] font-mono text-xs font-medium text-muted'
-								}
-							>
-								{t('summary.shape.row', { context: mode })}
-							</span>
-						);
-					})}
-				</div>
-				<span className="font-mono text-xs text-muted tabular-nums">
-					{t('summary.shape.replay.clock', {
-						at: seconds,
-						of: Math.round(((replay.frames.length - 1) * replay.stepMs) / 1000),
-					})}
-				</span>
-			</div>
-
-			{/* The height is capped against the viewport and the width follows from it, so the drawing grows
-			    into the screen without ever pushing its own mode chip off the top — which is the one readout
-			    it exists to carry. The 16.5rem is what the dialog spends on everything that is not the drawing:
-			    the title row, the mode readout, the controls and the note, measured at the width where they
-			    each take two lines. `maxWidth` is computed rather than a class because the ratio is the
-			    pull's, not a value Tailwind could know. */}
 			<svg
 				viewBox={`0 0 ${projected.w} ${projected.h}`}
 				style={{
@@ -216,7 +169,13 @@ function ReplayStage({ analysis }: { analysis: Analysis }) {
 						transform={`rotate(45 ${projected.px(foe.x)} ${projected.py(foe.y)})`}
 						className="fill-ink-2"
 						opacity={0.65}
-					/>
+					>
+						{/* `<title>` rather than a hover handler and a floating div: the browser's own tooltip is
+						    what a screen reader reads as the shape's accessible name, so one element answers both
+						    the pointer and the reader. A body the actor table did not name falls back to its key,
+						    which is at least something to match against the log. */}
+						<title>{foe.name === '' ? foe.key : foe.name}</title>
+					</rect>
 				))}
 				{here.self !== null ? (
 					<circle
@@ -225,7 +184,9 @@ function ReplayStage({ analysis }: { analysis: Analysis }) {
 						r={6}
 						className="fill-kick stroke-track"
 						strokeWidth={2}
-					/>
+					>
+						<title>{t('summary.shape.replay.you')}</title>
+					</circle>
 				) : null}
 				<line
 					x1={16}
@@ -240,7 +201,7 @@ function ReplayStage({ analysis }: { analysis: Analysis }) {
 				</text>
 			</svg>
 
-			<div className="flex items-center gap-3">
+			<div className="flex items-center gap-3" style={{ '--range-fraction': fraction } as CSSProperties}>
 				<button
 					type="button"
 					onClick={() => setPlaying((p) => !p)}
@@ -249,27 +210,113 @@ function ReplayStage({ analysis }: { analysis: Analysis }) {
 				>
 					{playing ? '⏸' : '▶'}
 				</button>
-				{/* `--range-fraction` is how far through the pull this is, as a plain 0–1: WebKit has no
-				    pseudo-element for a slider's filled half, so `global.css` draws it as a hard-stopped
-				    gradient and works the stop out from this. A fraction rather than a percentage because
-				    the stop is not one — the thumb travels `track - thumb`, and that arithmetic belongs
-				    where the thumb's width is declared. Firefox ignores it and uses
-				    `::-moz-range-progress`. */}
-				<input
-					type="range"
-					min={0}
-					max={last}
-					value={Math.min(frame, last)}
-					onChange={(e) => {
-						setPlaying(false);
-						setFrame(Number(e.target.value));
-					}}
-					style={{ '--range-fraction': last > 0 ? Math.min(frame, last) / last : 0 } as CSSProperties}
-					className="w-full"
-					aria-label={t('summary.shape.replay.scrub')}
-				/>
+				{/* **The pull's own shape, behind the handle that moves along it.**
+				    The bar was a plain two-tone track, which left the reader holding the mode strip above in
+				    their head while dragging. Drawn behind it, the segments answer "when does the aoe part
+				    start" without a scrub at all, and the played half is the same picture at full strength.
+				    So the slider's own track goes transparent — `--range-track` — and this shows through.
+
+				    `--range-fraction` sits on the row rather than the input because both of them read it:
+				    WebKit has no pseudo-element for a slider's filled half, so `global.css` works the fill's
+				    stop out from this, and the dimming below has to land on exactly the same place. A
+				    fraction and not a percentage, because neither stop is one — the thumb travels
+				    `track - thumb`. */}
+				<div className="relative flex-1">
+					<div
+						aria-hidden="true"
+						className="pointer-events-none absolute inset-x-0 top-1/2 flex h-2.5 -translate-y-1/2 overflow-hidden rounded-sm border border-line"
+					>
+						{segments.map((s) => (
+							<span
+								key={s.index}
+								className={COUNT[s.mode].fill}
+								style={{ flexGrow: s.endMs - s.startMs, flexBasis: 0 }}
+							/>
+						))}
+						{/* Everything still to come, knocked back. Its edge is placed on the thumb's travel and
+						    not on a flat percentage of the bar, so it stays under the handle at both ends. */}
+						<span
+							className="absolute inset-y-0 right-0 bg-bg/55"
+							style={{
+								left: 'calc(var(--range-thumb) / 2 + (100% - var(--range-thumb)) * var(--range-fraction, 0))',
+							}}
+						/>
+					</div>
+					<input
+						type="range"
+						min={0}
+						max={last}
+						value={Math.min(frame, last)}
+						onChange={(e) => {
+							setPlaying(false);
+							setFrame(Number(e.target.value));
+						}}
+						style={{ '--range-track': 'transparent' } as CSSProperties}
+						className="relative w-full"
+						aria-label={t('summary.shape.replay.scrub')}
+					/>
+				</div>
+				{/* Beside the bar it belongs to, rather than up beside the mode strip. It is a readout of
+				    where the handle is, so it reads with the handle; at the top of the dialog it was a second
+				    number competing with the one thing that row is for. `tabular-nums` and a floor width keep
+				    the controls from shuffling sideways as the digits change. */}
+				<span className="min-w-[6.5rem] shrink-0 text-right font-mono text-xs text-muted tabular-nums">
+					{/* `at` is the frame's own millisecond and `of` is the pull's, so the total is the real
+					    length rather than the last whole second the track happens to be sampled on.
+					    `clockFixed` rather than `stamp`: the track is sampled once a second, so three
+					    fractional digits here would be three zeroes on every frame — a precision the readout
+					    would be claiming and the data does not have. The padding is what it is here for,
+					    since this string changes while the reader drags. */}
+					{t('summary.shape.replay.clock', { at: here.ms, of: analysis.durationMs })}
+				</span>
 			</div>
 
+			<div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+				{/* **The whole scale, with this moment's reading lit** — not one chip that rewrites itself.
+				    A label that changes as the scrubber moves makes the reader read before they can compare;
+				    a fixed row lets them see at a glance that the pull has an aoe reading at all and watch it
+				    arrive. It is the chart key from the strip behind this dialog, in the same order and with
+				    the same words, so the two cannot come to disagree about what the modes are called.
+
+				    `present` rather than all five, which is the rule `SegmentStrip` already applies to its
+				    key: a swatch for a bar the reader cannot find is a swatch they go looking for. */}
+				<div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+					<span className="font-mono text-xs tracking-[0.14em] text-muted uppercase">
+						{t('summary.shape.replay.modeLabel')}
+					</span>
+					{/* One block divided into cells, not a row of chips. These are readings of a single scale
+					    and a set of separately-bordered pills reads as a set of buttons to press — which is
+					    exactly wrong for a readout nothing here can change. `StatTiles` is where that
+					    construction lives; `strip` is its label-sized layout. */}
+					<StatTiles layout="strip">
+						{present.map((mode) => {
+							const on = segment?.mode === mode;
+							const tone = COUNT[mode];
+							return (
+								<span
+									key={mode}
+									// The live one is announced as the current item of the set rather than by its
+									// colour alone, which is the same reason the bars on the strip carry their count
+									// as text.
+									aria-current={on ? 'true' : undefined}
+									className={`px-2.5 py-1 font-mono text-xs ${
+										on ? `font-semibold ${tone.fill} ${tone.ink}` : 'bg-surface font-medium text-muted'
+									}`}
+								>
+									{t('summary.shape.row', { context: mode })}
+								</span>
+							);
+						})}
+					</StatTiles>
+				</div>
+			</div>
+
+			{/* The height is capped against the viewport and the width follows from it, so the drawing grows
+			    into the screen without ever pushing its own mode chip off the top — which is the one readout
+			    it exists to carry. The 16.5rem is what the dialog spends on everything that is not the drawing:
+			    the title row, the mode readout, the controls and the note, measured at the width where they
+			    each take two lines. `maxWidth` is computed rather than a class because the ratio is the
+			    pull's, not a value Tailwind could know. */}
 			<p className="m-0 text-sm leading-relaxed text-muted">{t('summary.shape.replay.note')}</p>
 		</div>
 	);
