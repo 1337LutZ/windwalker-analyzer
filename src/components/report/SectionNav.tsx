@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 
 import '~/lib/i18n';
 
+import { useCurrentAnchor } from '~/hooks/useCurrentAnchor';
 import { useSectionAnchor } from '~/hooks/useSectionAnchor';
 import { jumpToHeading } from '../jump';
 
@@ -48,13 +49,9 @@ const GROUP_TITLE: Record<SectionGroup, string> = {
 	reference: 'nav.groups.reference',
 };
 
-/**
- * The sticky selection bar's height, and the same number as the `scroll-mt-14` the headings carry.
- * It answers both halves of the problem: `top-14` parks the nav under the bar rather than behind it,
- * and the observer's top margin starts the reading band there, so a heading covered by the bar is
- * not counted as being in view.
- */
-const BAR_PX = 56;
+// The sticky selection bar's height lives with the observer that reads it, as `NAV_BAR_PX` in
+// `useCurrentAnchor` — the same number as the `scroll-mt-14` the headings carry and as the `top-14`
+// below, which parks the nav under the bar rather than behind it.
 
 /** One entry of the top-level list: a section standing on its own, or a group of them. */
 type NavItem =
@@ -142,7 +139,10 @@ export default function SectionNav({ sections }: { sections: readonly ReportSect
 	// The nav names the report's own sections, so it reads from the report's namespace and reuses the
 	// keys the sections title themselves with rather than restating them.
 	const { t } = useTranslation('report');
-	const [current, setCurrent] = useState<string | null>(null);
+	const [current, setCurrent] = useCurrentAnchor(
+		sections.map((section) => section.id),
+		(id) => document.getElementById(`${id}-heading`)?.closest('section') ?? null,
+	);
 	/**
 	 * The address bar's copy of that answer, and the way back from a shared link.
 	 *
@@ -175,43 +175,10 @@ export default function SectionNav({ sections }: { sections: readonly ReportSect
 		return new Set(first?.kind === 'group' ? [first.group] : []);
 	});
 
-	useEffect(() => {
-		// The heading is the only element `Section` gives an id, so the section itself is reached
-		// through it. The section is what gets observed: a heading is a few pixels tall, so a band
-		// tuned to catch one would spend most of a long section matching nothing.
-		const ids = new Map<Element, string>();
-		for (const { id } of sections) {
-			const section = document.getElementById(`${id}-heading`)?.closest('section');
-			if (section) ids.set(section, id);
-		}
-		if (ids.size === 0) return;
-
-		const onScreen = new Set<string>();
-		const observer = new IntersectionObserver(
-			(entries) => {
-				for (const entry of entries) {
-					const id = ids.get(entry.target);
-					if (id === undefined) continue;
-					if (entry.isIntersecting) onScreen.add(id);
-					else onScreen.delete(id);
-				}
-				// First in document order, so a section rising into the bottom of the band does not
-				// take the highlight off the one still being read at the top of it.
-				const next = sections.find((section) => onScreen.has(section.id));
-				// Nothing in the band means the reader is above the first section or past the bottom of
-				// the last, both of which are better served by the last true answer than by no answer:
-				// the gaps between sections are far shorter than the band, so this is never a flicker.
-				if (next !== undefined) setCurrent(next.id);
-			},
-			// A reading band rather than the whole viewport, running from just under the sticky bar to
-			// a little under half way down. The section covering that line is the one being read; with
-			// the full viewport every section on screen would qualify and the answer would be the
-			// longest one, not the current one.
-			{ rootMargin: `-${BAR_PX}px 0px -55% 0px` },
-		);
-		for (const section of ids.keys()) observer.observe(section);
-		return () => observer.disconnect();
-	}, [sections]);
+	// The observer that answers it lives in `useCurrentAnchor`, shared with the segment tool's rail. The
+	// resolver is this nav's own: `Section` gives its id to the *heading*, and a heading is a few pixels
+	// tall — a band tuned to catch one would spend most of a long section matching nothing — so the
+	// section around it is what gets watched.
 
 	const currentGroup = current === null ? null : (groupOf.get(current) ?? null);
 

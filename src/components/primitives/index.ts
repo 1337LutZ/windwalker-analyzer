@@ -30,6 +30,7 @@ export type { GridColumn, GridRow } from './DataGrid';
 export { default as EnchantIcon } from './EnchantIcon';
 export { default as Field } from './Field';
 export { default as ItemIcon } from './ItemIcon';
+export { default as NavLink } from './NavLink';
 export { default as Note } from './Note';
 export { default as Pill } from './Pill';
 export { default as Progress } from './Progress';

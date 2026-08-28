@@ -12,7 +12,7 @@
 // It reuses the report page's own pieces throughout — the session, the fetch, the analysis, and
 // `SegmentStrip` for the drawing. A second copy of any of them would be a second thing to drift.
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Tooltip } from '@base-ui/react/tooltip';
 
@@ -20,7 +20,8 @@ import SessionProvider from './auth/SessionProvider';
 import SignInPanel from './auth/SignInPanel';
 import { useSession } from '~/lib/auth';
 import SegmentStrip from './sections/SegmentStrip';
-import { DataGrid, Note, Prose, Section, Skeleton, type GridColumn, type GridRow } from './primitives';
+import { DataGrid, NavLink, Note, Prose, Section, Skeleton, type GridColumn, type GridRow } from './primitives';
+import { useCurrentAnchor } from '~/hooks/useCurrentAnchor';
 import { formatClock } from '~/lib/format';
 import { SPECS } from '~/lib/spec';
 import { fetchFightDataset, listReportFights } from '~/lib/wcl/fetchFight';
@@ -120,6 +121,36 @@ export function parseCodes(input: string): string[] {
 				.map((part) => /reports\/([A-Za-z0-9:]+)/.exec(part)?.[1] ?? part),
 		),
 	];
+}
+
+/**
+ * The form, mirrored into the address bar — so a refresh, a bookmark or a link to a colleague comes
+ * back to the same reports and the same player instead of an empty form.
+ *
+ * Only what was typed. **Never the token**, for the reason `useReportUrlState` states at length: a URL is
+ * the most leaked string in a browser, landing in history, in bookmarks, in a screenshot of the address
+ * bar and in the next request's `Referer`. Report codes and a character name are public log identifiers
+ * and belong there; the token lives in session storage and stays there.
+ */
+export function readParams(search: string): { reports: string; player: string } {
+	const params = new URLSearchParams(search);
+	return { reports: params.get('reports') ?? '', player: params.get('player') ?? '' };
+}
+
+/**
+ * The href this form should be reachable at, with empty fields dropped rather than written blank.
+ *
+ * A parameter carrying nothing is worse than no parameter: it survives a copy-paste and looks like an
+ * answer. Built off the current href so anything else in the query — a future flag, an anchor — survives
+ * a run rather than being quietly dropped.
+ */
+export function nextHref(href: string, form: { reports: string; player: string }): string {
+	const url = new URL(href);
+	for (const [key, value] of Object.entries(form)) {
+		if (value.trim().length > 0) url.searchParams.set(key, value.trim());
+		else url.searchParams.delete(key);
+	}
+	return url.toString();
 }
 
 const COLUMNS: GridColumn[] = [
@@ -268,6 +299,11 @@ const snapshot = (reports: readonly ReportRows[]): ReportRows[] =>
  * than the jump is worth, and the headings are still in the document to scroll to.
  */
 function ReportNav({ reports }: { reports: readonly ReportRows[] }) {
+	const anchors = reports.flatMap((report) => report.fights.map((fight) => anchorOf(report.code, fight.id)));
+	// The rail's highlight, from the shared observer. It rebuilds as the discovery pass fills the rail in,
+	// so every heading that exists is watched.
+	const [current] = useCurrentAnchor(anchors);
+
 	if (reports.length === 0) return null;
 	return (
 		<nav
@@ -287,22 +323,46 @@ function ReportNav({ reports }: { reports: readonly ReportRows[] }) {
 						</a>
 						<ol className="m-0 flex list-none flex-col p-0">
 							{report.listing ? (
-								<li className="flex min-h-11 animate-pulse items-center border-l-2 border-line py-2 pr-2 pl-6 leading-snug text-ink-3">
-									reading…
+								// Not a `NavLink`: there is nothing to jump to yet. Same rule, same indent, same
+								// spinner, so it sits in the column the pulls will fill rather than beside it.
+								<li className="flex min-h-11 items-center gap-2 border-l-2 border-line py-2 pr-2 pl-6 leading-snug text-muted">
+									<span className="min-w-0 flex-1">reading…</span>
+									<svg
+										aria-hidden="true"
+										viewBox="0 0 16 16"
+										className="size-3 shrink-0 animate-spin text-ink-3 motion-reduce:animate-none"
+									>
+										<circle
+											cx="8"
+											cy="8"
+											r="6"
+											fill="none"
+											stroke="currentColor"
+											strokeOpacity="0.25"
+											strokeWidth="2"
+										/>
+										<path
+											d="M14 8a6 6 0 0 0-6-6"
+											fill="none"
+											stroke="currentColor"
+											strokeWidth="2"
+											strokeLinecap="round"
+										/>
+									</svg>
 								</li>
 							) : null}
 							{report.fights.map((fight) => (
 								<li key={fight.id}>
-									<a
+									{/* A pull still being read is still a place to jump to — its heading is already in the
+									    document — so it stays a link and shows a spinner rather than going inert. */}
+									<NavLink
 										href={`#${anchorOf(report.code, fight.id)}`}
-										// A pull still being read is still a place to jump to — the heading is already in
-										// the document — so it stays a link and says what it is rather than going inert.
-										className={`flex min-h-11 items-center border-l-2 border-line py-2 pr-2 pl-6 leading-snug transition-colors hover:border-muted hover:text-ink-2 ${
-											isPending(fight) ? 'animate-pulse text-ink-3' : 'text-muted'
-										}`}
+										current={current === anchorOf(report.code, fight.id)}
+										indented
+										pending={isPending(fight)}
 									>
 										{fight.name}
-									</a>
+									</NavLink>
 								</li>
 							))}
 						</ol>
@@ -317,6 +377,22 @@ function Runner() {
 	const { token } = useSession();
 	const [input, setInput] = useState('');
 	const [player, setPlayer] = useState('');
+	/**
+	 * Read once, on mount, rather than in a lazy state initialiser.
+	 *
+	 * The island is prerendered, so `window` does not exist when the initialiser would run — the same
+	 * constraint `SessionProvider` works under, and the same answer.
+	 *
+	 * **The form is filled, not submitted.** The report page auto-runs from its URL because a complete
+	 * selection there is one pull; a link here can name five reports and seventy kills, and spending that
+	 * much of somebody's API budget because they opened a bookmark is not a decision a page should make
+	 * for them. The button is one press away and now says how many reports it would read.
+	 */
+	useEffect(() => {
+		const params = readParams(window.location.search);
+		if (params.reports) setInput(params.reports);
+		if (params.player) setPlayer(params.player);
+	}, []);
 	const [busy, setBusy] = useState(false);
 	const [progress, setProgress] = useState<string | null>(null);
 	const [reports, setReports] = useState<ReportRows[]>([]);
@@ -344,6 +420,11 @@ function Runner() {
 	const run = useCallback(async () => {
 		if (token === null) return;
 		setBusy(true);
+		// Written at the run rather than on every keystroke: the address bar should describe a reading that
+		// was actually asked for, and a `replaceState` per character is a lot of noise for a half-typed code.
+		// `replaceState`, not `pushState`, for the reason `useReportUrlState` gives — filling a form is not
+		// navigation, and pushing would bury whatever the reader arrived from.
+		window.history.replaceState(null, '', nextHref(window.location.href, { reports: input, player }));
 		const name = player.trim();
 		const client = new WclClient({ token });
 		// Every report is on the page from the first frame, listing, so the rail has its full height at once.
@@ -415,7 +496,7 @@ function Runner() {
 			setProgress(null);
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [codesKey, player, token]);
+	}, [codesKey, input, player, token]);
 
 	return (
 		/* The rail only exists once there is something to list, and so does the column that holds it —

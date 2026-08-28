@@ -10,7 +10,7 @@ import { createElement } from 'react';
 import { describe, expect, it } from 'vitest';
 
 import SegmentStrip from '~/components/sections/SegmentStrip';
-import { parseCodes, targetsInSegments } from '~/components/FightSegments';
+import { nextHref, parseCodes, readParams, targetsInSegments } from '~/components/FightSegments';
 import { initI18n } from '~/lib/i18n/config';
 import type { Analysis, FightDataset } from '~/lib/types';
 import { analyse } from '~/specs/elemental/lib';
@@ -86,5 +86,35 @@ describe('the roster reaching the strip', () => {
 		expect(marked).toContain('Automated Shredder (12)');
 		// The first two lines survive: the detail is added to the tooltip, not substituted for it.
 		expect(marked).toMatch(/title="[^"]*\n[^"]*\nAutomated Shredder \(12\)"/);
+	});
+});
+
+describe('the form in the address bar', () => {
+	it('reads both fields back, and tolerates neither being there', () => {
+		expect(readParams('?reports=abc,def&player=Sparkstorm')).toEqual({ reports: 'abc,def', player: 'Sparkstorm' });
+		expect(readParams('')).toEqual({ reports: '', player: '' });
+		expect(readParams('?player=Sparkstorm')).toEqual({ reports: '', player: 'Sparkstorm' });
+	});
+
+	it('writes what was typed, trimmed', () => {
+		const href = nextHref('https://x.test/fight-segments', { reports: ' abc , def ', player: ' Sparkstorm ' });
+		expect(readParams(new URL(href).search)).toEqual({ reports: 'abc , def', player: 'Sparkstorm' });
+	});
+
+	/**
+	 * An empty field is removed rather than written blank. A parameter carrying nothing survives a
+	 * copy-paste and looks like an answer, which is worse than its absence.
+	 */
+	it('drops an empty field instead of writing it blank', () => {
+		const href = nextHref('https://x.test/fight-segments?reports=abc&player=Old', { reports: 'abc', player: '   ' });
+		expect(new URL(href).searchParams.has('player')).toBe(false);
+		expect(new URL(href).searchParams.get('reports')).toBe('abc');
+	});
+
+	/** Anything else in the query survives a run — a future flag, or an anchor. */
+	it('leaves the rest of the URL alone', () => {
+		const href = nextHref('https://x.test/fight-segments?keep=1#somewhere', { reports: 'abc', player: 'S' });
+		expect(new URL(href).searchParams.get('keep')).toBe('1');
+		expect(new URL(href).hash).toBe('#somewhere');
 	});
 });
