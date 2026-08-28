@@ -194,7 +194,7 @@ describe('matching prefers the id that is stable', () => {
  * only the second would pass on a row the matcher can never reach, which is the failure the header
  * calls out: a table that silently excludes nobody looks exactly like a table that decided not to.
  */
-describe('the counted series drops the rows that leave the count, and only those', () => {
+describe('the counted series drops every struck row in parsing, and none in progression', () => {
 	/** Retail SoO, Classic SoO, and the Classic re-release. `baseEncounterID` has to collapse all three. */
 	const REGISTRATIONS = [0, 50_000, 100_000];
 	/** Normal, and Heroic. Every committed fixture reports 4, and the heroic-only rows turn on the pair. */
@@ -219,9 +219,13 @@ describe('the counted series drops the rows that leave the count, and only those
 					// by a matcher that answers nothing, for every row, forever.
 					expect(rankingExclusionFor(encounterID, difficulty, npc)?.npc, where).toBe(applies ? rule.npc : undefined);
 
-					const leaves = applies && rule.reach === 'both';
-					expect([...uncountedActorIDs(encounterID, difficulty, [npc])], where).toEqual(leaves ? [npc.id] : []);
-					if (leaves) excluded += 1;
+					// Parsing mirrors the ruleset: a row that matches leaves the count, whatever `reach` says
+					// about it. Progression keeps everything, so the same call answers nothing.
+					expect([...uncountedActorIDs(encounterID, difficulty, [npc], 'parsing')], where).toEqual(
+						applies ? [npc.id] : [],
+					);
+					expect([...uncountedActorIDs(encounterID, difficulty, [npc], 'progression')], where).toEqual([]);
+					if (applies) excluded += 1;
 					else kept += 1;
 				}
 			}
@@ -233,19 +237,21 @@ describe('the counted series drops the rows that leave the count, and only those
 	});
 
 	/**
-	 * All three reaches on one encounter and in one call, because Garrosh happens to carry one of each.
+	 * All three reaches on one encounter and in one call, because Garrosh happens to carry one of each —
+	 * and the mode is what decides them now, not the field.
 	 *
-	 * Both forms of the weapon are `'damage'` — struck from the rankings and still bodies the rotation had
-	 * to react to. `Manifestation of Rage` is `null` — nobody has measured it. `Minion of Y'Shaarj` is
-	 * `'both'`. A predicate that read "excluded from rankings" as "excluded from the count" returns all
-	 * four here, and that is the whole mistake this module was written to avoid.
+	 * A reader comparing against the ladder wants all four gone: WarcraftLogs struck every one of them, so
+	 * none is evidence about how they play. A reader working the fight wants all four, because all four
+	 * were bodies in the room. The `reach` column disagrees with both readings and is consulted by
+	 * neither — which is exactly why this asserts the same answer for rows that do not share a reach.
 	 */
-	it("returns only Garrosh's `both` row from a list holding all three reaches", () => {
+	it('answers all of Garrosh in parsing and none of it in progression, whatever the reaches are', () => {
 		const garrosh = SIEGE_RANKING_EXCLUSIONS.filter((rule) => rule.encounter === 'Garrosh Hellscream');
 		expect(garrosh.map((rule) => rule.reach)).toEqual(['damage', 'damage', null, 'both']);
 
 		const enemies = garrosh.map((rule, index) => ({ id: 500 + index, gameID: rule.gameID, name: rule.npc }));
-		expect([...uncountedActorIDs(51_623, HEROIC_DIFFICULTY, enemies)]).toEqual([503]);
+		expect([...uncountedActorIDs(51_623, HEROIC_DIFFICULTY, enemies, 'parsing')]).toEqual([500, 501, 502, 503]);
+		expect([...uncountedActorIDs(51_623, HEROIC_DIFFICULTY, enemies, 'progression')]).toEqual([]);
 	});
 
 	it('answers nothing when the caller has no encounter, and nothing for an empty roster', () => {
@@ -264,9 +270,10 @@ describe('the counted series drops the rows that leave the count, and only those
 	 * only name still reaches its row.
 	 */
 	it('prefers the gameID, falls back to an exact name, and answers nothing with neither', () => {
-		// A unit whose name is a row's and whose id is not: the id decides, and the row is not reached.
+		// A unit whose name is a row's and whose id is one no row carries: the id decides, and the row is
+		// not reached.
 		expect([
-			...uncountedActorIDs(51_623, HEROIC_DIFFICULTY, [{ id: 1, gameID: 72_198, name: "Minion of Y'Shaarj" }]),
+			...uncountedActorIDs(51_623, HEROIC_DIFFICULTY, [{ id: 1, gameID: 72_999, name: "Minion of Y'Shaarj" }]),
 		]).toEqual([]);
 		// The same row, named and unidentified — the shape a caller holding the report's `actors` has.
 		expect([...uncountedActorIDs(51_623, HEROIC_DIFFICULTY, [{ id: 1, name: "Minion of Y'Shaarj" }])]).toEqual([1]);
@@ -352,7 +359,7 @@ describe('and it answers a committed pull, at the id that pull was logged under'
 	 * return, so the two halves are separated: the matcher is asserted to answer the row positively, and
 	 * the consumer is asserted to return a body for a roster whose row is still `'both'`.
 	 */
-	it("matches Malkorok's Living Corruption at the id the pull was logged under, and leaves it in the count", () => {
+	it("matches Malkorok's Living Corruption at the id the pull was logged under, and strikes it in parsing", () => {
 		const captured = capturedAnalyses('windwalker').find(({ analysis }) => analysis.encounter === 'Malkorok');
 		if (captured === undefined) throw new Error('no captured Malkorok analysis under specs/windwalker/__fixtures__');
 
@@ -383,14 +390,20 @@ describe('and it answers a committed pull, at the id that pull was logged under'
 		// report number, so the two cannot be confused for one another.
 		expect(corruption.id).not.toBe(row.gameID);
 
-		// And so the consumer leaves the body in the counted series, `'both'` being the only reach it reads.
-		expect([...uncountedActorIDs(logged, analysis.difficulty, enemies)]).toEqual([]);
-		// *** Which is not the empty set a matcher that answers nothing would return. *** The same consumer
-		// over a roster whose row is still `'both'` hands the body back, and hands nothing back on Normal,
-		// that row being heroic-only.
+		// And so the consumer strikes the body from the counted series in parsing, and hands it back in
+		// progression — on a real roster, at the id the pull was logged under, which is the whole point of
+		// this block.
+		expect([...uncountedActorIDs(logged, analysis.difficulty, enemies, 'parsing')]).toEqual([corruption.id]);
+		expect([...uncountedActorIDs(logged, analysis.difficulty, enemies, 'progression')]).toEqual([]);
+		// *** And the boss beside it is untouched in both. *** A mode that struck everything would be green
+		// on the line above, so the assertion that matters is the one naming what stayed.
+		expect(enemies.filter((target) => target.name === 'Malkorok').map((target) => target.id)).not.toContain(
+			corruption.id,
+		);
+		// Heroic-only rows still read the difficulty, which the mode does not override.
 		const blood = [{ id: 501, gameID: 71_542, name: 'Blood' }];
-		expect([...uncountedActorIDs(51_593, HEROIC_DIFFICULTY, blood)]).toEqual([501]);
-		expect([...uncountedActorIDs(51_593, 3, blood)]).toEqual([]);
+		expect([...uncountedActorIDs(51_593, HEROIC_DIFFICULTY, blood, 'parsing')]).toEqual([501]);
+		expect([...uncountedActorIDs(51_593, 3, blood, 'parsing')]).toEqual([]);
 	});
 });
 

@@ -12,6 +12,7 @@
 // for: it is the only lookup that can run before any analysis exists, because `playerDetails` is
 // the cheap query that decides whether the expensive one is worth fetching at all.
 
+import type { AnalysisMode } from '~/lib/analysis/analysisMode';
 import type { Handles } from '~/lib/analysis/analyseCore';
 import type { RaidBuffEffect } from '~/lib/analysis/raidBuffs';
 import type { GameData } from '~/lib/game/model';
@@ -121,7 +122,11 @@ export interface SpecDefinition {
 	/** The spec's game model, for anything that wants the buttons rather than the analysis. */
 	gameData: GameData;
 	registry: Registry;
-	analyse(dataset: FightDataset, settings?: AnalysisSettings): Analysis;
+	/**
+	 * `mode` decides whether WarcraftLogs' Siege exemptions apply — see `lib/analysis/analysisMode`.
+	 * Omitted means `parsing`, the reading that cannot overstate a pull.
+	 */
+	analyse(dataset: FightDataset, settings?: AnalysisSettings, mode?: AnalysisMode): Analysis;
 	/** One global's length, from the engine config so the two cannot disagree. */
 	gcdMs: number;
 	/** Whether a pull's events are actually this spec — the refusal hook. */

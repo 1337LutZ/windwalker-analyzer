@@ -21,6 +21,7 @@
 // primary target, Lightning Shield's stack counter, and Ascendance's cooldown clock (via the
 // engine's `offLadderCooldowns`, because Ascendance is off-GCD and off the ladder).
 
+import { DEFAULT_ANALYSIS_MODE, type AnalysisMode } from '~/lib/analysis/analysisMode';
 import {
 	type AuraPoint,
 	type AuraWindow,
@@ -5413,6 +5414,7 @@ export const ELEMENTAL_SPEC: SpecConfig = {
 export function analyse(
 	dataset: FightDataset,
 	settings: AnalysisSettings = defaultSettings(ELEMENTAL_SETTINGS),
+	mode: AnalysisMode = DEFAULT_ANALYSIS_MODE,
 ): Analysis {
-	return analyseCore(dataset, settings, ELEMENTAL_SPEC);
+	return analyseCore(dataset, settings, ELEMENTAL_SPEC, mode);
 }

@@ -489,12 +489,12 @@ const APL_VERDICTS: Record<
 	// declared gain is switched off wherever it does.
 	'windwalker/idle.json': { presses: 106, followed: 47, skipped: 56, offList: 3, unknown: 0 },
 	'windwalker/sections.json': { presses: 292, followed: 129, skipped: 153, offList: 9, unknown: 1 },
-	// 105/72 while `Living Corruption`'s ruleset row read `reach: 'both'`. Twenty bodies were leaving
-	// the counted series on this pull, so the ladder read every press as single-target; the row is
-	// `'damage'` now and the pull reads a peak of 3 enemies and 35.4% multi-target, which moves five presses
-	// out of `followed`. The 58.0% above was the highest of the three for the reason the narrowing
-	// removes. See `game/__tests__/exclusionEvidence.test.ts`.
-	'windwalker/uncounted.json': { presses: 181, followed: 100, skipped: 77, offList: 3, unknown: 1 },
+	// **This row is mode-dependent, and the numbers here are `parsing` — the default.** WarcraftLogs
+	// strikes the twenty Living Corruptions on this pull, so under the ruleset it reads single-target and
+	// the ladder grades every press that way. Under `progression` the same pull reads a peak of 3 enemies
+	// and 35.4% multi-target, and five presses move out of `followed` to 100/77. Neither is a regression;
+	// they are two questions. `game/__tests__/exclusionEvidence.test.ts` reads this same pull both ways.
+	'windwalker/uncounted.json': { presses: 181, followed: 105, skipped: 72, offList: 3, unknown: 1 },
 };
 
 /** `[events carrying `classResources`, events in the pull]`, straight off the raw fixture. */

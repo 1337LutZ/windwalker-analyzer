@@ -64,6 +64,8 @@
 // SoO, `51623` on classic SoO and `101623` on the classic re-release. `baseEncounterID` collapses all
 // three, so a rule written once holds for a report from any of them.
 
+import { appliesExemptions, DEFAULT_ANALYSIS_MODE, type AnalysisMode } from '~/lib/analysis/analysisMode';
+
 /**
  * How far an exclusion reaches — *the question the ruleset does not answer*.
  *
@@ -82,6 +84,19 @@
  *
  * There is no `'count'`-only member, because no rule in this ruleset produces one — every entry here
  * begins life as a damage-ranking exclusion. The union would be widened by a rule that does.
+ */
+/**
+ * How far a row's exclusion reaches — **recorded evidence, no longer consulted**.
+ *
+ * This was a per-row judgement about whether an NPC was a body the rotation had to react to, argued one
+ * measured row at a time, and every `evidence` string below still carries that argument. What replaced it
+ * is `AnalysisMode`: a reader comparing against the ladder wants every struck NPC gone whatever this field
+ * says, and a reader working a progression fight wants every body counted whatever it says. Neither
+ * reading asks the question this answered.
+ *
+ * Kept rather than deleted because the measurements are real and were expensive — 36 hits across 2 spawns
+ * held for 15.3s is a fact about Garrosh whoever is reading — and because a future third mode may want
+ * exactly this distinction back.
  */
 export type ExclusionReach = 'damage' | 'both';
 
@@ -352,10 +367,12 @@ export function uncountedActorIDs(
 	encounterID: number | undefined,
 	difficulty: number | undefined,
 	enemyNPCs: readonly { id: number; gameID?: number | null; name?: string | null }[] | undefined,
+	mode: AnalysisMode = DEFAULT_ANALYSIS_MODE,
 ): Set<number> {
+	if (!appliesExemptions(mode)) return new Set();
 	return new Set(
 		(enemyNPCs ?? [])
-			.filter((npc) => rankingExclusionFor(encounterID, difficulty, npc)?.reach === 'both')
+			.filter((npc) => rankingExclusionFor(encounterID, difficulty, npc) !== undefined)
 			.map((npc) => npc.id),
 	);
 }
@@ -379,13 +396,12 @@ export function excludedDamageActorIDs(
 	encounterID: number | undefined,
 	difficulty: number | undefined,
 	enemyNPCs: readonly { id: number; gameID?: number | null; name?: string | null }[] | undefined,
+	mode: AnalysisMode = DEFAULT_ANALYSIS_MODE,
 ): Set<number> {
+	if (!appliesExemptions(mode)) return new Set();
 	return new Set(
 		(enemyNPCs ?? [])
-			.filter((npc) => {
-				const reach = rankingExclusionFor(encounterID, difficulty, npc)?.reach;
-				return reach === 'damage' || reach === 'both';
-			})
+			.filter((npc) => rankingExclusionFor(encounterID, difficulty, npc) !== undefined)
 			.map((npc) => npc.id),
 	);
 }

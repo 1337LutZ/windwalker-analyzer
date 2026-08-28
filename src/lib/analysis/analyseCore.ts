@@ -26,7 +26,9 @@ import {
 	isResurrect,
 } from '~/lib/events';
 import type { Ability } from '~/lib/game/model';
-import { uncountedActorIDs } from '~/lib/game/rankingExclusions';
+import { excludedDamageActorIDs, uncountedActorIDs } from '~/lib/game/rankingExclusions';
+import { appliesExemptions, DEFAULT_ANALYSIS_MODE, type AnalysisMode } from '~/lib/analysis/analysisMode';
+import { conditionalExclusions, isStruckHit } from '~/lib/game/conditionalExclusions';
 import type { FightPhase } from '~/lib/wcl/phases';
 import type { Registry } from '~/lib/game/registry';
 import type { ResourceConfig } from '~/lib/game/resources';
@@ -473,7 +475,12 @@ export const GCD_MIN_MS = 1000;
 const MELEE_DAMAGE_ID = 1;
 
 /** The full analysis of one fight for one spec. */
-export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, spec: SpecConfig): Analysis {
+export function analyseCore(
+	dataset: FightDataset,
+	settings: AnalysisSettings,
+	spec: SpecConfig,
+	mode: AnalysisMode = DEFAULT_ANALYSIS_MODE,
+): Analysis {
 	// The thresholds the reader owns, clamped against the spec's own schema. Everything else here is
 	// the spec's; these are theirs, because they describe their latency and their hands rather than
 	// the rotation.
@@ -637,7 +644,7 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	 * one the rotation had time to react to. That row is `'damage'` now and this pull publishes a peak of
 	 * three enemies where it published one.
 	 */
-	const uncountedIDs = uncountedActorIDs(fight.encounterID, fight.difficulty, table.fight.enemyNPCs);
+	const uncountedIDs = uncountedActorIDs(fight.encounterID, fight.difficulty, table.fight.enemyNPCs, mode);
 	const damageEvents = events.filter(isDamage).filter((e) => mine(e.sourceID));
 	/**
 	 * Which enemy spawns were ever targets at all — the question before "how many of them were there".
@@ -964,10 +971,52 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	 * against an enemy is contact.
 	 */
 	const enemyIDs = new Set(actors.filter((a) => a.type === 'NPC').map((a) => a.id));
+	/**
+	 * The hits WarcraftLogs' own Siege ruleset strikes, from both halves of it.
+	 *
+	 * `excludedDamageActorIDs` is the eleven decided rows keyed by NPC; `conditionalExclusions` is the two
+	 * that had to be read off the pull instead. Their own files carry the rules and the evidence; what is
+	 * decided *here* is the only question those files cannot answer, which is what a struck hit costs.
+	 *
+	 * **It costs contact, and contact alone.** `damageEvents` is not filtered, and that omission is the
+	 * whole design. The spawn walk below still sees every body, so a struck add still raises the target
+	 * count and still puts the pull in the band its adds earned — which is exactly what the `reach` rows
+	 * argue for at length, one measured row at a time: a Kor'kron Jailer held for 39.6s "was a body the
+	 * rotation had every reason to react to". Those rows are an argument about the *count*, and this leaves
+	 * the count alone. What they never argued is that the same hits should also be the evidence a stretch
+	 * of the pull gets *graded* on.
+	 *
+	 * So a global whose only landed hit was struck is not scored — not scored badly, **not scored** — and a
+	 * global that also touched something real is untouched. That is the difference between an exemption and
+	 * a penalty, and it is the one this codebase spends `docs/exemptions.md` insisting on.
+	 *
+	 * ***The cost is real and is not hidden.*** Thok's row says a count exclusion "would remove contact time
+	 * from the denominator" and offers that as a reason against it; this removes contact time. The reply is
+	 * that the denominator is the right place for it and the count was not: a player alone on a Jailer for
+	 * 39.6s did fight it, and their rotation over those 39.6s is not evidence WarcraftLogs will accept about
+	 * how they play. Refusing to grade it is the honest answer to a stretch of pull the ruleset has struck.
+	 */
+	const struckActorIDs = excludedDamageActorIDs(fight.encounterID, fight.difficulty, table.fight.enemyNPCs, mode);
+	// Gated with the table beside it: these are the same ruleset read off the pull instead of off a list,
+	// so a reader who has asked for the fight as fought must not have them applied either.
+	const struckSpawns = !appliesExemptions(mode)
+		? new Map()
+		: conditionalExclusions({
+				encounterID: fight.encounterID,
+				difficulty: fight.difficulty,
+				events,
+				enemyDeaths: dataset.enemyDeaths,
+				isEnemy: (id) => enemyIDs.has(id),
+				isBoss: (id) => bossIDs.has(id),
+			});
+	const struckHit = (e: WclEvent): boolean =>
+		(e.targetID !== undefined && struckActorIDs.has(e.targetID)) ||
+		isStruckHit(struckSpawns, e.targetID, e.targetInstance, e.timestamp);
 	const contact = engagedWindows(
 		damageEvents
 			.filter((e) => e.sourceID === actor.id && !(isDamage(e) && e.tick === true))
 			.filter((e) => e.targetID !== undefined && enemyIDs.has(e.targetID))
+			.filter((e) => !struckHit(e))
 			.filter((e) => {
 				const id = abilityIdOf(e);
 				return id !== null && spec.registry.abilityByDamageId(id) !== undefined;

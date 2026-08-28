@@ -1,3 +1,5 @@
+import { DEFAULT_ANALYSIS_MODE, type AnalysisMode } from '~/lib/analysis/analysisMode';
+import AnalysisModeControl from './AnalysisModeControl';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -93,7 +95,16 @@ export default function ReportFlow({ spec }: { spec: SpecDefinition }) {
 	 * the pickers once they are off screen. None of those is a question a slot can answer, and on a page
 	 * with two of them none of those is a question two slots should both try to.
 	 */
-	const slot = useReportSlot({ token, spec, settings: settingsState.settings, seed });
+	/**
+	 * Which question this report answers — see `lib/analysis/analysisMode`.
+	 *
+	 * Plain state rather than persisted: it changes what every figure on the page means, so a reader who
+	 * opened a fresh tab should be told by the control which reading they are looking at rather than
+	 * inheriting last week's choice invisibly. `parsing` is the default because it cannot overstate a
+	 * pull.
+	 */
+	const [analysisMode, setAnalysisMode] = useState<AnalysisMode>(DEFAULT_ANALYSIS_MODE);
+	const slot = useReportSlot({ token, spec, settings: settingsState.settings, mode: analysisMode, seed });
 	// Destructured to the names the markup below already uses, so lifting the state out is not also a
 	// rename of forty call sites.
 	const {
@@ -381,7 +392,13 @@ export default function ReportFlow({ spec }: { spec: SpecDefinition }) {
 
 			    Gated on `gradeable`, the same condition the bar's own switches take. */}
 			{gradeable && analysis !== null ? (
-				<div className="mt-4 sm:mt-5">
+				<div className="mt-4 flex flex-col gap-4 sm:mt-5">
+					{/* Beside the target mode because both are re-readings of a pull already fetched: neither
+					    touches the network, so both belong where a reader is looking at the report rather
+					    than back at the form. They still answer different questions — this one changes what
+					    was measured, that one changes which stretch of the pull is read — which is what the
+					    two labels and the two hints are for. */}
+					<AnalysisModeControl value={analysisMode} onChange={setAnalysisMode} />
 					<TargetModeControl
 						targets={analysis.targets}
 						segments={analysis.segments}

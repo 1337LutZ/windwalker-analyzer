@@ -371,32 +371,34 @@ describe('Living Corruption on the one committed pull of its encounter', () => {
 	});
 
 	/**
-	 * And the consequence the narrowing had, end to end — the size of one word in one row of one table.
+	 * *** The clearest demonstration of what the analysis mode changes, on a real committed pull. ***
 	 *
-	 * `'both'` is the only reach `uncountedActorIDs` reads, so while the row carried it these twenty
-	 * judgeable, non-immune bodies left the **counted** series and a 211s pull with a second enemy up for
-	 * most of it published a peak enemy count of **one**, 0% multi-target, and a single `mixed` segment. It
-	 * reads 3, 35.4% and three segments now, and the ladder grades five presses differently for it
-	 * (`analysis/__tests__/fixtureCoverage.test.ts` carries that row).
+	 * Twenty judgeable, non-immune Living Corruption bodies were up for most of a 211s Malkorok kill. In
+	 * `parsing` WarcraftLogs strikes every one of them, so the pull publishes a peak enemy count of
+	 * **one**, 0% multi-target and a single-target reading — which is the honest answer to "what does the
+	 * ladder see", because none of that damage counts toward a parse. In `progression` the same pull reads
+	 * **3**, **35.37%** and multi-target, which is the honest answer to "what did this player fight".
 	 *
-	 * **Which leaves `uncountedActorIDs` exercised by no committed pull**, and that is worth saying rather
-	 * than leaving to be discovered: it was reached by one row, on this fixture. The grid at
-	 * the foot of this file keeps an `excluded` column that is now zero everywhere, deliberately — a column
-	 * that would go non-zero the moment a `'both'` row meets a pull is the cheapest tripwire available, and
-	 * a removed column cannot fire.
+	 * Neither number is wrong and the report says which one it is showing. What would be wrong is a single
+	 * answer presented as though the question had only one.
 	 */
-	it('stays in the counted series, which is what the narrowed reach decides', () => {
-		expect(published.some((r) => r.excluded)).toBe(false);
-		// Judgeable and not immune: every one of them counts, and nothing but the row was keeping them out.
+	it('reads single-target in parsing and multi-target in progression, on the same pull', () => {
+		const parsing = analyse(dataset, undefined, 'parsing');
+		const progression = analyse(dataset, undefined, 'progression');
+
+		// Every one of the twenty leaves the counted series under the ruleset, and none of them under the
+		// fight-as-fought reading. Nothing about the bodies changed — only which question is being asked.
+		expect((parsing.spawns ?? []).filter((r) => r.excluded).length).toBe(20);
+		expect((progression.spawns ?? []).filter((r) => r.excluded).length).toBe(0);
 		expect(published.every((r) => r.judgeable && !r.immune)).toBe(true);
-		expect(analyse(dataset).targets?.counts.max).toBe(3);
-		expect(analyse(dataset).targets?.multiTargetPct).toBeCloseTo(35.37, 2);
-		// 1 and 0 while the row read `'both'`.
-		expect(analyse(dataset).targets?.detected).toBe('multi');
-		// And nothing on any committed pull is excluded any more — the ruleset now reaches no body in the tree.
-		expect(
-			PULLS.flatMap(({ name, analysis }) => (analysis.spawns ?? []).filter((r) => r.excluded).map(() => name)),
-		).toEqual([]);
+
+		expect(parsing.targets?.counts.max).toBe(1);
+		expect(parsing.targets?.multiTargetPct).toBeCloseTo(0, 2);
+		expect(parsing.targets?.detected).toBe('single');
+
+		expect(progression.targets?.counts.max).toBe(3);
+		expect(progression.targets?.multiTargetPct).toBeCloseTo(35.37, 2);
+		expect(progression.targets?.detected).toBe('multi');
 	});
 });
 
@@ -443,9 +445,11 @@ describe('the aimed set the sweep is measured with', () => {
 			// Galakras, seventeen of forty-one bodies deliberately fought. Not an encounter the ruleset names;
 			// Garrosh is 1623 and this is 1622, which is the near-miss worth having a pull of.
 			'sections.json': { bodies: 41, bodiesAimedAt: 17, aimedPresses: 595, excluded: 0 },
-			// Malkorok: the boss and twenty Living Corruptions, one body aimed at. `excluded: 20` until that
-			// row was narrowed from `'both'` to `'damage'` — see the block above for what the twenty cost.
-			'uncounted.json': { bodies: 21, bodiesAimedAt: 1, aimedPresses: 400, excluded: 0 },
+			// Malkorok: the boss and twenty Living Corruptions, one body aimed at. The twenty are struck here
+			// because this grid is built in the default mode, which is `parsing` — the block above reads the
+			// same pull both ways and is where that number is argued. The other three rows are encounters
+			// the ruleset says nothing about, so no mode moves them.
+			'uncounted.json': { bodies: 21, bodiesAimedAt: 1, aimedPresses: 400, excluded: 20 },
 		});
 	});
 });

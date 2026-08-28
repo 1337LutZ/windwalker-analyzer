@@ -24,6 +24,7 @@ import { runeOfReOriginationEquipped } from '~/specs/windwalker/lib/view/rotatio
 import { aplAudit } from '~/lib/spec/apl';
 import type { AplAudit, Band } from '~/lib/spec/apl';
 import { CHI_COST, LADDER, UNARBITRATED } from './apl';
+import { DEFAULT_ANALYSIS_MODE, type AnalysisMode } from '~/lib/analysis/analysisMode';
 import { defaultSettings, type AnalysisSettings, type SettingSchema } from '~/lib/settings';
 import type {
 	ChiBrewAudit,
@@ -1801,8 +1802,12 @@ export const WW_SPEC: SpecConfig = {
 };
 
 /** The full analysis of one fight for one Windwalker. */
-export function analyse(dataset: FightDataset, settings: AnalysisSettings = defaultSettings(WW_SETTINGS)): Analysis {
-	return analyseCore(dataset, settings, WW_SPEC);
+export function analyse(
+	dataset: FightDataset,
+	settings: AnalysisSettings = defaultSettings(WW_SETTINGS),
+	mode: AnalysisMode = DEFAULT_ANALYSIS_MODE,
+): Analysis {
+	return analyseCore(dataset, settings, WW_SPEC, mode);
 }
 
 /**

@@ -790,8 +790,24 @@ describe('no string in report.json sits outside every scope', () => {
  * was the only thing guarding them and nothing executed it. Bringing them into the locale brings them
  * under every list in this file **by construction**, which is why the move was worth more than the
  * scanner that was considered and rejected in its place.
+ *
+ * **`analysisMode` is the eleventh**, and it is the root most in need of these rules rather than least:
+ * two of its five strings exist to tell a reader that the figures on the page answer one of two
+ * questions, and copy that explains a choice is exactly where the vocabulary of the audit creeps back in.
  */
-const UI_ROOTS = ['app', 'auth', 'chart', 'common', 'credits', 'errors', 'progress', 'selection', 'settings', 'steps'];
+const UI_ROOTS = [
+	'analysisMode',
+	'app',
+	'auth',
+	'chart',
+	'common',
+	'credits',
+	'errors',
+	'progress',
+	'selection',
+	'settings',
+	'steps',
+];
 
 const shellStrings = (): [string, string][] => uiStrings().filter(([key]) => UI_ROOTS.includes(key.split('.')[0]!));
 

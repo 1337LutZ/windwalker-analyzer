@@ -11,6 +11,7 @@
 // slot has no opinion about any of them, and on the compare page two slots would fight over all of
 // them.
 
+import { DEFAULT_ANALYSIS_MODE, type AnalysisMode } from '~/lib/analysis/analysisMode';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useFightAnalysis, type AnalysisRequest } from '~/hooks/useFightAnalysis';
@@ -98,6 +99,14 @@ export interface SlotInput {
 	spec: SpecDefinition;
 	settings: AnalysisSettings;
 	/**
+	 * Which question to answer — see `lib/analysis/analysisMode`.
+	 *
+	 * Unlike the target mode this is not view state: it reaches `analyse()`, so changing it rebuilds the
+	 * analysis from the events already in the cache. No refetch, and the same rebuild a settings change
+	 * causes.
+	 */
+	mode?: AnalysisMode;
+	/**
 	 * The selection a link supplied, or null for a slot nothing seeded.
 	 *
 	 * Seeded through an effect on identity rather than as an initial value, because on the report page
@@ -119,7 +128,14 @@ export interface SlotInput {
 	encounter?: string | null;
 }
 
-export function useReportSlot({ token, spec, settings, seed, encounter = null }: SlotInput): ReportSlot {
+export function useReportSlot({
+	token,
+	spec,
+	settings,
+	mode = DEFAULT_ANALYSIS_MODE,
+	seed,
+	encounter = null,
+}: SlotInput): ReportSlot {
 	const [input, setInput] = useState<ResolvedReportInput | null>(null);
 	const [chosenFightID, setChosenFightID] = useState<number | null>(null);
 	const [fightJustChosen, setFightJustChosen] = useState(false);
@@ -181,7 +197,7 @@ export function useReportSlot({ token, spec, settings, seed, encounter = null }:
 	const roster = useMemo(() => players.data ?? [], [players.data]);
 	const playerName = resolvePlayerName(roster, chosenPlayer, input?.sourceID ?? null);
 
-	const { analysis, error, isFetching, progress } = useFightAnalysis(token, request, settings, spec);
+	const { analysis, error, isFetching, progress } = useFightAnalysis(token, request, settings, spec, mode);
 
 	// What is on screen belongs to a request, and the moment the selection stops matching that request
 	// it belongs to a pull nobody is looking at. Only the request is dropped — the picks *are* the new

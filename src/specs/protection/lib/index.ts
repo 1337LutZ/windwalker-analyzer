@@ -32,6 +32,7 @@ import { auraWindows, raidScoped, toIntervals } from '~/lib/analysis/auras';
 import { raidSourceLanes } from '~/lib/analysis/raidCasters';
 import { abilityIdOf, eventsOn, instanceKey, isAuraEvent, type WclEvent } from '~/lib/events';
 import { mergeIntervals, unionMs, type Interval } from '~/lib/analysis/intervals';
+import { DEFAULT_ANALYSIS_MODE, type AnalysisMode } from '~/lib/analysis/analysisMode';
 import { defaultSettings, type AnalysisSettings, type SettingSchema } from '~/lib/settings';
 import { CLASS_COLOR } from '~/lib/game/classes';
 import { SECONDARY_RESOURCE_TYPE } from '~/lib/game/resources';
@@ -977,6 +978,7 @@ export const PROTECTION_SPEC: SpecConfig = {
 export function analyse(
 	dataset: FightDataset,
 	settings: AnalysisSettings = defaultSettings(PROTECTION_SETTINGS),
+	mode: AnalysisMode = DEFAULT_ANALYSIS_MODE,
 ): Analysis {
-	return analyseCore(dataset, settings, PROTECTION_SPEC);
+	return analyseCore(dataset, settings, PROTECTION_SPEC, mode);
 }

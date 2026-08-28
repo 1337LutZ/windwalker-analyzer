@@ -10,6 +10,7 @@
 // until the last page says so, so the only thing that can report how far along the fetch is, is the
 // fetch — `onProgress` feeds a piece of state here and the query owns everything else.
 
+import { DEFAULT_ANALYSIS_MODE, type AnalysisMode } from '~/lib/analysis/analysisMode';
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -55,6 +56,7 @@ export function useFightAnalysis(
 	request: AnalysisRequest | null,
 	settings: AnalysisSettings,
 	spec: SpecDefinition,
+	mode: AnalysisMode = DEFAULT_ANALYSIS_MODE,
 ): FightAnalysisResult {
 	const { t } = useTranslation('ui');
 	const queryKey = ['wcl', 'fight-analysis', request?.code, request?.fightID, request?.playerName];
@@ -117,8 +119,8 @@ export function useFightAnalysis(
 	// synchronous and blocks the main thread, so it must not run on every unrelated render. The spec
 	// owns the reading — `analyse` is the engine's entry point in the registry.
 	const analysis = useMemo(
-		() => (query.data === undefined ? null : spec.analyse(query.data, settings)),
-		[query.data, settings, spec],
+		() => (query.data === undefined ? null : spec.analyse(query.data, settings, mode)),
+		[query.data, settings, spec, mode],
 	);
 
 	return {

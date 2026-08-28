@@ -765,11 +765,16 @@ describe('the two series on every committed Protection pull', () => {
 			peak: [pull(name, []).targets!.aplCounts!.max, pull(name).targets!.aplCounts!.max],
 		});
 
+		// **These figures are the default mode, `parsing`, and two of the five pulls move with it.** Fallen
+		// Protectors and Garrosh are the encounters the Siege ruleset names adds on, so their spawns leave
+		// the counted series here and the peak drops with them — 99.9002 / 96.7774 / 95.7901 / [8, 7] on
+		// Fallen and 15.7883 on Garrosh when those bodies are counted. Galakras, Paragons and Spoils carry
+		// no rows, so no mode moves them, which is what makes them the control in this table.
 		const fallen = arms('fallenProtectors.json');
-		expect(fallen.none).toBeCloseTo(99.9002, 3);
-		expect(fallen.consecration).toBeCloseTo(96.7774, 3);
-		expect(fallen.both).toBeCloseTo(95.7901, 3);
-		expect(fallen.peak).toEqual([8, 7]);
+		expect(fallen.none).toBeCloseTo(98.9173, 3);
+		expect(fallen.consecration).toBeCloseTo(94.5577, 3);
+		expect(fallen.both).toBeCloseTo(93.5704, 3);
+		expect(fallen.peak).toEqual([6, 6]);
 
 		const galakras = arms('galakras.json');
 		expect(galakras.none).toBeCloseTo(52.5887, 3);
@@ -781,7 +786,7 @@ describe('the two series on every committed Protection pull', () => {
 		expect(galakras.peak).toEqual([5, 4]);
 
 		const garrosh = arms('garrosh.json');
-		expect(garrosh.none).toBeCloseTo(15.7883, 3);
+		expect(garrosh.none).toBeCloseTo(14.1286, 3);
 		expect(garrosh.consecration).toBeCloseTo(8.7573, 3);
 		expect(garrosh.both).toBeCloseTo(8.7573, 3);
 		expect(garrosh.peak).toEqual([8, 7]);
@@ -812,7 +817,7 @@ describe('the two series on every committed Protection pull', () => {
 		const withCleave = (name: string) => pull(name, ['consecration', 'lights-hammer', 'hammer-of-the-righteous']);
 		expect(ladderShare(withCleave('spoils.json'))).toBeCloseTo(76.1723, 3);
 		expect(withCleave('spoils.json').targets!.aplCounts!.max).toBe(9);
-		expect(ladderShare(withCleave('fallenProtectors.json'))).toBeCloseTo(94.8855, 3);
+		expect(ladderShare(withCleave('fallenProtectors.json'))).toBeCloseTo(92.6657, 3);
 		expect(ladderShare(withCleave('garrosh.json'))).toBeCloseTo(7.8306, 3);
 		// And on the two pulls whose fan-out is all adds and no cleave, it is worth nothing at all.
 		expect(ladderShare(withCleave('galakras.json'))).toBeCloseTo(34.1988, 3);
