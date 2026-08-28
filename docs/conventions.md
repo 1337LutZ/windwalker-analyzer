@@ -486,7 +486,7 @@ copy itself follows — say it once, outside the arms.
      src/lib/i18n/__tests__/conventionsCensus.test.ts. Re-run the block above and paste the whole set
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
-As of the fight replay, it prints 1757 leaves, 834 prose, 27,622
+As of the fight replay, it prints 1758 leaves, 834 prose, 27,622
 words; median 27, p75 45, p90 65, p95 78, p99 110, max 204; longest 9% carry 24%; report.json 757 prose
 leaves, 1,347 sentences, median 17, 286 past 25 (21.2%), 294 em-dashes in 253 sentences (18.8%);
 71 / 30 / 1 / 2 on the quote lines.
@@ -532,13 +532,15 @@ paragraph above gives.** Both were written under the ceiling of two per sentence
 moves while the sentence total climbs, and the share falls out of the denominator rather than out of
 any decision about voice.
 
-Twelve leaves and 105 words in the pass that put the pull's geometry behind a button. The **fight
+Thirteen leaves and 105 words in the pass that put the pull's geometry behind a button. The **fight
 replay** is one `summary.shape.replay` family: a button, a dialog title and its opening line, the label
-over the mode chip, a clock, a scale, three control names, a chart description, a note and a line for the
-pull that has no track to play. Nine of the twelve are one to three words — the labels a control needs —
+over the mode chip, a clock, a scale, four control names, a chart description, a note and a line for the
+pull that has no track to play. Nine of the thirteen are one or two words — the labels a control needs —
 and only four are prose, which is why the leaf count moves three times as far as the prose count and the
 median string length does not move at all. It is the same shape the per-encounter table made two passes
-above: a corpus takes on labels far more cheaply than it takes on sentences.
+above: a corpus takes on labels far more cheaply than it takes on sentences. The thirteenth is `Close`,
+and it arrived a step later than the rest: the dialog went full-screen, which takes the backdrop away, and
+a dialog with nothing to click past has to carry its own way out.
 
 **The note is the one long string, and it is long on purpose.** A replay that draws a dot where the log
 last saw someone invites two wrong readings — that a missing enemy was not there, and that a short

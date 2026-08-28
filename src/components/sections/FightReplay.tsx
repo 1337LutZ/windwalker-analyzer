@@ -26,10 +26,28 @@ import type { Analysis } from '~/lib/types';
 
 import { COUNT } from '../charts/tones';
 import { DialogShell } from '../primitives';
+import { buttonClass } from '../primitives/controls';
 import { segmentLabel } from './segmentCopy';
 
-/** The drawing's own box. Square, because a room is not a timeline and a wide one wastes both axes. */
-const VIEW = 460;
+/**
+ * The long side of the drawing, in view units. The short side follows the pull's own shape.
+ *
+ * A square box was the first draft and it is wrong for most pulls: the box a fight happens in is
+ * whatever shape the room is, and Dark Shaman's corridor is 246 yards down and 107 across. Drawn
+ * square, five sixths of the picture is empty and the part a reader came for is a thin band up the
+ * middle. So the *viewBox* takes the bounds' aspect and the element inherits it — no `aspect-square`,
+ * no letterboxing, and the drawing is as wide as the room was.
+ */
+const VIEW_LONG = 520;
+/**
+ * How far from square the box is allowed to get.
+ *
+ * A pull that never left one spot has a bounding box a few yards across and an aspect that is noise
+ * rather than shape; unclamped it draws as a 3px-tall sliver. Past 2.5:1 the extra ratio buys nothing
+ * a reader can use, and what it costs is the short axis becoming unreadable — so the box stops there
+ * and the scale below letterboxes the remainder, which is honest: the empty margin is real space.
+ */
+const MAX_ASPECT = 2.5;
 /** Room for the scale bar and the outermost dot, in view units. */
 const PAD = 26;
 /** How fast playback runs, in real ms per frame. Roughly 12× — a seven-minute pull in about 35 seconds. */
@@ -89,15 +107,26 @@ function ReplayStage({ analysis }: { analysis: Analysis }) {
 		const { minX, maxX, minY, maxY } = replay.bounds;
 		const spanX = Math.max(1, maxX - minX);
 		const spanY = Math.max(1, maxY - minY);
-		const scale = (VIEW - PAD * 2) / Math.max(spanX, spanY);
-		const offX = (VIEW - spanX * scale) / 2;
-		const offY = (VIEW - spanY * scale) / 2;
+
+		// The box takes the room's shape, clamped so a pull that barely moved does not draw as a sliver.
+		const aspect = Math.min(MAX_ASPECT, Math.max(1 / MAX_ASPECT, spanX / spanY));
+		const w = aspect >= 1 ? VIEW_LONG : VIEW_LONG * aspect;
+		const h = aspect >= 1 ? VIEW_LONG / aspect : VIEW_LONG;
+
+		// **One scale for both axes, always.** Stretching each independently would fill the box exactly
+		// and make a yard across mean something different from a yard down — every distance on the
+		// drawing would then be a different lie depending on which way it ran.
+		const scale = Math.min((w - PAD * 2) / spanX, (h - PAD * 2) / spanY);
+		const offX = (w - spanX * scale) / 2;
+		const offY = (h - spanY * scale) / 2;
 		return {
+			w,
+			h,
 			scale,
 			// Screen y grows downward and map y grows northward, so the vertical is flipped here and
 			// nowhere else — a drawing that forgot it renders the room upside down and still looks fine.
 			px: (x: number) => offX + (x - minX) * scale,
-			py: (y: number) => VIEW - (offY + (y - minY) * scale),
+			py: (y: number) => h - (offY + (y - minY) * scale),
 		};
 	}, [replay]);
 
@@ -134,21 +163,27 @@ function ReplayStage({ analysis }: { analysis: Analysis }) {
 				</span>
 			</div>
 
-			{/* Square, and capped against the viewport rather than the dialog's width. At `table` width the
-			    drawing would otherwise be 52rem tall and push its own mode chip off the top of the screen,
-			    which is the one readout it exists to carry. */}
+			{/* The height is capped against the viewport and the width follows from it, so the drawing grows
+			    into the screen without ever pushing its own mode chip off the top — which is the one readout
+			    it exists to carry. The 16.5rem is what the dialog spends on everything that is not the drawing:
+			    the title row, the mode readout, the controls and the note, measured at the width where they
+			    each take two lines. `maxWidth` is computed rather than a class because the ratio is the
+			    pull's, not a value Tailwind could know. */}
 			<svg
-				viewBox={`0 0 ${VIEW} ${VIEW}`}
-				className="mx-auto block aspect-square w-full max-w-[min(100%,46vh)] rounded-sm bg-track"
+				viewBox={`0 0 ${projected.w} ${projected.h}`}
+				style={{
+					maxWidth: `min(100%, calc((100dvh - 16.5rem) * ${(projected.w / projected.h).toFixed(3)}))`,
+				}}
+				className="mx-auto block h-auto w-full rounded-sm bg-track"
 				role="img"
 				aria-label={t('summary.shape.replay.chartLabel')}
 			>
 				{/* A 20-yard grid, so a reader can measure a gap without a ruler. */}
-				{Array.from({ length: Math.ceil(VIEW / grid) + 1 }, (_, i) => i * grid).map((at) => (
-					<g key={at}>
-						<line x1={at} y1={0} x2={at} y2={VIEW} className="stroke-line" strokeWidth={1} />
-						<line x1={0} y1={at} x2={VIEW} y2={at} className="stroke-line" strokeWidth={1} />
-					</g>
+				{Array.from({ length: Math.ceil(projected.w / grid) + 1 }, (_, i) => i * grid).map((at) => (
+					<line key={`v${at}`} x1={at} y1={0} x2={at} y2={projected.h} className="stroke-line" strokeWidth={1} />
+				))}
+				{Array.from({ length: Math.ceil(projected.h / grid) + 1 }, (_, i) => i * grid).map((at) => (
+					<line key={`h${at}`} x1={0} y1={at} x2={projected.w} y2={at} className="stroke-line" strokeWidth={1} />
 				))}
 				{here.foes.map((foe) => (
 					<rect
@@ -171,8 +206,15 @@ function ReplayStage({ analysis }: { analysis: Analysis }) {
 						strokeWidth={2}
 					/>
 				) : null}
-				<line x1={16} y1={VIEW - 18} x2={16 + grid} y2={VIEW - 18} className="stroke-muted" strokeWidth={2} />
-				<text x={16 + grid + 7} y={VIEW - 14} className="fill-muted font-mono" fontSize={11}>
+				<line
+					x1={16}
+					y1={projected.h - 18}
+					x2={16 + grid}
+					y2={projected.h - 18}
+					className="stroke-muted"
+					strokeWidth={2}
+				/>
+				<text x={16 + grid + 7} y={projected.h - 14} className="fill-muted font-mono" fontSize={11}>
 					{t('summary.shape.replay.scale')}
 				</text>
 			</svg>
@@ -181,7 +223,7 @@ function ReplayStage({ analysis }: { analysis: Analysis }) {
 				<button
 					type="button"
 					onClick={() => setPlaying((p) => !p)}
-					className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border border-line bg-raised text-ink"
+					className="flex min-h-11 min-w-11 shrink-0 cursor-pointer items-center justify-center rounded-sm border border-line bg-raised text-ink transition-colors hover:bg-line"
 					aria-label={t(playing ? 'summary.shape.replay.pause' : 'summary.shape.replay.play')}
 				>
 					{playing ? '⏸' : '▶'}
@@ -218,11 +260,10 @@ export default function FightReplay({ analysis }: { analysis: Analysis }) {
 
 	return (
 		<DialogShell
-			width="table"
+			width="full"
+			closeLabel={t('summary.shape.replay.close')}
 			trigger={
-				<Dialog.Trigger className="rounded-sm border border-line bg-raised px-2.5 py-1 font-mono text-xs font-semibold tracking-[0.1em] text-ink-2 uppercase transition-colors hover:text-ink">
-					{t('summary.shape.replay.open')}
-				</Dialog.Trigger>
+				<Dialog.Trigger className={`self-start ${buttonClass}`}>{t('summary.shape.replay.open')}</Dialog.Trigger>
 			}
 			title={t('summary.shape.replay.title')}
 			description={t('summary.shape.replay.description')}

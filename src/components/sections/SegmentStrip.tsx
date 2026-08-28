@@ -127,15 +127,9 @@ export default function SegmentStrip({
 
 	return (
 		<div className="flex flex-col gap-3.5">
-			{/* The heading and the way in to the geometry behind it. `FightReplay` draws nothing when the
-			    analysis carried no track, so a pull fetched before positions were read keeps the bare
-			    heading rather than a button that opens an empty dialog. */}
-			<div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-				<h3 className="m-0 font-mono text-sm font-semibold tracking-[0.14em] uppercase text-muted">
-					{t('summary.shape.title')}
-				</h3>
-				<FightReplay analysis={analysis} />
-			</div>
+			<h3 className="m-0 font-mono text-sm font-semibold tracking-[0.14em] uppercase text-muted">
+				{t('summary.shape.title')}
+			</h3>
 			<ChartFigure
 				gap="wide"
 				caption={present.map((mode) => (
@@ -149,6 +143,15 @@ export default function SegmentStrip({
 					<SegmentLane spans={spans} durationMs={analysis.durationMs} label={t('summary.shape.chartLabel')} />
 				</ScrollableTrack>
 			</ChartFigure>
+			{/* Under the note, not up beside the heading.
+			    The note is what tells a reader the grey is time they landed nothing in and that none of it
+			    counts against them — which is the sentence that raises "so where *was* I", and the replay is
+			    the answer to it. A button on the heading is offered before the chart has said anything worth
+			    asking about; here it sits where the question forms.
+
+			    `FightReplay` draws nothing when the analysis carried no track, so a pull fetched before
+			    positions were read ends on the note rather than on a button that opens an empty dialog. */}
+			<FightReplay analysis={analysis} />
 		</div>
 	);
 }

@@ -1197,6 +1197,7 @@
       "note": "What you press changes at two enemies, and changes again at three. This is the order those stretches came in across the pull. The grey is time you landed nothing in — usually because no enemy was up, sometimes because the fight had you stunned or moved away. None of it counts for or against you either way.",
       "replay": {
         "open": "Replay",
+        "close": "Close",
         "title": "Where the pull happened",
         "description": "Your position and the bodies you were hitting, once a second, with the target mode the report grades each moment under.",
         "modeLabel": "Grading this moment as",
