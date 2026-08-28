@@ -45,7 +45,13 @@ function shortOf(segment: { mode: SegmentMode; medianEnemies: number }): string 
  * order the ramp itself rises in, so the key reads as the scale it is describing rather than as the
  * order this pull happened to meet them.
  */
-const KEY_ORDER: readonly SegmentMode[] = ['single', 'cleave', 'aoe', 'mixed', 'idle'];
+/**
+ * The order the modes are named in, rising with the count and ending on the two that are not counts.
+ *
+ * Exported so the segment tool's summary tiles run in the same order as this chart's key. A reader
+ * comparing the two should not have to re-find `aoe` in a different place.
+ */
+export const KEY_ORDER: readonly SegmentMode[] = ['single', 'cleave', 'aoe', 'mixed', 'idle'];
 
 /**
  * The pull cut into the stretches it was actually fought in, drawn once across the top of the report.

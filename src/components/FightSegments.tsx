@@ -19,17 +19,28 @@ import { Tooltip } from '@base-ui/react/tooltip';
 import SessionProvider from './auth/SessionProvider';
 import SignInPanel from './auth/SignInPanel';
 import { useSession } from '~/lib/auth';
-import SegmentStrip, { segmentLabel, segmentLength } from './sections/SegmentStrip';
+import SegmentStrip, { KEY_ORDER, segmentLabel, segmentLength } from './sections/SegmentStrip';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import { DataGrid, NavLink, Note, Prose, Section, Skeleton, type GridColumn, type GridRow } from './primitives';
+import {
+	DataGrid,
+	NavLink,
+	Note,
+	Prose,
+	Section,
+	Skeleton,
+	StatTile,
+	StatTiles,
+	type GridColumn,
+	type GridRow,
+} from './primitives';
 import { useCurrentAnchor } from '~/hooks/useCurrentAnchor';
-import { formatClock } from '~/lib/format';
+import { formatClock, formatPercentValue, formatSeconds } from '~/lib/format';
 import { SPECS } from '~/lib/spec';
 import { fetchFightDataset, listReportFights } from '~/lib/wcl/fetchFight';
 import { WclClient } from '~/lib/wcl/client';
 import type { Analysis, FightDataset } from '~/lib/types';
-import type { FightSegment } from '~/lib/analysis/segments';
+import type { FightSegment, SegmentMode } from '~/lib/analysis/segments';
 import '~/lib/i18n';
 
 /**
@@ -253,6 +264,51 @@ function rowsOf(analysis: Analysis, targets: Map<number, string>, t: TFunction<'
 /** The anchor a fight is reached at, shared by the nav and the heading so neither can invent one. */
 const anchorOf = (code: string, fightID: number): string => `fight-${code}-${fightID}`;
 
+/**
+ * How the pull divided, as one row of tiles.
+ *
+ * **The question the strip answers in shape, answered in numbers.** A reader looking at a bar can see
+ * that a pull was mostly busy; they cannot see whether that was 43% or 61% without measuring it against
+ * the axis, and comparing two encounters that way is guesswork. The tiles make that comparison possible,
+ * which is why they sit above the strip rather than under it.
+ *
+ * **Over the segments' own total rather than `durationMs`.** Segments tile the pull, so the two agree to
+ * within a rounding — but only the first makes the shares sum to a hundred, and a split that does not is
+ * one a reader will sit and re-add.
+ *
+ * Only the modes this pull actually held, which is the rule the chart's key already follows: a tile for a
+ * bar the reader cannot find is a tile they will go looking for.
+ */
+function ModeSplit({ analysis, t }: { analysis: Analysis; t: TFunction<'report'> }) {
+	const segments = analysis.segments?.segments ?? [];
+	if (segments.length === 0) return null;
+	const held = new Map<SegmentMode, number>();
+	for (const segment of segments) {
+		held.set(segment.mode, (held.get(segment.mode) ?? 0) + (segment.endMs - segment.startMs));
+	}
+	const total = [...held.values()].reduce((sum, ms) => sum + ms, 0);
+	if (total <= 0) return null;
+	const present = KEY_ORDER.filter((mode) => held.has(mode));
+
+	return (
+		<StatTiles>
+			{present.map((mode) => {
+				const ms = held.get(mode) ?? 0;
+				return (
+					<StatTile
+						key={mode}
+						value={formatPercentValue((ms / total) * 100)}
+						label={t('summary.shape.row', { context: mode })}
+						// The clock behind the share, so a tile is a length as well as a proportion: 12% of a
+						// three-minute pull and 12% of a seven-minute one are not the same finding.
+						caption={formatSeconds(ms)}
+					/>
+				);
+			})}
+		</StatTiles>
+	);
+}
+
 function Fight({ code, fight }: { code: string; fight: FightRow }) {
 	const { t } = useTranslation('report');
 	if (fight.error !== null) {
@@ -294,6 +350,7 @@ function Fight({ code, fight }: { code: string; fight: FightRow }) {
 			{/* Always a string, never `undefined`: a bar whose tooltip silently dropped its third line looks
 			    exactly like one the feature does not work on, and the two are worth telling apart. A stretch
 			    with nothing in it says so. */}
+			<ModeSplit analysis={analysis} t={t} />
 			<SegmentStrip analysis={analysis} detailOf={(segment) => fight.targets.get(segment.index) ?? 'no enemies hit'} />
 			<DataGrid
 				caption={`Segments of ${fight.name}`}
