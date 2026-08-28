@@ -36,6 +36,7 @@ import {
 	type GridRow,
 } from './primitives';
 import { useCurrentAnchor } from '~/hooks/useCurrentAnchor';
+import { fieldClass, labelClass, primaryButtonClass } from './primitives/controls';
 import { formatClock, formatPercentValue, formatSeconds } from '~/lib/format';
 import { SPECS } from '~/lib/spec';
 import { fetchFightDataset, listReportFights } from '~/lib/wcl/fetchFight';
@@ -657,33 +658,34 @@ function Runner() {
 						reading of one player’s contact, so a name is required.
 					</Prose>
 					<div className="mt-4.5 flex flex-col gap-3">
+						{/* The form's own controls, not new ones: `controls.ts` already owns how a field, a label and
+						    a button look here, and a page that spells them out again is a page that drifts the
+						    first time any of the three changes. */}
 						<label className="flex flex-col gap-1.5">
-							<span className="font-mono text-xs tracking-wider text-ink-3 uppercase">Reports</span>
+							<span className={labelClass}>Reports</span>
 							<textarea
 								value={input}
 								onChange={(event) => setInput(event.target.value)}
 								rows={3}
 								spellCheck={false}
 								placeholder="codes or URLs, separated by commas"
-								className="w-full rounded-sm border border-line bg-surface p-3 font-mono text-sm text-ink"
+								// `min-h-11` is a control's height and wrong for a box meant to hold three lines.
+								className={`${fieldClass} min-h-24 py-3`}
 							/>
 						</label>
 						<label className="flex flex-col gap-1.5">
-							<span className="font-mono text-xs tracking-wider text-ink-3 uppercase">Player</span>
+							<span className={labelClass}>Player</span>
 							<input
 								value={player}
 								onChange={(event) => setPlayer(event.target.value)}
 								spellCheck={false}
-								className="w-full rounded-sm border border-line bg-surface p-3 font-mono text-sm text-ink"
+								className={fieldClass}
 							/>
 						</label>
 						<div className="flex items-center gap-3">
-							<button
-								type="button"
-								disabled={!ready}
-								onClick={() => void run()}
-								className="rounded-sm border border-line bg-surface px-4 py-2 font-mono text-sm text-ink disabled:opacity-50"
-							>
+							{/* The primary action on the page, in the shape every other primary action takes — hover,
+							    disabled and focus states included, none of which the hand-rolled one had. */}
+							<button type="button" disabled={!ready} onClick={() => void run()} className={primaryButtonClass}>
 								{busy ? 'Reading…' : `Read ${codes.length || ''} report${codes.length === 1 ? '' : 's'}`.trim()}
 							</button>
 							{progress !== null ? <span className="font-mono text-xs text-ink-3">{progress}</span> : null}
@@ -698,7 +700,19 @@ function Runner() {
 						 * and is the same component the sign-in panel uses reading the same `useApiCredits`, so
 						 * the two cannot disagree about a number the reader may have seen a moment ago.
 						 */}
-						<ApiCredits />
+						{/*
+						 * Boxed here and bare in the sign-in panel, which is the difference between a paragraph and
+						 * a figure. There it is one more thing to read on the way to signing in; here it is a number
+						 * the reader checks against what they are about to spend, so it gets the same border and
+						 * ground the tiles under it have and reads as something to look *at*.
+						 *
+						 * Wrapped rather than built into `ApiCredits`: the component is shared, and giving it a box
+						 * of its own would put one around the sign-in panel's copy too.
+						 */}
+						{/* `self-start`, so the card is as wide as what it says rather than as wide as the page. */}
+						<div className="self-start rounded-sm border border-line bg-surface px-4 py-3.5 sm:px-[18px] sm:py-4">
+							<ApiCredits />
+						</div>
 					</div>
 				</Section>
 
