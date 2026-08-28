@@ -22,6 +22,7 @@ interface Cell {
 	p50: number;
 	p90: number;
 	name: string;
+	ci?: number | null;
 }
 interface Table {
 	metric: string;
@@ -51,13 +52,27 @@ describe('the frozen reference against the live one', () => {
 		}
 	});
 
-	/** A cell missing a field reads as `undefined` in the resolver and grades as a number nobody chose. */
-	it('gives every cell the same fields', () => {
+	/** A cell missing one of these reads as `undefined` in the resolver and grades as a number nobody chose. */
+	it('gives every cell the fields a grade is resolved from', () => {
 		for (const [key, spec] of Object.entries(live.specs)) {
 			for (const [encounterID, cell] of Object.entries(spec.encounters)) {
-				expect(Object.keys(cell).sort(), `${key} ${encounterID}`).toEqual(['n', 'name', 'p50', 'p90']);
+				for (const field of ['n', 'name', 'p50', 'p90'] as const) {
+					expect(cell[field], `${key} ${encounterID} ${field}`).toBeDefined();
+				}
 			}
 		}
+	});
+
+	/**
+	 * `ci` is optional and the two ways it goes missing are both legitimate — a cell under four pulls
+	 * cannot be resampled, and a cell carried over from an older table predates the field. Asserted as a
+	 * *majority* rather than as universal, because a table where most cells lost it would mean the
+	 * bootstrap stopped running and nothing else would say so.
+	 */
+	it('carries an uncertainty figure on most cells', () => {
+		const cells = Object.values(live.specs).flatMap((spec) => Object.values(spec.encounters));
+		const withCi = cells.filter((cell) => typeof cell.ci === 'number');
+		expect(withCi.length, `${withCi.length} of ${cells.length} cells carry ci`).toBeGreaterThan(cells.length / 2);
 	});
 
 	it('measures the same metric', () => {

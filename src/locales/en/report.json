@@ -429,7 +429,15 @@
       "open": "See the per-encounter figures",
       "dialogTitle": "What each fight actually costs",
       "dialogIntent": "Every bar runs from an encounter's median kill to its ninetieth percentile — from where ok begins to where good does, so the bar is the middle grade's width on that fight. Drawn from {{pulls}} kills, last refreshed {{builtAt}}. The thinnest encounter rests on {{thinnest}} kills, so read a narrow bar as a soft line rather than a sharp one.",
-      "none": "No reference sweep has covered this spec yet, so its globals target is still a fixed number rather than one read off the encounter. Said here rather than left implied, because a missing reference and an easy raid look identical on the page."
+      "none": "No reference sweep has covered this spec yet, so its globals target is still a fixed number rather than one read off the encounter. Said here rather than left implied, because a missing reference and an easy raid look identical on the page.",
+      "firmness": "On a different draw of the same kills, where good sits would typically move about {{typical}} points either way. Treat a difference smaller than that as the sample talking, not the fight.",
+      "colEncounter": "Fight",
+      "colRange": "Where ok reaches good",
+      "colOk": "ok from",
+      "colGood": "good from",
+      "colGiveOrTake": "give or take",
+      "colKills": "kills",
+      "tableCaption": "Every fight in the set, with where ok and good begin and how firm each figure is"
     }
   },
   "kpi": {

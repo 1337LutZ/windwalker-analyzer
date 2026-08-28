@@ -49,6 +49,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+import { intervalOf } from './bootstrap.mjs';
 import {
 	ANALYSER_REV,
 	BAND_CAP,
@@ -474,6 +475,16 @@ export function gateOf(pull) {
 }
 
 /** The committed table, built from whatever pulls are on hand. */
+/**
+ * Below this a cell is not a distribution, and a table that fell to it should keep what it had.
+ *
+ * Four, the same floor `intervalOf` refuses to resample under — a cell too thin for an interval is too
+ * thin to grade against.
+ */
+export const MIN_CELL = 4;
+
+const round2 = (v) => (v === null || v === undefined ? null : Math.round(v * 100) / 100);
+
 export function tableFrom(pulls, specs, metric = 'gcdUtilisationPct') {
 	const out = { metric, builtAt: null, specs: {} };
 	for (const spec of specs) {
@@ -495,9 +506,18 @@ export function tableFrom(pulls, specs, metric = 'gcdUtilisationPct') {
 			// encounter falls back to the spec-wide curve on every report, silently. It has happened: a
 			// rebuild from the ledger once produced 39 of 42 cells named after their own id.
 			const named = here.find((p) => p.encounterName !== undefined || p.boss !== undefined);
+			const values = here.map((p) => p.value);
 			encounters[encounterID] = {
-				...cellOf(here.map((p) => p.value)),
+				...cellOf(values),
 				name: named?.encounterName ?? named?.boss ?? String(encounterID),
+				/**
+				 * How far `good` would move on a different draw of the same ladder.
+				 *
+				 * Stored rather than computed in the browser: the evidence behind it is the whole ledger,
+				 * and shipping four hundred rows to recompute a number that changes only when this file
+				 * does would be a large download for a constant. Null below four pulls — see `intervalOf`.
+				 */
+				ci: round2(intervalOf(values, `${spec.key}:${encounterID}`)),
 			};
 		}
 		out.specs[spec.key] = {
@@ -568,12 +588,18 @@ export function mergeTable(committed, fresh, { force = false } = {}) {
 		const encounters = { ...prior.encounters };
 		for (const [id, cell] of Object.entries(spec.encounters ?? {})) {
 			const before = encounters[id];
-			// **A cell never gets worse on its own.** A run whose rows for one encounter all went stale, or
-			// that stopped before reaching it, produces a thinner cell or none at all — and on a scheduled
-			// job with nobody watching, letting that overwrite a good cell is how a table quietly erodes
-			// into the fallback. Fresh wins when it is at least as well-evidenced; otherwise the committed
-			// cell stands and says so.
-			if (!force && before !== undefined && cell.n < before.n) {
+			// **A cell may get thinner, but it may not become unmeasurable.**
+			//
+			// The first version of this refused any shrink at all, on the reasoning that a run which
+			// stalled or whose rows went stale should not erode a good cell into the spec-wide fallback
+			// with nobody watching. That was right when every shrink was a fault — and wrong the moment
+			// the buckets started sliding, because retiring an old kill to admit a newer one *is* a
+			// shrink, and blocking it froze four cells at values no evidence supported any more.
+			//
+			// So the line moved to where the fault actually is: below `MIN_CELL` there is no distribution
+			// to speak of, and a cell falling off that edge is the erosion worth refusing. Anything above
+			// it is the window doing its job.
+			if (!force && before !== undefined && cell.n < MIN_CELL && before.n >= MIN_CELL) {
 				kept.push(`${key} ${id} kept n=${before.n} over n=${cell.n}`);
 				continue;
 			}
@@ -608,6 +634,19 @@ async function main() {
 		console.log(`${drifted.length} cell(s) differ from the committed table:`);
 		for (const line of drifted) console.log(`  ${line}`);
 		process.exitCode = 1;
+		return;
+	}
+
+	// Rebuild the table from the ledger without buying anything.
+	//
+	// **What a cell *is* changes more often than what is in it.** Adding the uncertainty figure, fixing
+	// the name fallback, changing a gate — each one re-derives every cell from evidence already paid for,
+	// and needing a live sweep to apply it would mean either spending points for nothing or leaving the
+	// committed table disagreeing with the code that reads it.
+	if (args.includes('--rebuild')) {
+		const ledger = readLedger();
+		const wrote = writeTable(ledger, specs, { force: args.includes('--force') });
+		console.log(`rebuilt from ${wrote} measured pull(s) · no network`);
 		return;
 	}
 

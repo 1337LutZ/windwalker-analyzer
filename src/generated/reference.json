@@ -1,92 +1,106 @@
 {
 	"metric": "gcdUtilisationPct",
-	"builtAt": "2026-08-27",
+	"builtAt": "2026-08-28",
 	"specs": {
 		"windwalker": {
 			"encounters": {
 				"1593": {
-					"n": 33,
+					"n": 31,
 					"p50": 77.42,
-					"p90": 84.67,
-					"name": "Paragons of the Klaxxi"
+					"p90": 84.81,
+					"name": "Paragons of the Klaxxi",
+					"ci": 2.88
 				},
 				"1594": {
 					"n": 15,
 					"p50": 72.45,
 					"p90": 78.12,
-					"name": "Spoils of Pandaria"
+					"name": "Spoils of Pandaria",
+					"ci": 4.52
 				},
 				"1595": {
 					"n": 12,
 					"p50": 88.93,
 					"p90": 91.47,
-					"name": "Malkorok"
+					"name": "Malkorok",
+					"ci": 1.98
 				},
 				"1598": {
 					"n": 18,
 					"p50": 71.06,
 					"p90": 80.14,
-					"name": "Fallen Protectors"
+					"name": "Fallen Protectors",
+					"ci": 2.98
 				},
 				"1599": {
 					"n": 12,
 					"p50": 81.55,
 					"p90": 91.74,
-					"name": "Thok the Bloodthirsty"
+					"name": "Thok the Bloodthirsty",
+					"ci": 3.3
 				},
 				"1600": {
 					"n": 17,
 					"p50": 86.04,
 					"p90": 87.99,
-					"name": "Iron Juggernaut"
+					"name": "Iron Juggernaut",
+					"ci": 1.97
 				},
 				"1601": {
 					"n": 11,
 					"p50": 76.6,
 					"p90": 85.28,
-					"name": "Siegecrafter Blackfuse"
+					"name": "Siegecrafter Blackfuse",
+					"ci": 4.7
 				},
 				"1602": {
 					"n": 10,
 					"p50": 60.95,
 					"p90": 65.77,
-					"name": "Immerseus"
+					"name": "Immerseus",
+					"ci": 4.73
 				},
 				"1603": {
 					"n": 6,
 					"p50": 79.23,
 					"p90": 86.37,
-					"name": "General Nazgrim"
+					"name": "General Nazgrim",
+					"ci": 3.65
 				},
 				"1604": {
 					"n": 8,
 					"p50": 83.15,
 					"p90": 85.92,
-					"name": "Sha of Pride"
+					"name": "Sha of Pride",
+					"ci": 1
 				},
 				"1606": {
 					"n": 10,
 					"p50": 80.64,
 					"p90": 85.78,
-					"name": "Kor'kron Dark Shaman"
+					"name": "Kor'kron Dark Shaman",
+					"ci": 0.58
 				},
 				"1622": {
 					"n": 10,
 					"p50": 73.44,
 					"p90": 84.24,
-					"name": "Galakras"
+					"name": "Galakras",
+					"ci": 3.09
 				},
 				"1623": {
-					"n": 9,
-					"p50": 83.82,
-					"p90": 86.93,
-					"name": "Garrosh Hellscream"
+					"n": 4,
+					"p50": 84.63,
+					"p90": 87.26,
+					"name": "Garrosh Hellscream",
+					"ci": 2.47
 				},
 				"1624": {
 					"n": 9,
 					"p50": 76.37,
 					"p90": 82.74,
-					"name": "Norushen"
+					"name": "Norushen",
+					"ci": 2.63
 				}
 			},
 			"fallback": {
@@ -102,85 +116,99 @@
 					"n": 6,
 					"p50": 85.84,
 					"p90": 87.33,
-					"name": "Paragons of the Klaxxi"
+					"name": "Paragons of the Klaxxi",
+					"ci": 1.06
 				},
 				"1594": {
 					"n": 5,
 					"p50": 83.26,
 					"p90": 84.84,
-					"name": "Spoils of Pandaria"
+					"name": "Spoils of Pandaria",
+					"ci": 1.52
 				},
 				"1595": {
 					"n": 4,
 					"p50": 89.02,
 					"p90": 93.88,
-					"name": "Malkorok"
+					"name": "Malkorok",
+					"ci": 3.07
 				},
 				"1598": {
 					"n": 4,
 					"p50": 90.25,
 					"p90": 92.61,
-					"name": "Fallen Protectors"
+					"name": "Fallen Protectors",
+					"ci": 1.97
 				},
 				"1599": {
 					"n": 2,
 					"p50": 76.52,
 					"p90": 80.68,
-					"name": "Thok the Bloodthirsty"
+					"name": "Thok the Bloodthirsty",
+					"ci": null
 				},
 				"1600": {
 					"n": 4,
 					"p50": 91.08,
 					"p90": 94.16,
-					"name": "Iron Juggernaut"
+					"name": "Iron Juggernaut",
+					"ci": 2.45
 				},
 				"1601": {
 					"n": 5,
 					"p50": 92.32,
 					"p90": 95.01,
-					"name": "Siegecrafter Blackfuse"
+					"name": "Siegecrafter Blackfuse",
+					"ci": 1.47
 				},
 				"1602": {
 					"n": 4,
 					"p50": 66.26,
 					"p90": 70.48,
-					"name": "Immerseus"
+					"name": "Immerseus",
+					"ci": 3.82
 				},
 				"1603": {
 					"n": 4,
 					"p50": 92.68,
 					"p90": 96.38,
-					"name": "General Nazgrim"
+					"name": "General Nazgrim",
+					"ci": 3.38
 				},
 				"1604": {
 					"n": 5,
 					"p50": 87.63,
 					"p90": 90.99,
-					"name": "Sha of Pride"
+					"name": "Sha of Pride",
+					"ci": 3.13
 				},
 				"1606": {
 					"n": 5,
 					"p50": 88.05,
 					"p90": 92.88,
-					"name": "Kor'kron Dark Shaman"
+					"name": "Kor'kron Dark Shaman",
+					"ci": 2.64
 				},
 				"1622": {
 					"n": 4,
 					"p50": 89.57,
 					"p90": 92.2,
-					"name": "Galakras"
+					"name": "Galakras",
+					"ci": 2.12
 				},
 				"1623": {
 					"n": 4,
 					"p50": 88.07,
 					"p90": 91.75,
-					"name": "Garrosh Hellscream"
+					"name": "Garrosh Hellscream",
+					"ci": 2.65
 				},
 				"1624": {
 					"n": 5,
 					"p50": 91.64,
 					"p90": 95.66,
-					"name": "Norushen"
+					"name": "Norushen",
+					"ci": 2.14
 				}
 			},
 			"fallback": {
@@ -202,13 +230,15 @@
 					"n": 8,
 					"p50": 71.22,
 					"p90": 82.7,
-					"name": "Spoils of Pandaria"
+					"name": "Spoils of Pandaria",
+					"ci": 5.42
 				},
 				"1595": {
 					"n": 13,
 					"p50": 82.82,
 					"p90": 87.68,
-					"name": "Malkorok"
+					"name": "Malkorok",
+					"ci": 3.46
 				},
 				"1598": {
 					"n": 10,
@@ -220,61 +250,71 @@
 					"n": 10,
 					"p50": 80.21,
 					"p90": 87.24,
-					"name": "Thok the Bloodthirsty"
+					"name": "Thok the Bloodthirsty",
+					"ci": 4.07
 				},
 				"1600": {
 					"n": 13,
 					"p50": 82.14,
 					"p90": 89.89,
-					"name": "Iron Juggernaut"
+					"name": "Iron Juggernaut",
+					"ci": 6.44
 				},
 				"1601": {
 					"n": 10,
 					"p50": 86.36,
 					"p90": 91.46,
-					"name": "Siegecrafter Blackfuse"
+					"name": "Siegecrafter Blackfuse",
+					"ci": 3.24
 				},
 				"1602": {
 					"n": 11,
 					"p50": 68.48,
 					"p90": 74.9,
-					"name": "Immerseus"
+					"name": "Immerseus",
+					"ci": 2.99
 				},
 				"1603": {
 					"n": 8,
 					"p50": 80.6,
 					"p90": 85.91,
-					"name": "General Nazgrim"
+					"name": "General Nazgrim",
+					"ci": 3.24
 				},
 				"1604": {
 					"n": 8,
 					"p50": 84.2,
 					"p90": 92.51,
-					"name": "Sha of Pride"
+					"name": "Sha of Pride",
+					"ci": 4.22
 				},
 				"1606": {
 					"n": 8,
 					"p50": 82.92,
 					"p90": 89.65,
-					"name": "Kor'kron Dark Shaman"
+					"name": "Kor'kron Dark Shaman",
+					"ci": 2.58
 				},
 				"1622": {
 					"n": 13,
 					"p50": 75.55,
 					"p90": 87.5,
-					"name": "Galakras"
+					"name": "Galakras",
+					"ci": 3.43
 				},
 				"1623": {
 					"n": 10,
 					"p50": 86.26,
 					"p90": 89.08,
-					"name": "Garrosh Hellscream"
+					"name": "Garrosh Hellscream",
+					"ci": 1.3
 				},
 				"1624": {
 					"n": 10,
 					"p50": 85.95,
 					"p90": 92.97,
-					"name": "Norushen"
+					"name": "Norushen",
+					"ci": 2.03
 				}
 			},
 			"fallback": {

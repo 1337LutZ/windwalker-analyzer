@@ -19,6 +19,14 @@ export interface ReferenceCell {
 	p50: number;
 	p90: number;
 	/**
+	 * How far `good` would move on a different draw of the same ladder — half a 90% bootstrap interval.
+	 *
+	 * Optional because two things legitimately have none: a cell too thin to resample (under four pulls),
+	 * and a cell carried over from a table built before this field existed. A reader is shown the sample
+	 * size instead, which is the honest answer rather than a confident-looking zero.
+	 */
+	ci?: number | null;
+	/**
 	 * The encounter's name, as WarcraftLogs gave it.
 	 *
 	 * Carried in the cell rather than looked up, because the only other list of Siege names in the tree

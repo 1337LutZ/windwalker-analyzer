@@ -17,69 +17,10 @@
 
 import { existsSync, readFileSync } from 'node:fs';
 
+import { intervalOf, quantile } from './bootstrap.mjs';
 import { cellKeyOf } from './reference-ledger.mjs';
 
 const round = (v) => Math.round(v * 100) / 100;
-
-/**
- * How wide the uncertainty on a cell's `good` line is, by bootstrap.
- *
- * **A moved line and a moved *estimate* are different events, and the table could not tell them apart.**
- * `good` is the 90th percentile of a few dozen pulls; resampling those pulls with replacement and taking
- * the 90th percentile each time says how much the figure would wobble on a different draw of the same
- * ladder. A cell that moved 0.4 with a ±1.5 interval did not move.
- *
- * It is also what makes "the buckets narrow the measurement" checkable rather than asserted: as capacity
- * grows the interval shrinks, and the summary line prints the median width so successive pull requests
- * can be compared.
- *
- * Seeded per cell rather than randomly, so the same ledger renders the same body twice — a pull request
- * whose numbers shifted because it was regenerated would be worse than no interval at all.
- */
-const RESAMPLES = 400;
-
-function mulberry32(seed) {
-	let a = seed >>> 0;
-	return () => {
-		a = (a + 0x6d2b79f5) >>> 0;
-		let t = Math.imul(a ^ (a >>> 15), 1 | a);
-		t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-		return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-	};
-}
-
-const seedOf = (text) => {
-	let h = 2166136261;
-	for (let i = 0; i < text.length; i += 1) {
-		h ^= text.charCodeAt(i);
-		h = Math.imul(h, 16777619);
-	}
-	return h >>> 0;
-};
-
-const quantile = (sorted, q) => {
-	if (sorted.length === 0) return null;
-	const at = (sorted.length - 1) * q;
-	const lo = Math.floor(at);
-	const hi = Math.ceil(at);
-	return sorted[lo] + (sorted[hi] - sorted[lo]) * (at - lo);
-};
-
-/** Half the 90% bootstrap interval on this cell's p90, or null when there is too little to resample. */
-export function intervalOf(values, key) {
-	if (values.length < 4) return null;
-	const rand = mulberry32(seedOf(key));
-	const draws = [];
-	for (let i = 0; i < RESAMPLES; i += 1) {
-		const sample = Array.from({ length: values.length }, () => values[Math.floor(rand() * values.length)]);
-		sample.sort((a, b) => a - b);
-		draws.push(quantile(sample, 0.9));
-	}
-	draws.sort((a, b) => a - b);
-	const lo = quantile(draws, 0.05);
-	const hi = quantile(draws, 0.95);
-	return (hi - lo) / 2;
-}
 
 /** The measured values behind each cell, keyed `spec:cell`, read straight from the ledger. */
 export function valuesFrom(ledger) {

@@ -486,16 +486,16 @@ copy itself follows — say it once, outside the arms.
      src/lib/i18n/__tests__/conventionsCensus.test.ts. Re-run the block above and paste the whole set
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
-As of the Elemental Discharge metric and the shock's soft charge, it prints 1732 leaves, 827 prose, 27,495
-words; median 27, p75 45, p90 65, p95 78, p99 110, max 204; longest 9% carry 24%; report.json 750 prose
-leaves, 1,338 sentences, median 17, 287 past 25 (21.4%), 294 em-dashes in 253 sentences (18.9%);
+As of the reference table carrying its own uncertainty, it prints 1740 leaves, 829 prose, 27,544
+words; median 27, p75 45, p90 65, p95 78, p99 110, max 204; longest 9% carry 24%; report.json 752 prose
+leaves, 1,341 sentences, median 17, 287 past 25 (21.4%), 294 em-dashes in 253 sentences (18.9%);
 72 / 30 / 1 / 2 on the quote lines.
 
-One block moved these, and it moved four of the lines in a direction none of the previous passes did.
-Making the Windwalker flowchart the repository's one rotation drawing gave the Protection a reference
-section it had never had: seventeen rungs, each with a name, a one-line condition and a paragraph
-behind the box, plus twelve chips, four notes and an economy paragraph. That is where the 71 new leaves
-and the 55 new sentences come from, and it is why the median string is a word longer.
+Eight leaves and three sentences, the smallest block to move this census in some time: six column
+headings, a table caption and one line of prose, added when the Method section's per-encounter figures
+grew a give-or-take beside each fight. Headings are one or two words, so they lift the leaf count without
+touching the median string length or any of the percentiles — which is what a table of labels should do
+to a corpus, and a useful contrast with the rotation pass above it.
 
 **The em-dash count did not move at all, and that is the interesting row.** It is 292 either side,
 across 55 more sentences, so the share carrying one fell from 20.5% to 19.6% — the new copy was written
