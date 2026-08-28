@@ -486,9 +486,9 @@ copy itself follows — say it once, outside the arms.
      src/lib/i18n/__tests__/conventionsCensus.test.ts. Re-run the block above and paste the whole set
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
-As of the link between each spec's two pages, it prints 1748 leaves, 831 prose, 27,530
-words; median 27, p75 45, p90 65, p95 78, p99 110, max 204; longest 9% carry 24%; report.json 753 prose
-leaves, 1,341 sentences, median 17, 286 past 25 (21.3%), 293 em-dashes in 252 sentences (18.8%);
+As of the fight replay, it prints 1769 leaves, 836 prose, 27,705
+words; median 27, p75 45, p90 65, p95 79, p99 110, max 204; longest 9% carry 24%; report.json 758 prose
+leaves, 1,351 sentences, median 17, 287 past 25 (21.2%), 294 em-dashes in 253 sentences (18.7%);
 71 / 30 / 1 / 2 on the quote lines.
 
 Eight leaves and three sentences, the smallest block to move this census in some time: six column
@@ -545,6 +545,35 @@ HOW TO card for the monk who has never done it.
 paragraph above gives.** Both were written under the ceiling of two per sentence, so the count barely
 moves while the sentence total climbs, and the share falls out of the denominator rather than out of
 any decision about voice.
+
+Thirteen leaves and 105 words in the pass that put the pull's geometry behind a button. The **fight
+replay** is one `summary.shape.replay` family: a button, a dialog title and its opening line, the label
+over the mode chip, a clock, a scale, four control names, a chart description, a note and a line for the
+pull that has no track to play. Nine of the thirteen are one or two words — the labels a control needs —
+and only four are prose, which is why the leaf count moves three times as far as the prose count and the
+median string length does not move at all. It is the same shape the per-encounter table made two passes
+above: a corpus takes on labels far more cheaply than it takes on sentences. The thirteenth is `Close`,
+and it arrived a step later than the rest: the dialog went full-screen, which takes the backdrop away, and
+a dialog with nothing to click past has to carry its own way out. Two more followed on the same terms —
+`You`, which names the dot on the map, and one sentence for the pull that held a single shape the whole
+way and therefore draws no chart. That last one is the only prose in the family after the note, and it is
+the pass's one real reminder that a section which refuses to draw still has to say something. `At` is the
+thirteenth and the shortest string in the family — one word, labelling the clock on a hovered mark — and
+it arrived when the map stopped using the browser's own tooltip and started drawing the report's. Three
+more came with the red mark on a body the player hit — a label and the two words it takes — and one
+sentence was added to the note, which is the only string in the family to have grown twice. Both times
+for the same reason: the map keeps learning to say something a reader would otherwise have to infer from
+a colour. The last two are the playback speed's label and the `{{rate}}×` its four switches are drawn
+from — two leaves for a control with four positions, which is what a formatted label buys over four
+spelled-out ones. The note took its third sentence in the same pass — the ring around the player — and
+that is what moved p95 by a word: it is now the second-longest string in the family, and the family is
+small enough for one sentence to shift a percentile.
+
+**The note is the one long string, and it is long on purpose.** A replay that draws a dot where the log
+last saw someone invites two wrong readings — that a missing enemy was not there, and that a short
+distance means the player could reach it. Both are answered in that one sentence rather than left to a
+reader to discover, which is the trade this corpus makes every time a picture can be misread: the caption
+carries the caveat, and the picture stays uncluttered.
 
 <!-- /census:figures -->
 

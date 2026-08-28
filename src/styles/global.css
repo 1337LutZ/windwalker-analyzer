@@ -298,6 +298,24 @@
 	 * The alpha has to reach 16% to break even and 26% to match the first fix attempted here. */
 	--color-track: #565958;
 
+	/* The slider's own height, and the height of the coloured bar inside it.
+	 *
+	 * Tokens for the same reason the thumb's diameter below is one: the thumb is centred by arithmetic
+	 * over the *input's* box rather than over the track's, so the number has to be readable from the
+	 * rule that does the centring — and anything drawing its own bar behind a slider has to match the
+	 * band this paints. `--range-height` is the 44px floor `primitives/controls.ts` sets for anything
+	 * tappable; the bar is 4px of it and the rest is target. */
+	--range-height: 2.75rem;
+	--range-bar: 4px;
+
+	/* The slider thumb's diameter.
+	 *
+	 * A token rather than a value inside the slider's own rules, because two things do arithmetic with
+	 * it and only one of them is the slider: the thumb travels `track - thumb`, so anything drawing its
+	 * own track behind a range input — the replay's segment backdrop — has to place its boundary on the
+	 * same travel or it will sit beside the handle rather than under it. */
+	--range-thumb: 14px;
+
 	/* Faint row bands for grouping paired rows in dense tables. */
 	--color-band-warn: #2e1d1f;
 	--color-band-ok: #16302b;
@@ -396,6 +414,125 @@ label[for],
 :focus-visible {
 	outline: 2px solid var(--color-kick);
 	outline-offset: 2px;
+}
+
+/* A range input, repainted in the app's own tokens.
+ *
+ * Same story as the ApexCharts rules at the foot of this file: a native slider arrives in the
+ * browser's blue, which appears nowhere else on the page, and on a report themed from
+ * `--spec-primary` it reads as a control borrowed from somewhere else. Every colour here is a token,
+ * so the slider follows whichever spec the page is about rather than needing a value per spec.
+ *
+ * Written by element rather than by class, on the same argument the `cursor: pointer` rule above
+ * makes: a slider added later inherits this instead of having to remember it.
+ *
+ * **The filled half is a gradient, because only Firefox has a pseudo-element for it.**
+ * `::-moz-range-progress` paints it there; WebKit and Blink have no equivalent, so the track carries
+ * a hard-stopped gradient and the component sets `--range-progress` to the played fraction. The
+ * fallback is 0%, which is an unplayed track rather than a broken one. */
+input[type='range'] {
+	-webkit-appearance: none;
+	appearance: none;
+	height: var(--range-height);
+	width: 100%;
+	background: transparent;
+	/* Block, not the inline box a form control defaults to.
+	 *
+	 * An inline slider sits on its parent's text baseline, so the parent grows a descender's worth of
+	 * space *under* it and the control ends up three pixels above the centre of its own container. That
+	 * is invisible until something is drawn behind the slider and expected to line up with it — the
+	 * replay's segment backdrop is centred on the wrapper, and the handle was riding above it. */
+	display: block;
+	/* Grab rather than the pointer the rest of the app's controls take. A slider is dragged, not
+	 * pressed, and the `cursor: pointer` rule above deliberately names controls by role — a range input
+	 * is not one of them, so it would otherwise keep the arrow that means "this is text". The cursor is
+	 * on the input rather than only on the thumb, because clicking anywhere on the track seizes it too:
+	 * a hand that only appears over a 14px dot would be lying about where the control is. */
+	cursor: grab;
+}
+
+input[type='range']:active {
+	cursor: grabbing;
+}
+
+/* **The fill stops under the thumb's centre, which is not the same as its percentage of the track.**
+ * WebKit insets the thumb by half its width at each end, so the thumb travels `track - thumb` rather
+ * than the whole track: a stop written as a flat `50%` lands on the thumb only at the midpoint and is
+ * seven pixels out at either end — the fill visibly pokes past a thumb parked at zero. So the
+ * component hands over `--range-fraction`, a plain 0–1, and the stop is computed over the travel the
+ * thumb actually has. The arithmetic lives here because the thumb's width does. */
+/* **The track is the whole control and the bar is painted inside it**, which is what puts the handle
+ * on the same centre line as anything drawn behind the slider. WebKit does not centre a short runnable
+ * track in a tall input — it lays it out near the top — so a 4px track made the thumb sit three pixels
+ * above a bar centred on the row, which is exactly the misalignment this shape removes. A full-height
+ * track and a background band centred in it leaves both governed by the input's own box. */
+input[type='range']::-webkit-slider-runnable-track {
+	height: 100%;
+	--range-stop: calc(var(--range-thumb) / 2 + (100% - var(--range-thumb)) * var(--range-fraction, 0));
+	/* `--range-track` is the way out for a caller drawing its own: the replay puts the pull's target-mode
+	 * segments behind the bar and sets this to `transparent` so they show through. Everything else gets
+	 * the two-tone fill, which is the default sitting in the fallback. */
+	background: var(
+			--range-track,
+			linear-gradient(to right, var(--color-kick) var(--range-stop), var(--color-line) var(--range-stop))
+		)
+		center / 100% var(--range-bar) no-repeat;
+	border-radius: 2px;
+}
+
+input[type='range']::-moz-range-track {
+	height: var(--range-bar);
+	border-radius: 2px;
+	background: var(--color-line);
+}
+
+input[type='range']::-moz-range-progress {
+	height: var(--range-bar);
+	border-radius: 2px;
+	background: var(--color-kick);
+}
+
+/* The ring is the surface the slider sits on rather than a colour of its own, so the thumb reads as
+ * cut out of the track instead of stacked on top of it.
+ *
+ * **`box-sizing` is declared rather than inherited, and that is what centres the thumb.** WebKit
+ * gives the thumb no vertical alignment of its own: it hangs off the top of the track and
+ * `margin-top` is the only way to place it. The track is the input's full height, so the sum is over
+ * the *control's* box — half of it, less half the thumb — and the handle lands on the same centre line
+ * as a bar drawn behind the slider by anything else. Tailwind's preflight sets `border-box` on `*`, `::before`,
+ * `::after` and `::backdrop`, and a slider thumb is none of those, so without this line the box is
+ * `content-box`, the 2px ring lands outside the 14px, and the offset is two pixels wrong in a
+ * direction nothing in the rule says out loud. Firefox centres `::-moz-range-thumb` itself and takes
+ * the same `box-sizing` only so the two engines draw one size. */
+input[type='range']::-webkit-slider-thumb {
+	-webkit-appearance: none;
+	appearance: none;
+	box-sizing: border-box;
+	cursor: grab;
+	width: var(--range-thumb);
+	height: var(--range-thumb);
+	margin-top: calc((var(--range-height) - var(--range-thumb)) / 2);
+	border: 2px solid var(--color-surface);
+	border-radius: 9999px;
+	background: var(--color-kick);
+}
+
+input[type='range']::-moz-range-thumb {
+	box-sizing: border-box;
+	cursor: grab;
+	width: var(--range-thumb);
+	height: var(--range-thumb);
+	border: 2px solid var(--color-surface);
+	border-radius: 9999px;
+	background: var(--color-kick);
+}
+
+input[type='range']:active::-webkit-slider-thumb {
+	cursor: grabbing;
+}
+
+input[type='range']:active::-moz-range-thumb {
+	cursor: grabbing;
 }
 
 /* The spec's identity, drawn on every section heading. The ground carries the faint tint; this is

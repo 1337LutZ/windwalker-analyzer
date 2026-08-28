@@ -107,6 +107,24 @@ export interface ResourceSampled {
 	hitPoints?: number;
 	/** The pool the reading above is out of. See `hitPoints` — 100 for a player, absolute for an enemy. */
 	maxHitPoints?: number;
+	/**
+	 * Where the actor named by `resourceActor` was standing, in the map's own units.
+	 *
+	 * Arrives in the same resource block as the bars above and on the same terms — `includeResources:
+	 * true` and nothing else — so a query already asking for energy is already being sent these. They
+	 * were dropped on the floor until `analysis/replay.ts` wanted them, which is the only reason they
+	 * are being declared this late rather than as evidence they are new.
+	 *
+	 * **A hundred units to the yard**, calibrated rather than published: see `UNITS_PER_YARD`. Nothing
+	 * may compare a distance built from these against a spell range — a coordinate pair knows nothing
+	 * about the wall between two actors.
+	 */
+	x?: number;
+	y?: number;
+	/** Which way the actor faced, as a scaled integer. Unit unconfirmed; nothing reads it yet. */
+	facing?: number;
+	/** The map the pair above is on. Two maps in one pull means two coordinate spaces, not one. */
+	mapID?: number;
 }
 
 /** An aura event that carries nothing beyond the base fields. */

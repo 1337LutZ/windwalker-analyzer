@@ -21,6 +21,7 @@
 // primary target, Lightning Shield's stack counter, and Ascendance's cooldown clock (via the
 // engine's `offLadderCooldowns`, because Ascendance is off-GCD and off the ladder).
 
+import { CASTER_YARDS } from '~/lib/analysis/replay';
 import { DEFAULT_ANALYSIS_MODE, type AnalysisMode } from '~/lib/analysis/analysisMode';
 import {
 	type AuraPoint,
@@ -5406,6 +5407,8 @@ export const ELEMENTAL_SPEC: SpecConfig = {
 	specName: 'Elemental',
 	registry,
 	gcdMs: GCD_MS,
+	// Lava Burst and both shocks are 40-yard casts in the sim, and nothing in the ladder is swung.
+	reachYards: CASTER_YARDS,
 	extraNames: EXTRA_NAMES,
 	extraGlobals: EXTRA_GLOBALS,
 	// The Elemental ladder reads no resource bar for its decisions — the rotation is purely cooldown-

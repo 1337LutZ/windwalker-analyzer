@@ -11,5 +11,6 @@ export { default as PullTimeline } from './PullTimeline';
 export { default as Scorecard } from './Scorecard';
 export { default as Resource } from './Resource';
 export type { ResourceProps } from './Resource';
+export { default as FightReplay } from './FightReplay';
 export { default as SegmentStrip } from './SegmentStrip';
 export { default as SpecRefusal } from './SpecRefusal';

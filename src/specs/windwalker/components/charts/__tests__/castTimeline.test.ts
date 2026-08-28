@@ -15,7 +15,7 @@ import i18n, { initI18n } from '~/lib/i18n/config';
 
 import CastLog from '~/components/sections/CastLog';
 import CastTimeline from '~/components/charts/CastTimeline';
-import { tip, type ChartTheme } from '~/components/charts/apex';
+import { tooltip, type ChartTheme } from '~/components/charts/apex';
 import { collapseTargets, perTargetBlock } from '~/components/charts/targetLanes';
 import { HIDDEN_AURAS, HIDDEN_CASTS } from '~/components/charts/hidden';
 import { spellIconUrl } from '~/components/primitives/spellIcon';
@@ -1803,7 +1803,7 @@ describe('the tooltip markup', () => {
 
 	/** A row whose value is a spell draws that spell, inside the one node rather than as a new element. */
 	it('draws the icon a row carries', () => {
-		const html = tip(theme, {
+		const html = tooltip(theme, {
 			title: 'Focus of Xuen',
 			tone: 'rune',
 			rows: [['Spent by', 'Blackout Kick', 'https://x/i.jpg']],
@@ -1814,7 +1814,7 @@ describe('the tooltip markup', () => {
 
 	/** And a row without one is exactly what it was before, which is every row on every other chart. */
 	it('draws no icon for a row that carries none', () => {
-		expect(tip(theme, { title: 'Up', tone: 'kick', rows: [['Up', '0:10']] })).not.toContain('<img');
+		expect(tooltip(theme, { title: 'Up', tone: 'kick', rows: [['Up', '0:10']] })).not.toContain('<img');
 	});
 });
 
@@ -1855,8 +1855,8 @@ describe('CastTimeline, the boss’s phases', () => {
 	 * 190309ms pull. A marker still carrying the report's clock would be off the end of the track by a
 	 * factor of seventeen, and these numbers are what says so.
 	 */
-	const SIEGE_MODE = { stamp: '2:03.486', left: 'left:64.8871046561119%' };
-	const BACK_TO_ASSAULT = { stamp: '3:03.485', left: 'left:96.41425261022863%' };
+	const SIEGE_MODE = { stamp: '02:03.486', left: 'left:64.8871046561119%' };
+	const BACK_TO_ASSAULT = { stamp: '03:03.485', left: 'left:96.41425261022863%' };
 	/** 190309ms of pull at the default rung of the ladder, 24px/s, and one row of gutter. */
 	const ONE_ROW_GUTTER = 'style="width:4567.416px;height:24px"';
 
@@ -1896,7 +1896,7 @@ describe('CastTimeline, the boss’s phases', () => {
 	 */
 	it('skips the transition at the pull and keeps the return to the same phase', () => {
 		expect((html.match(/data-tip-entered="/g) ?? []).length).toBe(2);
-		expect(html).not.toContain('data-tip-entered="0:00.000"');
+		expect(html).not.toContain('data-tip-entered="00:00.000"');
 		// Both surviving markers name a phase, and the last one names the first phase again — which is
 		// what a transition log means and what an index into a phase list would have got wrong.
 		expect((html.match(/data-tip="Stage One: Assault Mode"/g) ?? []).length).toBe(1);
@@ -1941,8 +1941,8 @@ describe('CastTimeline, the boss’s phases', () => {
 		);
 		// The first label keeps the top row; the second takes the one below it. Asserted as one
 		// contiguous run of attributes so the row cannot be read off the wrong marker.
-		expect(crowdedHtml).toContain('data-tip-entered="2:03.486" style="left:64.8871046561119%;top:0"');
-		expect(crowdedHtml).toContain('data-tip-entered="2:05.486" style="left:65.93802710328991%;top:24px"');
+		expect(crowdedHtml).toContain('data-tip-entered="02:03.486" style="left:64.8871046561119%;top:0"');
+		expect(crowdedHtml).toContain('data-tip-entered="02:05.486" style="left:65.93802710328991%;top:24px"');
 		// And neither name is clipped, which is the whole argument for staggering over truncating.
 		expect(crowdedHtml).toContain('>Stage Two: Siege Mode</span>');
 		expect(crowdedHtml).toContain('>Stage Three: Salvage</span>');

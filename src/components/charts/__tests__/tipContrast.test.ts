@@ -1,6 +1,6 @@
 // The tooltip title has to be readable, and two tones were not.
 //
-// `tip()` tints its title line with the tone of the mark being hovered, so the heading names what the
+// `tooltip()` tints its title line with the tone of the mark being hovered, so the heading names what the
 // reader is pointing at. That works for the four judgements and fails for the two *grounds*: a ground
 // is a colour picked to sit behind things, and the tooltip renders it as 14px text on `surface`.
 // `track` — the exempt tone, the one behind "Dot up, not measured", "Nothing to hit" and "Three or
@@ -23,7 +23,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-import { type ChartTheme, tip } from '../apex';
+import { type ChartTheme, tooltip } from '../apex';
 import { TIP_TITLE } from '../tones';
 
 /**
@@ -115,7 +115,7 @@ const CSS_NAME: Record<string, string> = { ink2: 'ink-2', missSoft: 'miss-soft' 
 const themeColour = (key: string): string => colour(CSS_NAME[key] ?? key);
 
 describe('the tooltip title is legible in every tone a chart can raise', () => {
-	/** `tip()` draws its card on `theme.surface`, so that is the ground every title sits on. */
+	/** `tooltip()` draws its card on `theme.surface`, so that is the ground every title sits on. */
 	const SURFACE = colour('surface');
 
 	it('resolves the palette out of global.css rather than trusting a copy of it', () => {
@@ -138,7 +138,7 @@ describe('the tooltip title is legible in every tone a chart can raise', () => {
 	 * than only its fix.
 	 *
 	 * **This much of the file guards the table and nothing else.** Every assertion above reads
-	 * `TIP_TITLE` directly, so all of them stay green while `tip()` ignores the table entirely — which
+	 * `TIP_TITLE` directly, so all of them stay green while `tooltip()` ignores the table entirely — which
 	 * is exactly the state the bug was in. The call site is guarded at the bottom of this file, and
 	 * that is the assertion that actually reds when the fix is reverted.
 	 *
@@ -176,17 +176,17 @@ describe('the tooltip title is legible in every tone a chart can raise', () => {
 /**
  * The call site, which is a separate thing to get wrong.
  *
- * Everything above proves the *table* says the right thing. None of it touches `tip()`, so all of it
- * stays green if `tip()` goes back to `theme[content.tone]` and draws the exempt title at 1.31:1
+ * Everything above proves the *table* says the right thing. None of it touches `tooltip()`, so all of it
+ * stays green if `tooltip()` goes back to `theme[content.tone]` and draws the exempt title at 1.31:1
  * again — the defect was one interpolation in `apex.ts`, not a wrong number in `tones.ts`. The one
- * other test that calls `tip()` (`specs/windwalker/…/castTimeline.test.ts`) passes `tone: 'kick'`,
+ * other test that calls `tooltip()` (`specs/windwalker/…/castTimeline.test.ts`) passes `tone: 'kick'`,
  * which `TIP_TITLE` maps to itself, so it cannot tell the two apart either.
  *
  * A synthetic theme rather than the real palette: each key is its own sentinel hex, so "was the
  * substitute used" is answered by which string reached the markup rather than by a contrast ratio,
  * and `not.toContain` can say the ground colour is nowhere in the card at all.
  */
-describe('tip() draws the title in the substitute, not in the tone', () => {
+describe('tooltip() draws the title in the substitute, not in the tone', () => {
 	const THEME: ChartTheme = {
 		bg: '#111101',
 		surface: '#111102',
@@ -207,7 +207,7 @@ describe('tip() draws the title in the substitute, not in the tone', () => {
 	};
 
 	const title = (tone: keyof ChartTheme): string =>
-		tip(THEME, { title: 'Nothing to hit', tone, rows: [['Window', '0:12 – 0:31']] });
+		tooltip(THEME, { title: 'Nothing to hit', tone, rows: [['Window', '0:12 – 0:31']] });
 
 	it('draws an exempt title in ink2, and never in the track ground', () => {
 		const markup = title('track');

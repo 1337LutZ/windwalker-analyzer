@@ -44,7 +44,7 @@ export function formatClock(ms: number): string {
 }
 
 /**
- * The same clock to the millisecond — `83456` → `1:23.456`. What a tooltip prints for the *moment*
+ * The same clock to the millisecond — `83456` → `01:23.456`. What a tooltip prints for the *moment*
  * something happened.
  *
  * **Why this is a sibling of `formatClock` rather than an option on it, and why the two must not be
@@ -66,11 +66,32 @@ export function formatClock(ms: number): string {
  * than of the clock. A fixed three digits keeps every stamp the same width.
  *
  * Floors rather than rounds, on the same value `formatClock` floors, so the two can never disagree
- * about which second a moment fell in — rounding would print `83999` as `1:24.000`.
+ * about which second a moment fell in — rounding would print `83999` as `01:24.000`.
  */
 export function formatStamp(ms: number): string {
 	const total = Math.max(0, ms);
-	return `${formatClock(total)}.${String(Math.floor(total % 1000)).padStart(3, '0')}`;
+	return `${formatClockFixed(total)}.${String(Math.floor(total % 1000)).padStart(3, '0')}`;
+}
+
+/**
+ * The clock at a fixed width — `83456` → `01:23`. No fraction, and the minutes always two digits.
+ *
+ * **The padding is the whole difference from `formatClock`, and it is about movement rather than
+ * taste.** `formatClock` labels things that sit still: an axis tick, a table column, a clause in a
+ * sentence, where `9:58` beside `10:02` is read once and a leading zero is a digit nobody needs. This
+ * one is for a readout that changes under the reader's hand — the replay's scrubber above all — where
+ * an unpadded minute changes the string's width as the pull crosses a ten-minute boundary and drags
+ * the controls beside it sideways. A monospace column that resizes while you drag it reads as the
+ * layout breaking.
+ *
+ * `formatStamp` is built on this rather than on `formatClock` for the same reason it always prints
+ * three fractional digits: both are readouts whose width may not depend on the value.
+ */
+export function formatClockFixed(ms: number): string {
+	const total = Math.max(0, ms);
+	const minutes = Math.floor(total / 60000);
+	const seconds = Math.floor((total % 60000) / 1000);
+	return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
 /** Milliseconds as seconds with its unit, one decimal: `4200` → `4.2s`. */

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 
-import { readTheme, tip } from './apex';
+import { readTheme, tooltip } from './apex';
 import ScrollableTrack from './ScrollableTrack';
 import { EXEMPT_KIND, laneFill, type LaneTone, type Tone } from './tones';
 
@@ -17,7 +17,7 @@ export interface LaneSource {
 /**
  * Which of the chart theme's colours tints a tooltip's title line for a given lane tone.
  *
- * `tip()` takes a `keyof ChartTheme`, and the three exempt kinds are not in it — they are a ramp this
+ * `tooltip()` takes a `keyof ChartTheme`, and the three exempt kinds are not in it — they are a ramp this
  * module owns rather than chart-theme entries. They all resolve to `track`, which is the theme's own
  * exempt colour: the title line says *which* kind in words, and tinting three greys three ways in a
  * tooltip would be re-encoding in colour what the sentence beside it already says.
@@ -138,7 +138,7 @@ export default function TrackLane({
 	 * The same construction `CastTimeline` uses and for the same reasons, which is the point of copying
 	 * it rather than designing a second one: exactly one node however many bars there are, each bar
 	 * carrying its content in `data-*` attributes rather than in an element, `elementsFromPoint` at the
-	 * cursor saying which bar to read, and the markup coming from `tip()` so this is the tooltip the
+	 * cursor saying which bar to read, and the markup coming from `tooltip()` so this is the tooltip the
 	 * ApexCharts charts already draw rather than a second design of one.
 	 *
 	 * Imperative and outside React's render: a pointer move is not a state change worth reconciling a
@@ -174,7 +174,7 @@ export default function TrackLane({
 			}
 			if (over?.bar !== bar) {
 				if (over !== null) over.bar.setAttribute('title', over.title);
-				node.innerHTML = tip(theme, {
+				node.innerHTML = tooltip(theme, {
 					title: bar.getAttribute('data-tip') ?? '',
 					tone: (bar.getAttribute('data-tip-tone') ?? 'track') as Tone,
 					rows: [

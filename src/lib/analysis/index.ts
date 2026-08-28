@@ -22,5 +22,6 @@ export * from './intervals';
 export * from './links';
 export * from './raidBuffs';
 export * from './raidCasters';
+export * from './replay';
 export * from './stacks';
 export * from './targets';

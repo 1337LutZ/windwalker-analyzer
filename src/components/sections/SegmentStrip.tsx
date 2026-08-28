@@ -1,11 +1,12 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { TFunction } from 'i18next';
 
 import type { FightSegment, SegmentMode } from '~/lib/analysis/segments';
 import type { Analysis } from '~/lib/types';
 
 import ChartKey from '../charts/ChartKey';
+import FightReplay from './FightReplay';
+import { KEY_ORDER, segmentLabel, segmentLength } from './segmentCopy';
 import ScrollableTrack from '../charts/ScrollableTrack';
 import SegmentLane, { type LaneSpan } from '../charts/SegmentLane';
 import { ChartFigure } from '../primitives';
@@ -39,21 +40,6 @@ function shortOf(segment: { mode: SegmentMode; medianEnemies: number }): string 
 }
 
 /**
- * The order the key names the modes in, and the only place that order is decided.
- *
- * Ascending by how many enemies were up, with the two that are not counts at the foot. That is the
- * order the ramp itself rises in, so the key reads as the scale it is describing rather than as the
- * order this pull happened to meet them.
- */
-/**
- * The order the modes are named in, rising with the count and ending on the two that are not counts.
- *
- * Exported so the segment tool's summary tiles run in the same order as this chart's key. A reader
- * comparing the two should not have to re-find `aoe` in a different place.
- */
-export const KEY_ORDER: readonly SegmentMode[] = ['single', 'cleave', 'aoe', 'mixed', 'idle'];
-
-/**
  * The pull cut into the stretches it was actually fought in, drawn once across the top of the report.
  *
  * A pull is not one shape. Galakras alternates add waves and boss-alone phases for seven minutes, and
@@ -82,37 +68,6 @@ export const KEY_ORDER: readonly SegmentMode[] = ['single', 'cleave', 'aoe', 'mi
  * `segments` is optional because every captured fixture predates it, so the absent case is the ordinary
  * one rather than a defensive check.
  */
-/**
- * What a segment is called, in words.
- *
- * **Exported so the segment tool's table says the same thing its strip does.** A reader who hovers a bar
- * and then hovers the row under it is asking one question twice, and two spellings of the answer — "aoe"
- * in one place and "Three or more enemies" in the other — is the page disagreeing with itself.
- *
- * The tooltip names the mix rather than repeating the key: a stretch that ran between one and three
- * enemies says so, which is the question a `mixed` bar raises and used not to answer. A mixed stretch
- * with no bands recorded cannot describe its own range, and `Math.min` of an empty list is `Infinity` —
- * so that case keeps the generic name rather than printing one.
- */
-export function segmentLabel(segment: FightSegment, t: TFunction<'report'>): string {
-	return segment.mode === 'mixed' && segment.bands.length > 0
-		? t('summary.shape.rowMixed', {
-				low: Math.min(...segment.bands),
-				high: Math.max(...segment.bands),
-				// Floored at one, for the same reason `shortOf` floors it: a stretch can hold enough zero-run
-				// to median at nought without ever being idle — `spoils` opens with 13s of exactly that — and
-				// "mostly 0 enemies" on a bar that is not the idle bar reads as a contradiction of the bar
-				// beside it.
-				median: Math.max(1, Math.round(segment.medianEnemies)),
-			})
-		: t('summary.shape.row', { context: segment.mode });
-}
-
-/** How long it ran, in the strip's own words. Exported beside `segmentLabel`, for the same reason. */
-export function segmentLength(segment: FightSegment, t: TFunction<'report'>): string {
-	return t('summary.shape.length', { seconds: Math.round((segment.endMs - segment.startMs) / 1000) });
-}
-
 export default function SegmentStrip({
 	analysis,
 	detailOf,
@@ -144,7 +99,31 @@ export default function SegmentStrip({
 		[segments, t, detailOf],
 	);
 
-	if (segments === undefined || segments.length < 2) return null;
+	/**
+	 * A pull with one stretch draws no chart — and still opens the replay.
+	 *
+	 * The lane is what goes: one bar spanning one lane is a whole-pull reading the headline already
+	 * made, which is the argument the docstring above sets out and it has not changed. What did change
+	 * is that this section became the way in to the pull's geometry, and a fight that held one rotation
+	 * throughout is not a fight with nothing to look at — Iron Juggernaut and Malkorok are the two
+	 * Windwalker pulls this hits, and both are worth seeing walked.
+	 *
+	 * So the heading and the button survive the refusal and the chart does not. `FightReplay` draws
+	 * nothing of its own when the analysis carried no track, so a pull with one stretch *and* no
+	 * positions still renders nothing at all rather than a bare heading.
+	 */
+	if (segments === undefined || segments.length < 2) {
+		if (analysis.replay === undefined) return null;
+		return (
+			<div className="flex flex-col gap-3.5">
+				<h3 className="m-0 font-mono text-sm font-semibold tracking-[0.14em] text-muted uppercase">
+					{t('summary.shape.title')}
+				</h3>
+				<p className="m-0 max-w-[66ch] leading-relaxed text-muted">{t('summary.shape.oneStretch')}</p>
+				<FightReplay analysis={analysis} />
+			</div>
+		);
+	}
 
 	/**
 	 * Only the modes this pull actually held.
@@ -173,6 +152,17 @@ export default function SegmentStrip({
 					<SegmentLane spans={spans} durationMs={analysis.durationMs} label={t('summary.shape.chartLabel')} />
 				</ScrollableTrack>
 			</ChartFigure>
+			{/* Under the note, not up beside the heading.
+			    The note is what tells a reader the grey is time they landed nothing in and that none of it
+			    counts against them — which is the sentence that raises "so where *was* I", and the replay is
+			    the answer to it. A button on the heading is offered before the chart has said anything worth
+			    asking about; here it sits where the question forms.
+
+			    `FightReplay` draws nothing when the analysis carried no track, so a pull fetched before
+			    positions were read ends on the note rather than on a button that opens an empty dialog. */}
+			<FightReplay analysis={analysis} />
 		</div>
 	);
 }
+
+export { KEY_ORDER, segmentLabel, segmentLength };

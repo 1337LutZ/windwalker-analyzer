@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 
-import { readTheme, tip } from './apex';
+import { readTheme, tooltip } from './apex';
 import { COUNT, type CountTone } from './tones';
 import type { Tone } from './tones';
 
@@ -105,7 +105,7 @@ export default function SegmentLane({
 				// rides the first row only, so the rest read as continuations of it rather than as new facts.
 				const detail = (bar.getAttribute('data-detail') ?? '').split('\n').filter(Boolean);
 				const detailLabel = bar.getAttribute('data-detail-label') ?? '';
-				node.innerHTML = tip(theme, {
+				node.innerHTML = tooltip(theme, {
 					title: bar.getAttribute('data-tip') ?? '',
 					tone: (bar.getAttribute('data-tip-tone') ?? 'track') as Tone,
 					rows: [

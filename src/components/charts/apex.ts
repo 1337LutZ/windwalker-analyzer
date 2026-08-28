@@ -1,4 +1,5 @@
-// Everything the four charts share: the palette, the base chart options, and the tooltip markup.
+// Everything the four ApexCharts charts share: the base chart options, and the adapter that hands
+// the library the tooltip card. The palette lives in `./theme`, the card itself in `./tooltip`.
 //
 // This file is deliberately free of JSX and of any top-level reference to `window`, so it can be
 // imported by a module that Astro prerenders. ApexCharts itself is never imported here except as a
@@ -6,66 +7,19 @@
 
 import type { ApexOptions } from 'apexcharts';
 
-import { TIP_TITLE } from './tones';
 import { fmt } from '../format';
+import type { ChartTheme } from './theme';
+import { LABEL_FONT_SIZE } from './theme';
+import type { TipContent } from './tooltip';
+import { tooltip } from './tooltip';
 
-// ------------------------------------------------------------------ palette
-
-/**
- * The semantic tokens from `src/styles/global.css`, read off the document at runtime.
- *
- * Read rather than duplicated on purpose: ApexCharts writes colours into SVG presentation
- * attributes, which do not accept `var(--color-brew)`, so the values have to be resolved in JS. A
- * second copy of the hexes here is a copy that would silently drift from the stylesheet.
- */
-export interface ChartTheme {
-	bg: string;
-	surface: string;
-	raised: string;
-	line: string;
-	ink: string;
-	ink2: string;
-	muted: string;
-	brew: string;
-	rune: string;
-	kick: string;
-	miss: string;
-	missSoft: string;
-	lust: string;
-	track: string;
-	mono: string;
-	sans: string;
-}
-
-const TOKENS: Record<keyof ChartTheme, string> = {
-	bg: '--color-bg',
-	surface: '--color-surface',
-	raised: '--color-raised',
-	line: '--color-line',
-	ink: '--color-ink',
-	ink2: '--color-ink-2',
-	muted: '--color-muted',
-	brew: '--color-brew',
-	rune: '--color-rune',
-	kick: '--color-kick',
-	miss: '--color-miss',
-	missSoft: '--color-miss-soft',
-	// Here for one caller: the cast timeline tints a Bloodlust band's tooltip title with the colour the
-	// band itself is drawn in, which is the pairing rule `charts/tones.ts` exists to enforce.
-	lust: '--color-lust',
-	track: '--color-track',
-	mono: '--font-mono',
-	sans: '--font-sans',
-};
-
-export function readTheme(): ChartTheme {
-	const style = getComputedStyle(document.documentElement);
-	const out = {} as ChartTheme;
-	for (const key of Object.keys(TOKENS) as Array<keyof ChartTheme>) {
-		out[key] = style.getPropertyValue(TOKENS[key]).trim();
-	}
-	return out;
-}
+// The theme and the card both used to live here, and most of the tree imports them from here.
+// Re-exported rather than repointed at their new homes: which module keeps the palette is not a fact
+// fifteen call sites should have had to learn.
+export type { ChartTheme } from './theme';
+export { LABEL_FONT_SIZE, readTheme } from './theme';
+export type { TipContent, TipRow } from './tooltip';
+export { tooltip } from './tooltip';
 
 // ------------------------------------------------------------- environment
 
@@ -80,15 +34,6 @@ export const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
  * precise selection, and a large tablet still does not.
  */
 export const COARSE_POINTER_QUERY = '(pointer: coarse)';
-
-/**
- * The 14px floor the rest of the page keeps to, applied inside the charts as well.
- *
- * Chart text used to sit at 10–11px. ApexCharts writes a fixed pixel size into the SVG, so it does
- * not shrink with the viewport — it was simply small. Raising it costs plot width on a phone, which
- * is what the shorter opening window below and the shortened track names in the timeline pay for.
- */
-export const LABEL_FONT_SIZE = '14px';
 
 /**
  * On a phone a nine-minute pull is a smear, so the timeline and the bank open on the first stretch
@@ -429,117 +374,6 @@ interface TooltipContext {
 }
 
 /**
- * One line of a tooltip: a label, its value, and optionally an icon drawn before the value.
- *
- * The third slot exists for the rows whose value is a *spell* — the cast timeline names the press
- * that spent a buff, and a reader recognises a spell by its art before they read its name, exactly as
- * they do on the chart itself. It stays a URL rather than a spell id because this module knows about
- * drawing and not about the game, and it stays optional because every other row on every other chart
- * is a number or a clock and has no art to carry.
- */
-export type TipRow = [label: string, value: string, iconUrl?: string];
-
-/**
- * The widest a tooltip card may draw, and therefore the point at which a long value stops making the
- * card wider and starts wrapping inside it.
- *
- * Every value on these charts is a number or a clock and fits in the 210px floor below — except the
- * verdicts, which are sentences. `channelled through Energizing Brew with no Rushing Jade Wind
- * covering it` measured the Fists of Fury card at 648px against a 210–330px family, because
- * ApexCharts' own `.apexcharts-tooltip` is `white-space: nowrap` and a card with a floor and no
- * ceiling simply grows to whatever it is handed. Wrapping rather than truncating, because the
- * sentence is the explanation — a reader who cannot finish it has lost the row.
- *
- * The viewport term is the same rule the cast timeline's tip node already keeps (`max-w-[calc(100vw
- * -28px)]`), stated once here for both: a card that has to shrink is one being read on a phone, and
- * the 28px is the two gutters that timeline's placement leaves. Written as one `min()` rather than as
- * a second mechanism on top of that one.
- */
-const TIP_MAX_WIDTH = 'min(380px, calc(100vw - 28px))';
-
-export interface TipContent {
-	title: string;
-	tone: keyof ChartTheme;
-	rows: TipRow[];
-}
-
-const escape = (value: string): string =>
-	// The quotes matter now that one of these lands in an attribute rather than in text.
-	value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-
-/**
- * The icon that leads a row's value, or nothing at all.
- *
- * Sized to the line rather than to the chart's marks: this sits beside a run of text, so it is the
- * cap height of the font next to it and not the 24px a press is drawn at.
- *
- * It carries no `vertical-align` and no `margin`, because it is a flex item — see the row below. It
- * used to carry both, and both were dead: Tailwind's preflight sets `img { display: block }`, which
- * put the icon on a line of its own and dropped the ability name underneath it. `vertical-align` does
- * nothing to a block box, so the row that was meant to read "icon, then name" read as two lines with
- * nothing tying them together. Making the value a flex line is what fixes that, and inside one the
- * icon's own `display` no longer matters — every flex item is blockified anyway.
- *
- * `flex:none` so the icon is never the thing that gives way when the row is wider than the tooltip:
- * a squeezed spell icon is unrecognisable, which is the entire reason the row carries art at all.
- */
-const tipIcon = (url: string | undefined, theme: ChartTheme): string =>
-	url === undefined
-		? ''
-		: `<img src="${escape(url)}" alt="" width="14" height="14" style="flex:none;width:14px;height:14px;` +
-			`border-radius:2px;border:1px solid ${theme.line}">`;
-
-/**
- * Which theme colour a title tinted for `tone` is actually drawn in.
- *
- * Almost always the tone itself. The exceptions are the two *grounds* — see `TIP_TITLE` in `tones.ts`
- * for the contrast numbers and for why each substitute is the semantically right colour and not just
- * a legible one. The fallback is the tone, so a `TipContent` naming a theme key that is not a mark
- * tone at all keeps its current behaviour.
- */
-const titleTone = (tone: keyof ChartTheme): keyof ChartTheme =>
-	(TIP_TITLE as Partial<Record<keyof ChartTheme, keyof ChartTheme>>)[tone] ?? tone;
-
-/**
- * Tooltip markup, built by hand because ApexCharts' own tooltip is styled from its light/dark
- * themes rather than from this app's tokens.
- *
- * Exported because the cast timeline is not an ApexCharts chart and still has to raise a tooltip:
- * it feeds this the same `TipContent` and writes the string into one shared node. Two tooltip
- * designs on one page is exactly what a second implementation there would have produced.
- */
-export function tip(theme: ChartTheme, content: TipContent): string {
-	// The value is a flex line of its own, not a run of inline content, and that is the fix for a whole
-	// *kind* of row rather than for the one caller that hit it. A value made of parts — an icon and the
-	// name of the press it stands for — is one thing the reader is meant to read as one thing, and flex
-	// items on a line cannot be split across two of them. Written for every row rather than only for the
-	// rows that carry art today, because the next row to carry it should not have to rediscover this.
-	// The label never wraps and the value does. Both are flex items on a row that is now allowed to be
-	// narrower than its content, and without this the two share the shortfall in proportion — which
-	// breaks "brewed at" across two lines to buy four characters for a sentence that needs forty.
-	const rows = content.rows
-		.map(
-			([label, value, icon]) =>
-				`<div style="display:flex;gap:14px;justify-content:space-between"><span style="white-space:nowrap;color:${theme.muted}">${escape(label)}</span>` +
-				`<span style="display:flex;align-items:center;gap:6px;color:${theme.ink};font-weight:600">${tipIcon(icon, theme)}${escape(value)}</span></div>`,
-		)
-		.join('');
-	return (
-		// `pointer-events:none` so the tooltip cannot become the element a hit test finds: it follows
-		// the cursor closely enough to sit under it, and would then hide the mark it is describing.
-		//
-		// `white-space:normal` is not the default it looks like: on the ApexCharts charts this card is
-		// written into `.apexcharts-tooltip`, which the library styles `nowrap`, and a ceiling with
-		// nothing allowed to wrap under it is a box the sentence simply runs out of.
-		`<div style="pointer-events:none;min-width:210px;max-width:${TIP_MAX_WIDTH};white-space:normal;padding:10px 12px;background:${theme.surface};border:1px solid ${theme.line};` +
-		`border-radius:3px;font-family:${theme.mono};font-size:${LABEL_FONT_SIZE};line-height:1.6">` +
-		`<div style="margin-bottom:5px;font-weight:600;color:${theme[titleTone(content.tone)]}">${escape(content.title)}</div>` +
-		rows +
-		'</div>'
-	);
-}
-
-/**
  * Reads the `meta` a data point was built with, which is where every tooltip's content lives.
  *
  * The indices passed as arguments are not trustworthy on a multi-row range bar: ApexCharts resolves
@@ -554,7 +388,7 @@ function metaTooltip(theme: ChartTheme): NonNullable<ApexOptions['tooltip']>['cu
 		const ctx = opts as TooltipContext;
 		const at = (s: number, i: number) => ctx.w.config.series[s]?.data[i]?.meta;
 		const meta = at(cursorPoint.seriesIndex, cursorPoint.dataPointIndex) ?? at(ctx.seriesIndex, ctx.dataPointIndex);
-		return meta === undefined ? '' : tip(theme, meta as TipContent);
+		return meta === undefined ? '' : tooltip(theme, meta as TipContent);
 	};
 }
 
