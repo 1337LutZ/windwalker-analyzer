@@ -221,6 +221,40 @@ export interface Handles {
 	 */
 	spawnLives: ReadonlyMap<string, SpawnLife>;
 	multiTargetWindows: Interval[];
+	/**
+	 * The same `>= 2` series with the parsing ruleset's strikes **left in** — the floor a dot rule wants.
+	 *
+	 * `multiTargetWindows` above answers "was there a second enemy worth turning towards", and in parsing
+	 * mode a struck body is not one: its damage does not count, so a stretch spent on it is not evidence
+	 * the pull was multi-target. That is right for every rule banded on the target count and wrong for one
+	 * rule, because a dot on a second body is not paid for by that body's health bar.
+	 *
+	 * **A Flame Shock on a struck add still funnels into the boss.** Its ticks roll Lava Surge, and the
+	 * Lava Bursts those procs pay for are cast at the primary — so the global spent dotting an add whose
+	 * own damage WarcraftLogs strikes is still a global that raised single-target damage. Suppressing the
+	 * rule there does not withhold a judgement, it invents a fault: the report stops asking for a dot the
+	 * shaman was right to apply, and a reader in parsing mode is told to do less of the correct thing.
+	 *
+	 * So this keeps `ignoredMultiTargetActors` — a Blackfuse Shredder at 90% damage reduction is a
+	 * different claim, about a body nobody is really fighting — and drops only the mode's own strikes.
+	 * Identical to `multiTargetWindows` in progression mode, where nothing is struck at all.
+	 */
+	dotMultiTargetWindows: Interval[];
+	/**
+	 * The `>= 3` ladder series with the same strikes left in — the *ceiling* that floor has to be paired
+	 * with.
+	 *
+	 * A band cut needs both edges from the same reading of the target count, and moving only the floor is
+	 * how the multi-dot clock came out longer in parsing mode than in progression: the struck body stopped
+	 * raising the ladder's count too, so stretches that were the aoe list on the pull as fought fell back
+	 * into the band this rule is graded at, and the rule was asked of moments it does not exist at.
+	 *
+	 * Which is the mirror of the reason the floor moved. A struck add is still a body: it still makes the
+	 * third enemy that puts the shaman on `aoe.apl.json`, where there is no multi-dot rung at all. The dot
+	 * is worth a global at two enemies whatever the ruleset thinks of the second one, and it is not the
+	 * rung being run at three whatever the ruleset thinks of the third.
+	 */
+	dotAoeWindows: Interval[];
 	/** The stretches the aoe list applied to — band 3 or more. See where it is built for why three. */
 	aoeWindows: Interval[];
 	multiTargetMs: number;
@@ -1163,6 +1197,13 @@ export function analyseCore(
 		(hit) => !ignoredMultiTargetIDs.has(hit.target) && !uncountedIDs.has(hit.target),
 	);
 	const targetPoints = targetCounts(multiTargetHits, spec.thresholds.targetWindowMs);
+	// The same hits with the mode's strikes left in — see `dotMultiTargetWindows` on the shape above for
+	// why one rule wants a floor the others must not have. Derived here, beside the series it differs from
+	// by exactly one predicate, so the difference stays visible as that one predicate.
+	const dotTargetPoints = targetCounts(
+		landedHits.filter((hit) => !ignoredMultiTargetIDs.has(hit.target)),
+		spec.thresholds.targetWindowMs,
+	);
 	// The spec may keep its own area damage from establishing multi-target evidence for the priority
 	// list — WW does, for Rushing Jade Wind. This matters when WarcraftLogs omits the periodic `tick`
 	// flag: one short-lived add hit by the wind would otherwise keep the ladder in its multi-target
@@ -1174,6 +1215,12 @@ export function analyseCore(
 		!targetCountExcludedDamageIDs.has(hit.abilityID ?? -1);
 	const aplTargetHits = multiTargetHits.filter(notOwnAreaDamage);
 	const aplTargetPoints = targetCounts(aplTargetHits, spec.thresholds.targetWindowMs);
+	// The ladder's own series with the mode's strikes left in, paired with `dotTargetPoints` above: one
+	// rule needs both its edges read off the pull as fought. See `dotAoeWindows` on the shape above.
+	const dotAplTargetPoints = targetCounts(
+		landedHits.filter((hit) => !ignoredMultiTargetIDs.has(hit.target)).filter(notOwnAreaDamage),
+		spec.thresholds.targetWindowMs,
+	);
 	const aplTargetCountAt = countAt(aplTargetPoints);
 	/**
 	 * The other reading of the same moment: how many units the player *hit*, damage or not.
@@ -1255,6 +1302,7 @@ export function analyseCore(
 	 * that the pull never justified the cooldown — on exactly the pull the cooldown is for.
 	 */
 	const multiTargetWindows = intervalsAtLeast(targetPoints, 2, duration);
+	const dotMultiTargetWindows = intervalsAtLeast(dotTargetPoints, 2, duration);
 	const multiTargetMs = unionMs(multiTargetWindows);
 	/**
 	 * The pull cut into stretches of one rotation mode — the single reading, published on `Analysis`.
@@ -1345,6 +1393,12 @@ export function analyseCore(
 	 * `multiTargetWindows` is built above rather than repeated here.
 	 */
 	const aoeWindows = intervalsAtLeast(aplTargetPoints, 3, duration, spec.thresholds.targetWindowMs - effectiveGcd);
+	const dotAoeWindows = intervalsAtLeast(
+		dotAplTargetPoints,
+		3,
+		duration,
+		spec.thresholds.targetWindowMs - effectiveGcd,
+	);
 	/**
 	 * Against the time the player was hitting *anything*, and deliberately neither of the two obvious
 	 * alternatives.
@@ -1850,6 +1904,8 @@ export function analyseCore(
 		landedHits,
 		spawnLives: spawnLifeByKey,
 		multiTargetWindows,
+		dotMultiTargetWindows,
+		dotAoeWindows,
 		aoeWindows,
 		multiTargetMs,
 		contactMs,

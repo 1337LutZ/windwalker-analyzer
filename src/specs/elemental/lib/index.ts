@@ -2025,7 +2025,8 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		lostCasts,
 		landedHits,
 		spawnLives,
-		multiTargetWindows,
+		dotMultiTargetWindows,
+		dotAoeWindows,
 		aoeWindows,
 		contact,
 		hasteWindows,
@@ -3022,7 +3023,34 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * the day it stops being true — which is the day this expression starts straddling two series that
 	 * genuinely differ and wants re-reading against the rule above.
 	 */
-	const mdGraded = intersect(multiTargetWindows, gradedSpans);
+	/**
+	 * **The floor is the dot series, not the count series, and that is a rule about Lava Surge.**
+	 *
+	 * Every other band cut in this audit takes `multiTargetWindows`, which in parsing mode has the struck
+	 * bodies removed — a body whose damage WarcraftLogs will not count is not evidence the pull was worth
+	 * cleaving. This one must not, because the second dot is not paid for by the body it is on: Flame
+	 * Shock's ticks roll Lava Surge, the procs are spent on Lava Burst, and those Lava Bursts land on the
+	 * primary. The global funnels into single-target damage whatever the add's own health bar is worth.
+	 *
+	 * Taking the counted series here made parsing mode withhold the rule on exactly the pulls the rule is
+	 * about: the struck add stopped raising the count, `mdGradedMs` came out zero, and the metric was
+	 * refused as "no stretch at two enemies" — so a reader in parsing mode was told nothing about a dot
+	 * they were right to apply, and the tile that would have asked for it disappeared. That is not a
+	 * withheld judgement, it is a fault invented by a filter borrowed from a question this rule does not
+	 * ask.
+	 *
+	 * **The ceiling moves with it, and it has to.** A band cut wants both edges off one reading of the count,
+	 * and taking the dot floor against `gradedSpans` — the complement of the *counted* aoe series — made
+	 * parsing mode grade this rule over 107 737ms against progression's 66 007ms on the same pull. The
+	 * struck body had stopped raising the ladder's count as well, so stretches that were `aoe.apl.json` on
+	 * the pull as fought fell back into band 2 and the rung was asked of moments it does not exist at. A
+	 * struck add is still the third enemy that puts the shaman on a list with no multi-dot rung on it.
+	 *
+	 * The numerator never needed changing — `fsSecondaryWindows` filters on the primary and on the
+	 * lifetime floor and has never looked at the strike list, so the dots on struck adds were already in
+	 * it. This is the denominator catching up with a numerator that was already right.
+	 */
+	const mdGraded = intersect(dotMultiTargetWindows, complementOf(dotAoeWindows, duration));
 	const mdGradedMs = unionMs(mdGraded);
 	const multiDotUptimeMs = unionMs(intersect(fsSecondaryWindows, mdGraded));
 	/**
