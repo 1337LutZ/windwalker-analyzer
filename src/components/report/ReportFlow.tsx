@@ -25,6 +25,7 @@ import ReportInput from './ReportInput';
 import ReportSkeleton from './ReportSkeleton';
 import SettingsDialog from './SettingsDialog';
 import StickySelectionBar from './StickySelectionBar';
+import SplitGroupCallout from './SplitGroupCallout';
 import TargetModeControl from './TargetModeControl';
 import { describeFailure } from './describeFailure';
 
@@ -405,6 +406,11 @@ export default function ReportFlow({ spec }: { spec: SpecDefinition }) {
 			    Gated on `gradeable`, the same condition the bar's own switches take. */}
 			{gradeable && analysis !== null ? (
 				<div className="mt-4 flex flex-col gap-4 sm:mt-5">
+					{/* First in the block, because it is the fact the two controls under it are chosen against:
+					    a reader about to force a reading on a Dark Shaman pull should already know they only ever
+					    fought one of the two bosses. Renders nothing on a pull the raid fought together, which is
+					    every pull on eleven of the fourteen Siege encounters. */}
+					<SplitGroupCallout split={analysis.splitGroup} />
 					{/* Beside the target mode because both are re-readings of a pull already fetched: neither
 					    touches the network, so both belong where a reader is looking at the report rather
 					    than back at the form. They still answer different questions — this one changes what

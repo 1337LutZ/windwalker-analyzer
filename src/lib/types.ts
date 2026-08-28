@@ -28,6 +28,7 @@ import type { SegmentTimeline } from '~/lib/analysis/segments';
 import type { SpawnRecord } from '~/lib/analysis/targets';
 import type { AuraWindow } from '~/lib/analysis/auras';
 import type { Gate } from '~/lib/game/model';
+import type { SplitGroup } from '~/lib/game/splitGroups';
 import type { Grade } from '~/lib/score/model';
 // Type-only, and pointing at a spec rather than at `lib`, which is the same trade the two imports
 // above make: the Ascendance press verdict is defined beside the rules that produce it, and this file
@@ -2181,6 +2182,21 @@ export interface AnalysisCore {
 	 * output from before this existed. Guard on truthiness rather than assuming an array.
 	 */
 	segments?: SegmentTimeline;
+	/**
+	 * The raid split up on this pull, and this player was not on the main group.
+	 *
+	 * Three Siege encounters can come apart — Galakras' tower squads, Kor'kron Dark Shaman pulled to two
+	 * corners, Siegecrafter Blackfuse's belt team — and on each of them the pull one player fought is not
+	 * the pull the encounter is. `game/splitGroups.ts` carries the rules and the measurements.
+	 *
+	 * **Nothing downstream reads it and nothing may.** No clock is moved and no count is adjusted: the
+	 * report states what it found, above the grades, and the reader takes the grades with that in hand.
+	 * Correcting for a split would mean inventing the pull the player did not have.
+	 *
+	 * Null means the pull was fought together, or that this encounter has no split worth naming — an
+	 * ordinary answer, not a refusal. Absent means the capture predates the field. Guard on truthiness.
+	 */
+	splitGroup?: SplitGroup | null;
 	/**
 	 * Where the player and the bodies they hit stood, once a second across the pull.
 	 *

@@ -33,6 +33,7 @@ import type { FightPhase } from '~/lib/wcl/phases';
 import type { Registry } from '~/lib/game/registry';
 import type { ResourceConfig } from '~/lib/game/resources';
 import type { SpecColors } from '~/lib/game/classes';
+import { detectSplitGroup } from '~/lib/game/splitGroups';
 import type { AnalysisSettings, SettingSchema } from '~/lib/settings/model';
 import { clampSettings } from '~/lib/settings/model';
 import type {
@@ -1391,6 +1392,25 @@ export function analyseCore(
 	 */
 	const replay = buildReplay(events, t0, duration, spec.reachYards, actorNames);
 	/**
+	 * Whether the raid came apart on this pull, and this player went with the half that walked away.
+	 *
+	 * Sits beside the two readings above because it answers the question they cannot: `segments` says what
+	 * the rotation should have been moment to moment, and it is right about a belt team's four minutes of
+	 * nothing to hit — right, and describing an encounter the reader did not have. This names the reason.
+	 *
+	 * **It changes nothing.** No figure above or below it moves; the finding is published and the report
+	 * prints it above the grades. `game/splitGroups.ts` carries the rules, the game ids and the pulls each
+	 * threshold was measured on.
+	 */
+	const splitGroup = detectSplitGroup({
+		encounterID: fight.encounterID,
+		enemyNPCs: table.fight.enemyNPCs,
+		events,
+		mine,
+		fightStartMs: t0,
+		nameOf: (id) => actorNames.get(id) ?? null,
+	});
+	/**
 	 * The stretches **no one-or-two-target rule was asked over** — the segments whose mode is `aoe` or
 	 * `mixed`, and the only array a graded clock may be cut with.
 	 *
@@ -2097,6 +2117,7 @@ export function analyseCore(
 		// intermissions against — the spec's audit merges its own presses and lanes over this.
 		timeline: { deaths, contactSegments: contact, cancels, hasteWindows, berserkingWindows },
 		segments,
+		splitGroup,
 		replay,
 		lostCasts,
 		// **Both series are published, because both questions are asked downstream.** `counts` is

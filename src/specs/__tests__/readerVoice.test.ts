@@ -504,6 +504,9 @@ const SHARED_SECTIONS = [
 	'overall',
 	'priority',
 	'raidBuffs',
+	// Three encounters can be fought by a raid that has divided itself, and what this scope says
+	// about them is said to any reader on any spec — the rules are the encounter's, not a class's.
+	'splitGroup',
 	'summary',
 	'targets',
 	'timeline',

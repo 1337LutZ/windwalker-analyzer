@@ -195,6 +195,15 @@
     "overridden_cleave": "You are reading it as a cleave anyway.",
     "overridden_aoe": "You are reading it as AoE anyway."
   },
+  "splitGroup": {
+    "title": "Your raid split up",
+    "towerRuns_one": "You went up a tower. {{away, duration}} of this pull was spent on the tower captain while the rest of the raid held the courtyard below, and the fight up there is a climb and one elite rather than an add wave. This report reads the two of them as one pull.",
+    "towerRuns_other": "You went up the towers {{count}} times, {{away, duration}} of this pull in all, while the rest of the raid held the courtyard below. Up there the fight is a climb and one elite. Down here it is an add wave. This report reads the two of them as one pull.",
+    "belt_one": "You were on the belt. {{share, percent}} of your damage landed on a weapon still riding the conveyor, over {{away, duration}}, and the boss saw almost none of you. The empty stretches below are the job you were given, not seconds you let slip.",
+    "belt_other": "You were on the belt. {{share, percent}} of your damage landed on weapons still riding the conveyor, across {{count}} trips totalling {{away, duration}}, and the boss saw almost none of you. The empty stretches below are the job you were given, not seconds you let slip.",
+    "splitPair": "{{name}} took {{share, percent}} of your damage to the two bosses. Whether the raid pulled them apart or you were told to hold one of them, only one of the pair was ever in front of you, so the two of them never lift the counts below past a single target.",
+    "splitPair_unnamed": "One of the two bosses took {{share, percent}} of your damage to the pair. Whether the raid pulled them apart or you were told to hold one of them, only one of the pair was ever in front of you, so the two of them never lift the counts below past a single target."
+  },
   "tigerPalm": {
     "title": "Tiger Palm",
     "intent": "Worth its global in two cases: spending a free Combo Breaker proc, or refreshing Tiger Power before it drops. Any other press overwrites a buff that was still fine and spends a global Jab or Blackout Kick could have used.",
