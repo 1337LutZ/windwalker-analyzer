@@ -132,8 +132,9 @@ type Copy = ReturnType<typeof useReportCopy>['t'];
  * behind it, which is the spec-tinted surface again, so `bg-miss/60` would have reintroduced the problem
  * by a different route — and stacked against a second translucent layer it compounds.
  *
- * Heavier than `ZONE` in `score/bandScale`, which is the same three hues at 26%: those zones sit *behind*
- * a mark and have to stay recessive, while here the painted stretch is the content with nothing on top.
+ * Heavier than `ZONE` in `score/bandScale`, which is the same three hues on the same ground at 26%: those
+ * zones sit *behind* a mark and have to stay recessive, while here the painted stretch is the content
+ * with nothing on top of it.
  */
 const GRADE_ZONE = {
 	bad: 'bg-[color-mix(in_oklch,var(--color-miss)_62%,var(--color-tint-base))]',

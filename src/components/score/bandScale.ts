@@ -55,10 +55,26 @@ export function markAt(value: number, max: number): number {
 	return Math.max(0, Math.min(100, (value / max) * 100));
 }
 
+/**
+ * The three grade zones, mixed into `--color-tint-base` rather than into the surface.
+ *
+ * **A verdict colour has to look the same to every reader, and mixing into the surface stopped it.**
+ * Every surface in `global.css` is `color-mix(… var(--spec-primary) N%, <base>)`, so it carries the
+ * reading spec's own hue: the Windwalker's is green, and a rose `bad` mixed into it came out orange
+ * while the same declaration read rose on the Elemental. `--color-tint-base` is that same ground with
+ * the spec taken out, which is what it exists for — its docstring in `global.css` names this failure and
+ * `Scorecard` has always used it. These three were the ones that never got the message.
+ *
+ * The distinction worth keeping is which colours *should* follow the spec. `--color-band-*` mixes into
+ * the surface on purpose and is measured against both grounds: a band is drawn *on* the surface and has
+ * to win against it, so it is right for it to be tuned per spec. A grade is not drawn against anything
+ * in particular — it is a judgement, and a judgement that changes hue depending on who is reading is
+ * simply a different judgement.
+ */
 export const ZONE: Record<'good' | 'ok' | 'bad', string> = {
-	good: 'bg-[color-mix(in_oklch,var(--color-good)_26%,var(--color-surface))]',
-	ok: 'bg-[color-mix(in_oklch,var(--color-brew)_26%,var(--color-surface))]',
-	bad: 'bg-[color-mix(in_oklch,var(--color-miss)_26%,var(--color-surface))]',
+	good: 'bg-[color-mix(in_oklch,var(--color-good)_26%,var(--color-tint-base))]',
+	ok: 'bg-[color-mix(in_oklch,var(--color-brew)_26%,var(--color-tint-base))]',
+	bad: 'bg-[color-mix(in_oklch,var(--color-miss)_26%,var(--color-tint-base))]',
 };
 
 export const MARK: Record<'good' | 'ok' | 'bad', string> = {
