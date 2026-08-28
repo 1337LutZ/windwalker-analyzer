@@ -398,6 +398,74 @@ label[for],
 	outline-offset: 2px;
 }
 
+/* A range input, repainted in the app's own tokens.
+ *
+ * Same story as the ApexCharts rules at the foot of this file: a native slider arrives in the
+ * browser's blue, which appears nowhere else on the page, and on a report themed from
+ * `--spec-primary` it reads as a control borrowed from somewhere else. Every colour here is a token,
+ * so the slider follows whichever spec the page is about rather than needing a value per spec.
+ *
+ * Written by element rather than by class, on the same argument the `cursor: pointer` rule above
+ * makes: a slider added later inherits this instead of having to remember it.
+ *
+ * **The filled half is a gradient, because only Firefox has a pseudo-element for it.**
+ * `::-moz-range-progress` paints it there; WebKit and Blink have no equivalent, so the track carries
+ * a hard-stopped gradient and the component sets `--range-progress` to the played fraction. The
+ * fallback is 0%, which is an unplayed track rather than a broken one. */
+input[type='range'] {
+	-webkit-appearance: none;
+	appearance: none;
+	/* The 44px floor `primitives/controls.ts` sets for anything tappable. The track is 4px; the rest
+	 * is the target around it, which is why the height is on the input and not on the track. */
+	height: 2.75rem;
+	width: 100%;
+	background: transparent;
+}
+
+input[type='range']::-webkit-slider-runnable-track {
+	height: 4px;
+	border-radius: 2px;
+	background: linear-gradient(
+		to right,
+		var(--color-kick) var(--range-progress, 0%),
+		var(--color-line) var(--range-progress, 0%)
+	);
+}
+
+input[type='range']::-moz-range-track {
+	height: 4px;
+	border-radius: 2px;
+	background: var(--color-line);
+}
+
+input[type='range']::-moz-range-progress {
+	height: 4px;
+	border-radius: 2px;
+	background: var(--color-kick);
+}
+
+/* The ring is the surface the slider sits on rather than a colour of its own, so the thumb reads as
+ * cut out of the track instead of stacked on top of it. `margin-top` centres it on a 4px track:
+ * half the thumb, less half the track, less the border. */
+input[type='range']::-webkit-slider-thumb {
+	-webkit-appearance: none;
+	appearance: none;
+	width: 14px;
+	height: 14px;
+	margin-top: -7px;
+	border: 2px solid var(--color-surface);
+	border-radius: 9999px;
+	background: var(--color-kick);
+}
+
+input[type='range']::-moz-range-thumb {
+	width: 14px;
+	height: 14px;
+	border: 2px solid var(--color-surface);
+	border-radius: 9999px;
+	background: var(--color-kick);
+}
+
 /* The spec's identity, drawn on every section heading. The ground carries the faint tint; this is
  * where the primary shows strongly enough to read as a colour rather than as a cast, so a report is
  * recognisable as its spec at a glance — the same job the chart bars do, for a spec with none. */

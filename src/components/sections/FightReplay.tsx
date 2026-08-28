@@ -17,7 +17,7 @@
 // Nothing here grades. There is no range ring and no distance verdict: a coordinate pair knows nothing
 // about the wall between two actors, which `UNITS_PER_YARD` states where the scale is defined.
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
 import { Dialog } from '@base-ui/react/dialog';
 import { useTranslation } from 'react-i18next';
 
@@ -27,7 +27,7 @@ import type { Analysis } from '~/lib/types';
 import { COUNT } from '../charts/tones';
 import { DialogShell } from '../primitives';
 import { buttonClass } from '../primitives/controls';
-import { segmentLabel } from './segmentCopy';
+import { KEY_ORDER } from './segmentCopy';
 
 /**
  * The long side of the drawing, in view units. The short side follows the pull's own shape.
@@ -137,24 +137,45 @@ function ReplayStage({ analysis }: { analysis: Analysis }) {
 	const here = frames[Math.min(frame, last)];
 	if (here === undefined) return null;
 	const segment = segmentAt(segments, here.ms);
-	const tone = segment === undefined ? COUNT.idle : COUNT[segment.mode];
+	const present = KEY_ORDER.filter((mode) => segments.some((s) => s.mode === mode));
 	const seconds = Math.round(here.ms / 1000);
 	const grid = 20 * projected.scale;
 
 	return (
 		<div className="flex flex-col gap-3">
 			<div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-				{/* The mode on the frame, not only in the strip behind the dialog. This is the readout the
-				    replay exists to carry: what the report is grading this instant as, while the reader can
-				    see how many bodies were actually in front of the player. */}
-				<span className="flex items-center gap-2">
+				{/* **The whole scale, with this moment's reading lit** — not one chip that rewrites itself.
+				    A label that changes as the scrubber moves makes the reader read before they can compare;
+				    a fixed row lets them see at a glance that the pull has an aoe reading at all and watch it
+				    arrive. It is the chart key from the strip behind this dialog, in the same order and with
+				    the same words, so the two cannot come to disagree about what the modes are called.
+
+				    `present` rather than all five, which is the rule `SegmentStrip` already applies to its
+				    key: a swatch for a bar the reader cannot find is a swatch they go looking for. */}
+				<div className="flex flex-wrap items-center gap-2">
 					<span className="font-mono text-xs tracking-[0.14em] text-muted uppercase">
 						{t('summary.shape.replay.modeLabel')}
 					</span>
-					<span className={`rounded-sm px-2 py-[3px] font-mono text-xs font-semibold ${tone.fill} ${tone.ink}`}>
-						{segment === undefined ? t('summary.shape.row', { context: 'idle' }) : segmentLabel(segment, t)}
-					</span>
-				</span>
+					{present.map((mode) => {
+						const on = segment?.mode === mode;
+						const tone = COUNT[mode];
+						return (
+							<span
+								key={mode}
+								// The live one is announced as the current item of the set rather than by its colour
+								// alone, which is the same reason the bars on the strip carry their count as text.
+								aria-current={on ? 'true' : undefined}
+								className={
+									on
+										? `rounded-sm px-2 py-[3px] font-mono text-xs font-semibold ${tone.fill} ${tone.ink}`
+										: 'rounded-sm border border-line px-2 py-[3px] font-mono text-xs font-medium text-muted'
+								}
+							>
+								{t('summary.shape.row', { context: mode })}
+							</span>
+						);
+					})}
+				</div>
 				<span className="font-mono text-xs text-muted tabular-nums">
 					{t('summary.shape.replay.clock', {
 						at: seconds,
@@ -223,11 +244,14 @@ function ReplayStage({ analysis }: { analysis: Analysis }) {
 				<button
 					type="button"
 					onClick={() => setPlaying((p) => !p)}
-					className="flex min-h-11 min-w-11 shrink-0 cursor-pointer items-center justify-center rounded-sm border border-line bg-raised text-ink transition-colors hover:bg-line"
+					className="flex min-h-11 min-w-11 shrink-0 cursor-pointer items-center justify-center rounded-sm border border-line bg-raised text-kick transition-colors hover:bg-line"
 					aria-label={t(playing ? 'summary.shape.replay.pause' : 'summary.shape.replay.play')}
 				>
 					{playing ? '⏸' : '▶'}
 				</button>
+				{/* `--range-progress` is how much of the track is painted in the spec's accent: WebKit has no
+				    pseudo-element for a slider's filled half, so `global.css` draws it as a hard-stopped
+				    gradient and this is the stop. Firefox ignores it and uses `::-moz-range-progress`. */}
 				<input
 					type="range"
 					min={0}
@@ -237,6 +261,7 @@ function ReplayStage({ analysis }: { analysis: Analysis }) {
 						setPlaying(false);
 						setFrame(Number(e.target.value));
 					}}
+					style={{ '--range-progress': `${last > 0 ? (Math.min(frame, last) / last) * 100 : 0}%` } as CSSProperties}
 					className="w-full"
 					aria-label={t('summary.shape.replay.scrub')}
 				/>

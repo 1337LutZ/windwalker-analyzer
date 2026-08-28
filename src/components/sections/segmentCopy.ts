@@ -1,16 +1,32 @@
-// What a segment is called and how long it ran — the words, kept away from the drawing.
+// How the segment modes are named and ordered — the words and the running order, kept away from the
+// drawing.
 //
 // Lifted out of `SegmentStrip` when a second component wanted them. `FightReplay` mounts *inside* the
 // strip's header and needs the same label for its mode chip, so leaving them there made the two modules
 // import each other; a cycle that works today is a cycle that breaks the first time one of them reads
-// the other at module scope. These are pure functions of a segment and a translator, which is why they
-// are the half that moves.
+// the other at module scope. Nothing here renders — an order and two functions of a segment and a
+// translator — which is why this is the half that moves.
 //
-// Both stay re-exported from `SegmentStrip` so existing callers are untouched.
+// All three stay re-exported from `SegmentStrip` so existing callers are untouched.
 
 import { type TFunction } from 'i18next';
 
-import type { FightSegment } from '~/lib/analysis/segments';
+import type { FightSegment, SegmentMode } from '~/lib/analysis/segments';
+
+/**
+ * The order the key names the modes in, and the only place that order is decided.
+ *
+ * Ascending by how many enemies were up, with the two that are not counts at the foot. That is the
+ * order the ramp itself rises in, so the key reads as the scale it is describing rather than as the
+ * order this pull happened to meet them.
+ */
+/**
+ * The order the modes are named in, rising with the count and ending on the two that are not counts.
+ *
+ * Exported so the segment tool's summary tiles run in the same order as this chart's key. A reader
+ * comparing the two should not have to re-find `aoe` in a different place.
+ */
+export const KEY_ORDER: readonly SegmentMode[] = ['single', 'cleave', 'aoe', 'mixed', 'idle'];
 
 /**
  * What a segment is called, in words.

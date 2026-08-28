@@ -6,7 +6,7 @@ import type { Analysis } from '~/lib/types';
 
 import ChartKey from '../charts/ChartKey';
 import FightReplay from './FightReplay';
-import { segmentLabel, segmentLength } from './segmentCopy';
+import { KEY_ORDER, segmentLabel, segmentLength } from './segmentCopy';
 import ScrollableTrack from '../charts/ScrollableTrack';
 import SegmentLane, { type LaneSpan } from '../charts/SegmentLane';
 import { ChartFigure } from '../primitives';
@@ -38,21 +38,6 @@ function shortOf(segment: { mode: SegmentMode; medianEnemies: number }): string 
 	const median = Math.round(segment.medianEnemies);
 	return median >= 3 ? '~3+' : `~${Math.max(1, median)}`;
 }
-
-/**
- * The order the key names the modes in, and the only place that order is decided.
- *
- * Ascending by how many enemies were up, with the two that are not counts at the foot. That is the
- * order the ramp itself rises in, so the key reads as the scale it is describing rather than as the
- * order this pull happened to meet them.
- */
-/**
- * The order the modes are named in, rising with the count and ending on the two that are not counts.
- *
- * Exported so the segment tool's summary tiles run in the same order as this chart's key. A reader
- * comparing the two should not have to re-find `aoe` in a different place.
- */
-export const KEY_ORDER: readonly SegmentMode[] = ['single', 'cleave', 'aoe', 'mixed', 'idle'];
 
 /**
  * The pull cut into the stretches it was actually fought in, drawn once across the top of the report.
@@ -156,4 +141,4 @@ export default function SegmentStrip({
 	);
 }
 
-export { segmentLabel, segmentLength };
+export { KEY_ORDER, segmentLabel, segmentLength };
