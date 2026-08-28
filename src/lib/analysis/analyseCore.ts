@@ -71,8 +71,8 @@ import { pointsResourceAudit, poolResourceAudit, resourceSamples, wclPowerTypeOf
 import { engagedWindows } from './engagement';
 import { readGear, readTalents } from './gear';
 import { buildReplay } from './replay';
-import { segmentPull } from './segments';
-import { complementOf, intersect, type Interval, unionMs } from './intervals';
+import { segmentPull, type SegmentTimeline } from './segments';
+import { complementOf, intersect, type Interval, mergeIntervals, unionMs } from './intervals';
 import { enforcedDowntime, unavoidableWindows } from './enforced';
 import { makeLinker } from './links';
 import { RAID_BUFF_NAMES, readRaidBuffs } from './raidBuffs';
@@ -95,6 +95,42 @@ import { median, r1 } from './format';
  * The audit is a pure function of this object: same handles, same answer. That is what lets a second
  * spec be written without touching the core, and what lets the core be tested once for every spec.
  */
+
+/**
+ * The stretches of a segmented pull that no one-or-two-target rule was asked over, with the closing
+ * window lag taken off each one.
+ *
+ * One function and two callers, because the alternative is the same filter written twice against two
+ * series — and a rule cut with one copy and charted from the other is precisely the disagreement the
+ * whole exemption mechanism exists to prevent. What counts as "not asked" is argued at `exemptWindows`
+ * below; this is the shape of it, plus the one edge correction the segments do not make for themselves.
+ *
+ * **The trim survived the move from the count to the segments, and the synthetic pull in
+ * `bandedClocks.test.ts` is why it had to.** A segment boundary is still a boundary of the count series
+ * underneath it: `segmentPull` cuts on `spansOf(points)`, and that series can only fall a whole
+ * `windowMs` after the last hit that fed it. So a wave hit for the last time at 120 000 closes its
+ * `aoe` segment at 125 000, and the five seconds between are boss-only time an exemption would forgive
+ * with nothing charged — the identical defect `fbc4963` measured at 27 011ms of `cleave`'s exemption.
+ * Smoothing *which* stretches are exempt and trimming *where each one ends* are two corrections to two
+ * different errors, and A2 only replaces the first.
+ */
+function exemptFrom(timeline: SegmentTimeline, endMs: number, trimTrailingMs: number): Interval[] {
+	const merged = mergeIntervals(
+		timeline.segments
+			.filter((segment) => segment.mode === 'aoe' || segment.mode === 'mixed')
+			.map((segment): Interval => [segment.startMs, segment.endMs]),
+	);
+	const out: Interval[] = [];
+	for (const [open, close] of merged) {
+		// Untrimmed where the pull ended inside the stretch: that close is the fight stopping rather than
+		// the count falling, so there is no lag in it to take off. The same judgement `intervalsAtLeast`
+		// makes, and for the same reason — see `trimTrailingMs` there.
+		const end = close < endMs ? Math.max(open, close - trimTrailingMs) : close;
+		if (end > open) out.push([open, end]);
+	}
+	return out;
+}
+
 export interface Handles {
 	code: string;
 	fight: FightDataset['fight'];
@@ -242,8 +278,8 @@ export interface Handles {
 	 */
 	dotMultiTargetWindows: Interval[];
 	/**
-	 * The `>= 3` ladder series with the same strikes left in — the *ceiling* that floor has to be paired
-	 * with.
+	 * The same exemption taken on the dot's series, with the parsing ruleset's strikes left in — the
+	 * *ceiling* that floor has to be paired with.
 	 *
 	 * A band cut needs both edges from the same reading of the target count, and moving only the floor is
 	 * how the multi-dot clock came out longer in parsing mode than in progression: the struck body stopped
@@ -255,9 +291,14 @@ export interface Handles {
 	 * is worth a global at two enemies whatever the ruleset thinks of the second one, and it is not the
 	 * rung being run at three whatever the ruleset thinks of the third.
 	 */
-	dotAoeWindows: Interval[];
-	/** The stretches the aoe list applied to — band 3 or more. See where it is built for why three. */
-	aoeWindows: Interval[];
+	dotExemptWindows: Interval[];
+	/**
+	 * The stretches no one-or-two-target rule was asked over — the pull's own `aoe` and `mixed` segments.
+	 *
+	 * The array every graded clock is cut with, and the only one that may be: see where it is built for
+	 * why it is the segmentation rather than the raw count, and why `cleave` stays graded.
+	 */
+	exemptWindows: Interval[];
 	multiTargetMs: number;
 	/** The time with at least one enemy in the count window — the target mode's denominator. */
 	contactMs: number;
@@ -1350,71 +1391,64 @@ export function analyseCore(
 	 */
 	const replay = buildReplay(events, t0, duration, spec.reachYards, actorNames);
 	/**
-	 * The stretches the **aoe** priority list was the applicable one — three enemies or more.
+	 * The stretches **no one-or-two-target rule was asked over** — the segments whose mode is `aoe` or
+	 * `mixed`, and the only array a graded clock may be cut with.
 	 *
-	 * Off `aplTargetPoints` and deliberately not `targetPoints` beside it, because this is a question
-	 * about which *ladder band* applied and those two series are not the same: the APL one excludes the
-	 * spec's own area damage (`aplTargetCountExclude`), so a spec that cleaves with its filler would
-	 * otherwise read as fighting a pack it created. Plan §41 found the two disagreeing and nothing
-	 * saying why; this is the side that has to be the ladder's.
+	 * **This was `intervalsAtLeast(aplTargetPoints, 3, …)` until the segmentation was measured against
+	 * it, and on the fights the exemption exists for the two disagree by minutes.** The raw series is an
+	 * instantaneous reading of the count: on one Siegecrafter Blackfuse kill it exempts 71.2s in seven
+	 * pieces where that pull's own segments call 113.6s of it `aoe`, so 42.4s of an add wave was graded
+	 * against the single-target list; on a second Blackfuse the error runs the other way, the raw series
+	 * exempting 133.7s where the segments name 120.8s. Neither direction is a threshold wanting tuning.
+	 * They are two readings of one question, and `segments` is the reading the reader is already shown —
+	 * the mode control offers it, the segment strip draws it, and every phase label in the report says
+	 * it. A report that graded from a third one is the defect `exemptTrack.test.ts` was written after,
+	 * one level further out than that test can see.
 	 *
-	 * Three and not two, because the two lists differ: at two targets the *cleave* list still spends
-	 * Lightning Shield and multi-dots Flame Shock, so those stretches stay graded. It is only from three
-	 * that the aoe list stops asking for either, which is what makes a single-target clock unable to
-	 * count them.
+	 * **`mixed` is exempt alongside `aoe`, and that is the substantive half of the choice.** A `mixed`
+	 * segment is one no single count held for long enough to name — the pull moving between three enemies
+	 * and one faster than a rotation can follow — so asking a single-target rule of it charges a player
+	 * for a list they could not have been running. It is also where a quarter of a wave fight lives:
+	 * 105.0s of the Blackfuse pull above, 27.9% of its clock.
+	 *
+	 * **`cleave` is not exempt and must not be.** `cleave.apl.json` still spends Lightning Shield, still
+	 * keeps the totem and still asks for the dot on both targets, so a two-target stretch is a *stricter*
+	 * list rather than an absent one — and band 2 is the only band `flameShockMultiDot` exists at.
+	 *
+	 * **The trailing trim stays, and the first draft of this change dropped it on a wrong argument.** It
+	 * read that a segment closes where the mode stopped holding rather than on an ageing count, so the lag
+	 * `fbc4963` removed could not be in this array. It is: `segmentPull` cuts the same count series, which
+	 * can only fall a whole `targetWindowMs` after the last hit that fed it, so a wave last hit at 120 000
+	 * closes its segment at 125 000. `exemptFrom` takes it off, on the terms `intervalsAtLeast` already
+	 * set — nothing off a stretch the kill ended inside.
+	 *
+	 * **The per-press band is still none of this.** A clock charges or forgives what was *true* over a
+	 * stretch; a band labels a press by what the player *knew* at one instant, and that stays
+	 * `aplTargetCountAt` off the raw series. Two questions, two readings, and this is the one that owns
+	 * the clocks.
 	 */
+	const exemptWindows = exemptFrom(segments, duration, spec.thresholds.targetWindowMs - effectiveGcd);
 	/**
-	 * **The trailing edge is cut to one global, because a stretch otherwise runs a full window past the
-	 * last hit that made it.** `targetCounts`' count can only *fall* at the moment some hit ages out, so
-	 * a stretch closed by a fall closes at exactly `lastHitOnThirdEnemy + targetWindowMs`. That is not a
-	 * distribution with a tail — measured on `cleave` it is exactly one window, seven stretches out of
-	 * eight, the eighth being shorter only because the kill clamped it.
+	 * The same cut taken on the dot's own series — the ceiling `dotMultiTargetWindows` has to be paired
+	 * with.
 	 *
-	 * What that cost before the trim: **28 378ms of `cleave`'s 109 869ms exempt total was time after the
-	 * last hit any add in that stretch ever took** — boss-only time being forgiven. The opening edge has
-	 * no such lag (a trailing window admits an enemy on the very hit that made the count), so the error
-	 * was one-directional and always in the direction of forgiving.
+	 * A band cut needs both edges from one reading of the target count, and moving only the floor is how
+	 * the multi-dot clock came out longer in parsing mode than in progression: a struck body stopped
+	 * raising the ladder's count as well, so stretches that were `aoe.apl.json` on the pull as fought fell
+	 * back into the band the rule is graded at, and it was asked of moments it does not exist at.
 	 *
-	 * **A shorter window was the wrong fix and was measured as such.** Rebuilding the series at 3000ms
-	 * gives 13 stretches, at 1500ms nineteen, at 750ms fifty-seven — a short window does not trim tails,
-	 * it punches holes mid-wave, which is the flicker the window exists to suppress. Trimming the close
-	 * instead lands one global past the last three-wide hit while keeping every mid-wave millisecond
-	 * smoothed.
-	 *
-	 * One global of grace rather than none: the priority list re-reads its conditions once a global, and
-	 * nothing a player does answers faster. **`effectiveGcd` and not `spec.gcdMs`, so it is the global
-	 * this pull was actually played on — and the arithmetic below is in that global, not the declared
-	 * one.** On `cleave` the median observed gap measures **1 124ms** (floored at `GCD_MIN_MS`, capped at
-	 * the Elemental's declared 1 500), so the trim is `5 000 - 1 124 = 3 876ms` and each close lands on
-	 * `h3 + 1 124` — inside where even a 1 500ms window would have closed. Written against the declared
-	 * global the trim would be 3 500ms and every figure below would be a few hundred milliseconds per
-	 * stretch out; `targetTails.test.ts` recovers the grace from the audit rather than naming it, for
-	 * exactly that reason.
-	 *
-	 * **What it removes, at that measured trim.** Six of `cleave`'s eight stretches lose 3 876ms each
-	 * (23 256ms); a seventh — [244 182, 247 937], 3 755ms long — is shorter than the trim and so drops
-	 * whole; the eighth is the one the kill clamped and is left alone by design. 27 011ms in total,
-	 * taking the exemption from **109 869ms to 82 858ms** and its share of the 263 233ms pull from
-	 * **41.7% to 31.5%**. Downstream the Lightning Shield's overcap figure rises from **28 625ms to
-	 * 42 157ms** across nine graded windows rather than eight — less forgiven, which is the point.
-	 * `phased` and `unbroken` never reach three enemies and do not move at all.
-	 *
-	 * **The per-press band is deliberately *not* trimmed, and `earthShockGood` therefore does not move.**
-	 * A clock charges or forgives what was *true* at a moment; a band labels a press by what the player
-	 * *knew*, and an add hit a second ago is still an add to the person pressing. `0de530e` also made the
-	 * section read the same series as the ladder so the two cannot disagree about one press, and trimming
-	 * one of them would break that on purpose. What the five presses `cleave` exempts by band actually
-	 * are is measured at the Earth Shock `band` docblock in `specs/elemental/lib/index.ts`.
-	 *
-	 * **`multiTargetWindows` and the contact clock deliberately keep the default 0.** They are evidence
-	 * and a denominator, not exemptions — trimming them would shrink the very clock the mode share is
-	 * measured against. They also read the *other* series, and that half of the split is argued where
-	 * `multiTargetWindows` is built above rather than repeated here.
+	 * That argument is untouched by the derivation moving from the count to the segments, because it is
+	 * about *which series* rather than about how a series is cut. So the pairing is kept by segmenting the
+	 * dot series as well rather than by borrowing the array above — a second `segmentPull`, and
+	 * deliberately not a second *reading*: same function, same two constants, one series along. Identical
+	 * to `exemptWindows` in progression mode, where nothing is struck and the two series are equal point
+	 * for point.
 	 */
-	const aoeWindows = intervalsAtLeast(aplTargetPoints, 3, duration, spec.thresholds.targetWindowMs - effectiveGcd);
-	const dotAoeWindows = intervalsAtLeast(
-		dotAplTargetPoints,
-		3,
+	const dotExemptWindows = exemptFrom(
+		segmentPull(dotAplTargetPoints, duration, {
+			contactGapMs: spec.thresholds.engagedGapMs,
+			windowMs: spec.thresholds.targetWindowMs,
+		}),
 		duration,
 		spec.thresholds.targetWindowMs - effectiveGcd,
 	);
@@ -1924,8 +1958,8 @@ export function analyseCore(
 		spawnLives: spawnLifeByKey,
 		multiTargetWindows,
 		dotMultiTargetWindows,
-		dotAoeWindows,
-		aoeWindows,
+		dotExemptWindows,
+		exemptWindows,
 		multiTargetMs,
 		contactMs,
 		aplTargetCountAt,

@@ -59,7 +59,7 @@ describe("the Lightning Shield bank's faults", () => {
 		// whole, so four of the nine stopped being windows at all. Each time the bank moved with the
 		// section rather than against it, which is the point of the pass-through and not a drift: the two
 		// drawings of one aura cannot disagree about the pull.
-		expect([shield.downWindows.length, shield.overcapWindows.length, shield.badSpends.length]).toEqual([1, 5, 1]);
+		expect([shield.downWindows.length, shield.overcapWindows.length, shield.badSpends.length]).toEqual([1, 2, 1]);
 
 		const bank = timelineBanks(cleave)[0]!;
 		expect(bank.faultWindows).toEqual([
@@ -92,7 +92,7 @@ describe("the Lightning Shield bank's faults", () => {
 		// `cappedOf` still finds *nothing* on this series, whatever the audit's figure is, because a stretch
 		// at the ceiling is a single point in `lsPoints`. The number is here only so the two mechanisms are
 		// compared against a stated figure rather than against each other.
-		expect(cleave.lightningShield.overcapMs).toBe(21_864);
+		expect(cleave.lightningShield.overcapMs).toBe(14_275);
 	});
 
 	it('reach the cast log as shaded rects, one per fault', () => {

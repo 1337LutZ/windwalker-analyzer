@@ -365,20 +365,29 @@ describe('the shield drop count agrees with itself', () => {
 	const cleave = analysed('cleave');
 	const phased = analysed('phased');
 
-	/** The premise: one drop on one committed pull, none on another, `bad` on both from the overcap. */
-	it('is two committed pulls, one drop and none, both bad on the overcap', () => {
+	/**
+	 * The premise: one drop on one committed pull, none on the other, and two different letters.
+	 *
+	 * **`cleave` is `ok` and not `bad` since the exemption moved onto the segmentation.** Its overcap is
+	 * measured over the pull less its `aoe` and `mixed` segments, which took the figure from 21 864ms to
+	 * 14 275ms — under the 15 000ms `ok` line. `phased` never leaves one enemy, so nothing was exempt
+	 * there before or now and its letter is untouched. The two letters are the point of keeping both pulls
+	 * here: the drop-count wording below has to be right under either one.
+	 */
+	it('is two committed pulls, one drop and none, on two different letters', () => {
 		expect(cleave.lightningShield.fellOff).toBe(1);
 		expect(phased.lightningShield.fellOff).toBe(0);
-		for (const pull of [cleave, phased]) {
-			expect(ELEMENTAL_SPEC.score(pull).sections['lightningShield']?.grade).toBe('bad');
-		}
+		expect(ELEMENTAL_SPEC.score(cleave).sections['lightningShield']?.grade).toBe('ok');
+		expect(ELEMENTAL_SPEC.score(phased).sections['lightningShield']?.grade).toBe('bad');
 	});
 
 	it('says once at one drop, and never at none, on the committed pulls', () => {
 		const one = verdictOf(render(LightningShield, cleave));
 		expect(one).toContain('came all the way off once');
 		expect(one).not.toContain('1 times');
-		expect(one).toContain('both are charges the next spend lost');
+		// The tail belongs to the `bad` arms alone, and `cleave` is `ok` now — see the premise above. It is
+		// asserted on `phased` below, which is still `bad` and still has only the one fault to name.
+		expect(one).not.toContain('both are charges the next spend lost');
 		const none = verdictOf(render(LightningShield, phased));
 		expect(none).toContain('never came all the way off');
 		expect(none).not.toContain('0 times');

@@ -308,10 +308,22 @@ describe('what crediting a justified refresh changes in the grade', () => {
 		expect(wasteOf(el.phased)).toBeCloseTo(25, 2);
 	});
 
-	/** No section grade flips: 33.33% and 50% are both still past the 30% `ok` band, and 25% is inside it. */
+	/**
+	 * No section grade flips *from the halving*, which is what this test is about: 33.33% is still past the
+	 * 30% `ok` band and 25% is still inside it.
+	 *
+	 * **`cleave` reads `ok` for a reason that is not the halving's, and it is worth naming so a future red
+	 * run is not misread.** Its waste metric has always declined on this pull — two judged refreshes is
+	 * under `MIN_GRADED_SAMPLE`, so `wasteOf`'s 50% never reaches the card — which leaves the section
+	 * taking `flameShockUptime` alone. That figure moved from 83.90% to 86.79% when the exemption moved
+	 * onto the segmentation, crossing the 85 line with it. Nothing here touched the waste rule.
+	 */
 	it('flips no section grade', () => {
 		expect(scoreAnalysis(el.unbroken).sections['flameShock']?.grade).toBe('bad');
-		expect(scoreAnalysis(el.cleave).sections['flameShock']?.grade).toBe('bad');
+		expect(scoreAnalysis(el.cleave).sections['flameShock']?.grade).toBe('ok');
+		expect(
+			scoreAnalysis(el.cleave).sections['flameShock']?.metrics.find((m) => m.key === 'flameShockWaste')?.unmeasurable,
+		).toBe(true);
 		expect(scoreAnalysis(el.phased).sections['flameShock']?.grade).toBe('ok');
 	});
 

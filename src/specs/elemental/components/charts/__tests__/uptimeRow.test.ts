@@ -330,7 +330,7 @@ describe('the up row is the clock the percentage is taken over', () => {
 	 */
 	it.each([
 		['addsThenBoss', 9_150],
-		['cleave', 10_270],
+		['cleave', 3_560],
 		['phased', 0],
 		['unbroken', 0],
 	] as const)('draws the per-spawn residual as its own row on %s', (name, residualMs) => {
@@ -375,14 +375,14 @@ describe('the up row is the clock the percentage is taken over', () => {
 	it('pins the sizes of the gap on cleave', () => {
 		const cleave = fx('cleave');
 		expect(cleave.flameShock.uptimeMs).toBe(235_007); // the whole dot on the primary target, unclipped
-		expect(cleave.flameShock.contactUptimeMs).toBe(150_023); // the tile's numerator
+		expect(cleave.flameShock.contactUptimeMs).toBe(114_755); // the tile's numerator
 		const dot = rowsOf(createElement(FlameShockUptime, { analysis: cleave }));
 		// The old single green row, now the two rows it split into — stated as the sum so the 160 293 the
 		// chart used to draw stays visible as the thing that was re-partitioned rather than reduced.
-		expect(unionMs(rowOf(dot, 'Dot up'))).toBe(150_023);
-		expect(unionMs(rowOf(dot, 'Dot up on an enemy you left'))).toBe(10_270);
-		expect(unionMs(rowOf(dot, 'Dot up')) + unionMs(rowOf(dot, 'Dot up on an enemy you left'))).toBe(160_293);
-		expect(unionMs(rowOf(rowsOf(createElement(SearingTotemUptime, { analysis: cleave })), 'Totem up'))).toBe(112_728);
+		expect(unionMs(rowOf(dot, 'Dot up'))).toBe(114_755);
+		expect(unionMs(rowOf(dot, 'Dot up on an enemy you left'))).toBe(3_560);
+		expect(unionMs(rowOf(dot, 'Dot up')) + unionMs(rowOf(dot, 'Dot up on an enemy you left'))).toBe(118_315);
+		expect(unionMs(rowOf(rowsOf(createElement(SearingTotemUptime, { analysis: cleave })), 'Totem up'))).toBe(72_106);
 	});
 
 	/**
@@ -409,8 +409,8 @@ describe('the up row is the clock the percentage is taken over', () => {
 	 * argument against sizing any of this off `cleave`.
 	 */
 	it.each([
-		['addsThenBoss', 146_615, 9_150],
-		['cleave', 0, 10_270],
+		['addsThenBoss', 81_056, 9_150],
+		['cleave', 0, 3_560],
 		['phased', 0, 0],
 		['unbroken', 0, 0],
 	] as const)('places both remainders between the up rows on %s', (name, outsideMs, elsewhereMs) => {
@@ -460,21 +460,21 @@ describe('the up row is the clock the percentage is taken over', () => {
 		const fs = analysis.flameShock;
 		expect(fs.windows).toHaveLength(1);
 		expect(fs.uptimeMs).toBe(118_198); // the whole dot on the primary target, unclipped
-		expect(fs.contactWindows).toHaveLength(71);
-		expect(fs.contactUptimeMs).toBe(240_421); // the tile's numerator
-		expect(fs.scoredMs).toBe(326_307);
+		expect(fs.contactWindows).toHaveLength(56);
+		expect(fs.contactUptimeMs).toBe(174_862); // the tile's numerator
+		expect(fs.scoredMs).toBe(232_001);
 
 		const rows = rowsOf(createElement(FlameShockUptime, { analysis }));
-		expect(unionMs(rowOf(rows, 'Dot up'))).toBe(240_421);
+		expect(unionMs(rowOf(rows, 'Dot up'))).toBe(174_862);
 		expect(unionMs(rowOf(rows, 'Dot up on an enemy you left'))).toBe(9_150);
-		// 223 351 before, and the 146 615ms difference is the green row it was drawn over.
-		expect(unionMs(rowOf(rows, 'Dot down'))).toBe(76_736);
-		expect(76_736 + 146_615).toBe(223_351);
+		// 129 045 in total, and the 81 056ms difference is the green row it was drawn over.
+		expect(unionMs(rowOf(rows, 'Dot down'))).toBe(47_989);
+		expect(47_989 + 81_056).toBe(129_045);
 		expect(unionMs(rowOf(rows, 'Dot up, not measured'))).toBe(15_242);
 		// The grounds, unmoved: this was never an arithmetic defect.
 		expect(unionMs(rowOf(rows, 'Nothing to hit'))).toBe(7_841);
-		expect(unionMs(rowOf(rows, 'Three or more enemies'))).toBe(226_113);
-		expect(fs.uptimePct).toBeCloseTo(73.679_387_815_768_58, 9);
+		expect(unionMs(rowOf(rows, 'Fought as AoE'))).toBe(320_419);
+		expect(fs.uptimePct).toBeCloseTo(75.371_226_848_160_13, 9);
 	});
 
 	/**

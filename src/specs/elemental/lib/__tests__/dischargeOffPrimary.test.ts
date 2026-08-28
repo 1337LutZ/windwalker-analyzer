@@ -186,9 +186,9 @@ describe('the committed pulls under the clipped numerator', () => {
 		) as Analysis & ElementalAuditResult;
 
 	it('clips cleave and leaves the single-target pulls where they were', () => {
-		// 66.27% before the clipping, 62.96% after: the difference is debuff time on an enemy this player
+		// 66.27% before the clipping, 65.57% after: the difference is debuff time on an enemy this player
 		// was not hitting at the moment, which the amp was not paying out on.
-		expect(fx('cleave').earthShock.dischargeUptimePct).toBeCloseTo(62.96, 1);
+		expect(fx('cleave').earthShock.dischargeUptimePct).toBeCloseTo(65.57, 1);
 		expect(fx('phased').earthShock.dischargeUptimePct).toBeCloseTo(65.8, 1);
 		expect(fx('unbroken').earthShock.dischargeUptimePct).toBeCloseTo(83.51, 1);
 	});

@@ -6,7 +6,7 @@
 // sentence stored under that letter read *"{{uptime}} uptime, and no press landed over a live totem"*,
 // which is a claim about the count nothing graded.
 //
-// `cleave` is the committed witness: 88.5% uptime, no Fire Elemental overlap, `good`, and **one press
+// `cleave` is the committed witness: 89.26% uptime, no Fire Elemental overlap, `good`, and **one press
 // that clipped a live totem at 2:15, throwing away 10.8s of its dot**. The section printed the clip in a
 // tile, printed the press in the table with the words "Clipped a totem", and then told the reader
 // underneath that no press landed over a live totem.
@@ -110,7 +110,7 @@ describe('a good totem section that clipped a totem', () => {
 		const totem = cleave.searingTotem;
 		expect(totem.clipped).toBe(1);
 		expect(totem.feOverlaps).toBe(0);
-		expect(Math.round(totem.uptimePct * 100) / 100).toBe(88.5);
+		expect(Math.round(totem.uptimePct * 100) / 100).toBe(89.26);
 		expect(formatSeconds(totem.wastedMs)).toBe('10.8s');
 		expect(ELEMENTAL_SPEC.score(cleave).sections['searingTotem']?.grade).toBe('good');
 		// And the clipped press is a real row on the page, at a time the table prints.
@@ -129,7 +129,7 @@ describe('a good totem section that clipped a totem', () => {
 	it('stops telling a pull that clipped a totem that it clipped none', () => {
 		const sentence = verdictOf(render(SearingTotem, cleave));
 		expect(sentence).not.toContain(NO_CLIP);
-		expect(sentence).toContain('88.5% uptime');
+		expect(sentence).toContain('89.26% uptime');
 		expect(sentence).toContain('no Searing Totem of yours went down while the Fire Elemental was holding the slot');
 		expect(sentence).toContain('One press did land over a live totem, throwing away 10.8s');
 		noRawKey(sentence);
@@ -170,7 +170,7 @@ describe('a good totem section that clipped a totem', () => {
 	 */
 	it('keeps the clean sentence for a good pull that clipped nothing', () => {
 		const clean = { ...cleave, searingTotem: { ...cleave.searingTotem, clipped: 0, wastedMs: 0 } } as El;
-		expect(verdictOf(render(SearingTotem, clean))).toBe(`88.5% uptime, and ${NO_CLIP}.`); // no-change guard
+		expect(verdictOf(render(SearingTotem, clean))).toBe(`89.26% uptime, and ${NO_CLIP}.`); // no-change guard
 	});
 
 	/**

@@ -20,7 +20,7 @@ import { instanceKey } from '~/lib/events';
 import type { Analysis, ElementalAuditResult, FightDataset } from '~/lib/types';
 import { analyse } from '~/specs/elemental/lib';
 
-import { unionMs } from '../intervals';
+import { type Interval, mergeIntervals, unionMs } from '../intervals';
 import {
 	intervalsAtLeast,
 	isJudgeableTarget,
@@ -135,7 +135,7 @@ describe('the tail of a three-target stretch, on cleave', () => {
 	const points = targetCounts(hits, WINDOW_MS);
 	const stretches = intervalsAtLeast(points, 3, duration);
 	const el = analyse(data) as Analysis & ElementalAuditResult;
-	const published = el.lightningShield.aoeWindows;
+	const published = el.lightningShield.exemptWindows;
 	/**
 	 * The grace the routing actually applied, read back off the audit rather than named here.
 	 *
@@ -147,7 +147,21 @@ describe('the tail of a three-target stretch, on cleave', () => {
 	 * A stretch the pull ended inside is excluded: its close is the fight ending rather than a fall, so it
 	 * carries no lag and its difference is not a grace.
 	 */
-	const closeByOpen = new Map(stretches.map(([open, close]) => [open, close]));
+	/**
+	 * **Paired against the segments now, not against the raw three-or-more stretches.** The exemption
+	 * stopped being `intervalsAtLeast(points, 3, …)` and became the pull's own `aoe` and `mixed` segments
+	 * — the reading the report shows everywhere else — with the same trailing trim applied to each close.
+	 * So the untrimmed close of a published window is its segment's boundary, and the difference between
+	 * the two is still the grace this file exists to measure. The raw stretches above are unchanged and
+	 * still the reason a trim is wanted at all: they are what a count-derived exemption would have handed
+	 * back, and every figure below still measures it.
+	 */
+	const segmentSpans = mergeIntervals(
+		(el.segments?.segments ?? [])
+			.filter((segment) => segment.mode === 'aoe' || segment.mode === 'mixed')
+			.map((segment): Interval => [segment.startMs, segment.endMs]),
+	);
+	const closeByOpen = new Map(segmentSpans.map(([open, close]) => [open, close]));
 	const graces = [
 		...new Set(
 			published.filter((w) => w.end < duration).map((w) => WINDOW_MS - ((closeByOpen.get(w.start) ?? 0) - w.end)),
@@ -280,10 +294,21 @@ describe('the tail of a three-target stretch, on cleave', () => {
 	 * and either keeps a stretch that should have gone or drops one that should have stayed.
 	 */
 	it('describes the same stretches the shield’s exemption is derived from', () => {
-		expect(published.map((w) => [w.start, w.end])).toEqual(intervalsAtLeast(points, 3, duration, TRIM_MS));
-		// Stated separately so a failure says which half moved: the opens are the untrimmed opens less the
-		// one dropped stretch, and no open was shifted.
-		expect(published.map((w) => w.start)).toEqual(stretches.map(([open]) => open).filter((open) => open !== 244_182));
+		// The identity, in the terms the exemption is built in now: the `aoe` and `mixed` segments, merged,
+		// each close pulled back by the grace unless the kill ended inside it, and any stretch the trim
+		// empties dropped. A hit list rebuilt from the fixture's raw damage rows still stands behind it —
+		// the segments are cut from the same series this file reconstructs — so this remains a claim about
+		// the audit rather than about the file's own arithmetic.
+		const expected = segmentSpans
+			.map(([open, close]): Interval => [open, close < duration ? Math.max(open, close - TRIM_MS) : close])
+			.filter(([open, close]) => close > open);
+		expect(published.map((w) => [w.start, w.end])).toEqual(expected);
+		// Stated separately so a failure says which half moved: no open was shifted by the trim.
+		expect(published.map((w) => w.start)).toEqual(expected.map(([open]) => open));
+		// And the two readings really do differ on this pull, which is what stops the identity above from
+		// being the old one in new words: four stretches against the count series' seven.
+		expect(published).toHaveLength(4);
+		expect(intervalsAtLeast(points, 3, duration, TRIM_MS)).toHaveLength(7);
 	});
 });
 

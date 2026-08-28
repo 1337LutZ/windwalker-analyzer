@@ -58,7 +58,7 @@ export default function LightningShield({ analysis }: { analysis: Analysis }) {
 	/**
 	 * The stretches left out of the overcap figure, as the chart's exempt rows.
 	 *
-	 * Straight off `lightningShield.aoeWindows` and `awayWindows`, which are the two arrays the audit's
+	 * Straight off `lightningShield.exemptWindows` and `awayWindows`, which are the two arrays the audit's
 	 * own denominator dropped — not a second derivation of "when was it AoE". That identity is the rule
 	 * `exemptTrack.test.ts` was written to enforce, after three charts each guessed at the same idea
 	 * differently.
@@ -78,12 +78,12 @@ export default function LightningShield({ analysis }: { analysis: Analysis }) {
 					},
 					{
 						label: t('lightningShield.key.aoe'),
-						windows: el.lightningShield.aoeWindows.map((w): [number, number] => [w.start, w.end]),
+						windows: el.lightningShield.exemptWindows.map((w): [number, number] => [w.start, w.end]),
 					},
 				],
 				analysis.durationMs,
 			),
-		[el.lightningShield.awayWindows, el.lightningShield.aoeWindows, analysis.durationMs, t],
+		[el.lightningShield.awayWindows, el.lightningShield.exemptWindows, analysis.durationMs, t],
 	);
 
 	const badRows = useMemo<GridRow[]>(

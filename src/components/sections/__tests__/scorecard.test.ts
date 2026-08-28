@@ -218,7 +218,7 @@ describe('the scorecard grid', () => {
 		expect(whole).toContain('target 90% or better');
 		// The unsampled metric beside it keeps both, so this is a rule about samples rather than about
 		// percentages: Flame Shock's uptime is a share of a clock and has no count to fall back to.
-		expect(markup).toContain('83.9%');
+		expect(markup).toContain('86.79%');
 		expect(markup).toContain('target 95% or better');
 	});
 
@@ -351,7 +351,7 @@ describe('the scorecard grid', () => {
 		// on a pull where the value *is* a reading, the number and its scale are both drawn.
 		const markup = html(fixture('cleave'));
 		expect(markup).toContain(t('summary.takeaways.metric.flameShockUptime.label'));
-		expect(markup).toContain('83.9%');
+		expect(markup).toContain('86.79%');
 		expect(markup).toContain('target 95% or better');
 	});
 });

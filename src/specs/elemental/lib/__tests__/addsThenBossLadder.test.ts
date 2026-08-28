@@ -74,7 +74,7 @@
 // is add-phase time, which is exactly where the missing map was. And the add phase still grades **31.4%**
 // against the same player's **61.5%** in the same pull's own boss-only tail, so about half the original
 // gap was the defect and about half is real play. The largest single residual claim is **Searing Totem,
-// which this player laid zero times in 560 seconds** — 0ms of uptime over a 226.9s gradable clock, and 34
+// which this player laid zero times in 560 seconds** — 0ms of uptime over a 153.6s gradable clock, and 34
 // skips charged to that rung where the Flame Shock reading used to swallow 29 of them. That is a nameable
 // fault, not an artefact, and this file stops there rather than chasing the rest.
 //
@@ -670,14 +670,14 @@ describe('what is left of the gap is the player', () => {
 
 	it('names Searing Totem, which this player laid zero times in 560 seconds', () => {
 		// **The largest nameable residual, and the reason the remainder is not another artefact.** The totem
-		// is a filler rung with a 226.9s gradable clock on this pull and the log carries not one cast of it,
+		// is a filler rung with a 153.6s gradable clock on this pull and the log carries not one cast of it,
 		// so its 0% uptime is a fact about the player and its 34 faults are honest. Under the primary-keyed
 		// dot map it took 5 — the Flame Shock reading was swallowing the other 29 — which is the shape of
 		// what this fix bought: faults that are real, attributed to the rung that wanted the global.
 		expect((addsThenBoss.timeline?.casts ?? []).filter((c) => c.id === SEARING_TOTEM)).toHaveLength(0);
 		const totem = searingTotemOf(addsThenBoss);
 		expect(totem.uptimeMs).toBe(0);
-		expect(Math.round(totem.scoredMs / 100) / 10).toBe(226.9);
+		expect(Math.round(totem.scoredMs / 100) / 10).toBe(153.6);
 		expect(skipsBy(addsThenBoss)['searing-totem']).toBe(34);
 		// And it is this pull's own fault rather than the ladder's: the same rung takes 1 on `cleave`, where
 		// the totem was up for 88.5% of its clock.

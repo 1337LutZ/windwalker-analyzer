@@ -55,7 +55,7 @@ describe('the reference pulls, and the figure the rows must not move', () => {
 	it('leaves Flame Shock uptime where the rows found it on all three pulls', () => {
 		expect(fx('phased').flameShock.uptimePct).toBe(98.20146497092811);
 		expect(fx('unbroken').flameShock.uptimePct).toBe(100);
-		expect(fx('cleave').flameShock.uptimePct).toBe(83.89891171832183);
+		expect(fx('cleave').flameShock.uptimePct).toBe(86.79358020209355);
 	});
 
 	/**

@@ -273,9 +273,9 @@ describe('the pull whose extra targets are reached only by the spec’s own area
 	 * checked by nothing.
 	 */
 	it('leaves the aoe stretches empty, because the ladder never reached three', () => {
-		expect(wind.handles.aoeWindows).toEqual([]);
+		expect(wind.handles.exemptWindows).toEqual([]);
 		// Not vacuous: the same instants under an ability the exclusion does not name do produce one.
-		expect(both(SCK_DAMAGE, 'aoe-control').handles.aoeWindows).not.toEqual([]);
+		expect(both(SCK_DAMAGE, 'aoe-control').handles.exemptWindows).not.toEqual([]);
 	});
 
 	/**

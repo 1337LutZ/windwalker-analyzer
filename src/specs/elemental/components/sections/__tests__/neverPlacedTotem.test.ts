@@ -93,7 +93,7 @@ describe('a pull that never laid a totem', () => {
 		expect(pull.searingTotem.windows, 'the stretches a totem was ticking').toEqual([]);
 		expect(pull.searingTotem.presses, 'the ledger the table draws').toEqual([]);
 		expect(pull.searingTotem.uptimePct, 'nought, and a reading rather than an absence').toBe(0);
-		expect(pull.searingTotem.scoredMs, 'the time this rule was answerable over').toBe(226_856);
+		expect(pull.searingTotem.scoredMs, 'the time this rule was answerable over').toBe(153_633);
 	});
 
 	/**
@@ -109,7 +109,7 @@ describe('a pull that never laid a totem', () => {
 		const uptime = metricOn(pull, 'searingTotemUptime');
 		expect(uptime?.unmeasurable, 'the uptime').toBe(false);
 		expect(uptime?.value, 'nought per cent of a slot that was open all along').toBe(0);
-		expect(uptime?.gradedMs, 'over the clock the audit published').toBe(226_856);
+		expect(uptime?.gradedMs, 'over the clock the audit published').toBe(153_633);
 		expect(uptime?.grade, 'nought is the bad end of a higherIsBetter rule').toBe('bad');
 
 		const card = ELEMENTAL_SPEC.score(pull);

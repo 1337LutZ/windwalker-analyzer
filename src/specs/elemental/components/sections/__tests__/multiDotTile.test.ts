@@ -212,8 +212,8 @@ describe('the second-target tile on a pull with an empty band-2 clock', () => {
 		const measured = render(cleave);
 		expect(measured).toContain('Second target uptime'); // no-change guard
 		expect(measured).not.toContain('Second target uptime — not measured'); // no-change guard
-		expect(valueOfTile(measured, 'Second target uptime')).toBe('18.73%'); // no-change guard
-		expect(cleave.flameShock.multiTargetMs).toBe(66_007);
+		expect(valueOfTile(measured, 'Second target uptime')).toBe('35.54%'); // no-change guard
+		expect(cleave.flameShock.multiTargetMs).toBe(34_783);
 
 		expect(unbroken.targets?.multiTargetMs ?? 0).toBe(0); // no-change guard
 		expect(render(unbroken)).not.toContain('Second target uptime'); // no-change guard
@@ -248,7 +248,7 @@ describe('the second-target tile on a pull with an empty band-2 clock', () => {
 	 * on the add waves rather than on the tile would have lost it on exactly those pulls.
 	 */
 	it('is gated with the tile and not with the add waves', () => {
-		expect(unbroken.lightningShield.aoeWindows).toEqual([]); // no add waves and no tile: no note
+		expect(unbroken.lightningShield.exemptWindows).toEqual([]); // no add waves and no tile: no note
 		expect(render(unbroken)).not.toContain('no shaded stretch on the graph for its floor');
 	});
 });

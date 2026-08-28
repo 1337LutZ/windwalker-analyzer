@@ -257,7 +257,7 @@ describe('a dot that outlives the last hit and dropped once besides', () => {
  * `phased` alone), so equality with the contact clock excludes it.
  *
  * **The exempt term is new and the identity is the same shape it was.** The clock is now the contact
- * segments intersected with the complement of `lightningShield.aoeWindows`, because from three enemies up
+ * segments intersected with the complement of `lightningShield.exemptWindows`, because from three enemies up
  * the bar this figure is graded against is not a rule any running list carries — the argument is at
  * `flameShockUptime` in `score.ts`. Both arrays were already published for the chart, so this is still the
  * reader's own view of the pull rebuilt and handed back, not a second reading invented in the test. And it
@@ -308,7 +308,7 @@ describe('the published denominator', () => {
 			expect(fs.scoredMs).toBeGreaterThan(0);
 			expect(fs.uptimePct).toBeLessThanOrEqual(100);
 			// The clock `scoredMs` names, read off the two arrays the same analysis published for the charts.
-			const exempt = el.lightningShield.aoeWindows.map((w): [number, number] => [w.start, w.end]);
+			const exempt = el.lightningShield.exemptWindows.map((w): [number, number] => [w.start, w.end]);
 			expect(fs.scoredMs).toBe(
 				unionMs(intersect(el.timeline?.contactSegments ?? [], complementOf(exempt, el.durationMs))),
 			);
@@ -334,11 +334,11 @@ describe('the published numerator', () => {
 	const measured = {
 		phased: { contactUptimeMs: 202_842, scoredMs: 206_557, uptimeMs: 212_151 },
 		unbroken: { contactUptimeMs: 181_775, scoredMs: 181_775, uptimeMs: 182_846 },
-		// `cleave` is the one pull with band-3+ time, so it is the only row the clock cut moves: the
-		// denominator drops 82 758ms of add-wave contact and the numerator drops the 39 088ms of dot that
+		// `cleave` is the one pull with AoE time, so it is the only row the clock cut moves: the
+		// denominator drops 129 356ms of add-wave contact and the numerator drops the 74 356ms of dot that
 		// was up inside it. `uptimeMs` is untouched by design — it is the drawn bar, the dot's whole life on
 		// the primary target, and clipping it would put a seam in the timeline where a list merely changed.
-		cleave: { contactUptimeMs: 150_023, scoredMs: 178_814, uptimeMs: 235_007 },
+		cleave: { contactUptimeMs: 114_755, scoredMs: 132_216, uptimeMs: 235_007 },
 	} as const;
 
 	for (const [name, want] of Object.entries(measured)) {
@@ -453,8 +453,8 @@ describe('the published numerator', () => {
 	 */
 	it.each([
 		// [pull, ms of the numerator outside the drawn row, unionMs(green) - contactUptimeMs]
-		['addsThenBoss', 146_615, -137_465],
-		['cleave', 0, 10_270],
+		['addsThenBoss', 81_056, -71_906],
+		['cleave', 0, 3_560],
 		['phased', 0, 0],
 		['unbroken', 0, 0],
 	] as const)('measures the drawn row against the numerator on %s', (name, outsideMs, residualMs) => {
@@ -462,7 +462,7 @@ describe('the published numerator', () => {
 		const fs = el.flameShock;
 		const drawn = fs.windows.map((w): [number, number] => [w.start, w.end]);
 		const contact = el.timeline?.contactSegments ?? [];
-		const aoe = el.lightningShield.aoeWindows.map((w): [number, number] => [w.start, w.end]);
+		const aoe = el.lightningShield.exemptWindows.map((w): [number, number] => [w.start, w.end]);
 		const graded = intersect(contact, complementOf(aoe, el.durationMs));
 		const green = intersect(drawn, graded);
 		const spans = fs.contactWindows.map((w): [number, number] => [w.start, w.end]);

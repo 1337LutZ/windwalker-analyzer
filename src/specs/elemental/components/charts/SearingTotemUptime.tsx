@@ -28,7 +28,7 @@ import TrackLane, { type LaneSource } from '~/components/charts/TrackLane';
  * still spanned those add waves, which is the band and the percentage telling the reader two different
  * stories, the one thing the comment inside this component promises against.
  *
- * The cause is read off `lightningShield.aoeWindows`, the array the audit's own `gradedSpans` is the
+ * The cause is read off `lightningShield.exemptWindows`, the array the audit's own `gradedSpans` is the
  * complement of, rather than from a fourth reading of "when was it AoE" taken here.
  *
  * **And the green row is clipped to that clock, which is the same promise kept on the other side of the
@@ -52,13 +52,13 @@ export default function SearingTotemUptime({ analysis }: { analysis: Analysis })
 	const { searingTotem } = el;
 	const windows = searingTotem.windows;
 	const feWindows = searingTotem.feWindows;
-	const aoeWindows = el.lightningShield.aoeWindows;
+	const exemptWindows = el.lightningShield.exemptWindows;
 	const { up, uncounted, dropped, exempt } = useMemo(() => {
 		// The totem's raw lifetimes, before the clip below. Not a row on its own any more: the two rows it
 		// splits into are, and `up + uncounted` is this back again.
 		const drawn = windows.map((w): [number, number] => [w.start, w.end]);
 		const elemental = feWindows.map((w): [number, number] => [w.start, w.end]);
-		const aoe = aoeWindows.map((w): [number, number] => [w.start, w.end]);
+		const aoe = exemptWindows.map((w): [number, number] => [w.start, w.end]);
 		// "Down" is the totem missing while the player was in contact, the slot was theirs to fill and a
 		// list asked for a fire totem at all. Three clips, and the audit's `stScored` makes the same three
 		// in the same order: an intermission the fight took, the Fire Elemental holding the one Fire totem
@@ -93,7 +93,7 @@ export default function SearingTotemUptime({ analysis }: { analysis: Analysis })
 				analysis.durationMs,
 			),
 		};
-	}, [analysis.durationMs, windows, feWindows, aoeWindows, analysis.timeline?.contactSegments, t]);
+	}, [analysis.durationMs, windows, feWindows, exemptWindows, analysis.timeline?.contactSegments, t]);
 	// Precedence order, so the slot is first, the intermission second and the add wave third; the rows and
 	// the key below draw them in a different order again.
 	const [slot, away, aoe] = exempt;

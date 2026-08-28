@@ -86,7 +86,7 @@ const toIntervals = (windows: readonly Window[]): Interval[] => windows.map((w) 
  *
  * Deliberately **not** read back off a field the audit exposes for this purpose: an assertion whose two
  * sides both come from the thing under test passes whatever that thing says. `contactSegments` is the
- * timeline's own array and `lightningShield.aoeWindows` is the one the chart greys, so this reconstructs
+ * timeline's own array and `lightningShield.exemptWindows` is the one the chart greys, so this reconstructs
  * the clock from the reader's view of the pull and then demands the audit agree.
  *
  * It also degenerates the right way, which is what makes it a signature rather than a renumbering: with
@@ -95,16 +95,19 @@ const toIntervals = (windows: readonly Window[]): Interval[] => windows.map((w) 
  * the identical figure before and after the change.
  */
 const gradedContact = (a: Analysis & ElementalAuditResult): Interval[] =>
-	intersect(a.timeline?.contactSegments ?? [], complementOf(toIntervals(a.lightningShield.aoeWindows), a.durationMs));
+	intersect(
+		a.timeline?.contactSegments ?? [],
+		complementOf(toIntervals(a.lightningShield.exemptWindows), a.durationMs),
+	);
 
 describe('the graded clocks drop the stretches three or more enemies were up', () => {
 	/**
 	 * Flame Shock's denominator, derived rather than pinned.
 	 *
-	 * `cleave` loses 82 758ms of a 261 572ms clock — the 82 858ms exempt array less the 100ms of it that
-	 * fell outside the contact clock anyway. That is the *trimmed* exemption: `fbc4963` cut a window of
-	 * trailing boss-only time off the end of every add wave, worth 27 011ms, so any figure quoted for this
-	 * before that commit is 109 869ms and does not describe this behaviour.
+	 * `cleave` loses 129 356ms of a 261 572ms clock — the 129 456ms exempt array less the 100ms of it that
+	 * fell outside the contact clock anyway. The array is the pull's own `aoe` and `mixed` segments, still
+	 * trimmed of the trailing window `fbc4963` measured: four stretches where the raw three-or-more count
+	 * gave seven, and 82 758ms before the exemption was moved onto the segmentation.
 	 */
 	it('measures the dot over contact time less the AoE stretches', () => {
 		for (const name of FIXTURES) {
@@ -114,7 +117,7 @@ describe('the graded clocks drop the stretches three or more enemies were up', (
 		// 82 758 and not the 82 858 of the exempt array: 100ms of it lies outside the contact clock, which
 		// was already dropping that stretch for its own reason. Subtracting the array's whole length here
 		// would be the double-count `intersect` exists to avoid.
-		expect(fx('cleave').flameShock.scoredMs).toBe(261_572 - 82_758);
+		expect(fx('cleave').flameShock.scoredMs).toBe(261_572 - 129_356);
 		// The two single-target pulls: unchanged, because there is nothing to drop. Non-vacuous — both
 		// carry a real clock, and `phased`'s is 32.7s short of its engaged time for a different reason.
 		expect(fx('phased').flameShock.scoredMs).toBe(206_557);
@@ -153,7 +156,7 @@ describe('the graded clocks drop the stretches three or more enemies were up', (
 			const a = fx(name);
 			expect(a.lightningShield.gradedMs, name).toBe(unionMs(gradedContact(a)));
 		}
-		expect(fx('cleave').lightningShield.gradedMs).toBe(178_814);
+		expect(fx('cleave').lightningShield.gradedMs).toBe(132_216);
 		// Contact time rather than the whole pull on the two that never leave one enemy, which is the half
 		// of the change these two carry: their aoe array is empty, so every millisecond dropped here is a
 		// millisecond with nothing in range.
@@ -172,7 +175,7 @@ describe('the graded clocks drop the stretches three or more enemies were up', (
 	 */
 	it('cuts all three clocks with the same stretches', () => {
 		const a = fx('cleave');
-		const exempt = toIntervals(a.lightningShield.aoeWindows);
+		const exempt = toIntervals(a.lightningShield.exemptWindows);
 		// The shield's clock and the dot's are now the same derivation — contact less the add waves — so
 		// they are equal rather than nested, and the totem's is that narrowed once more by the elemental's
 		// window. Equality is the stronger statement and the one that would break first if either grew a
@@ -209,14 +212,14 @@ describe('both halves of every ratio are cut with the same array', () => {
 	 * And the numerator really did move — the half it would be easy to leave behind, and the one whose
 	 * omission the percentage would not reveal until it crossed 100.
 	 *
-	 * On `cleave` the dot's numerator loses 39 088ms — from 189 111 to 150 023 — which is the dot that was
-	 * up while three or more enemies were being hit. Less than the 82 758ms the denominator lost, and that
-	 * asymmetry is the finding rather than a discrepancy: through the add waves this player's dot was up
-	 * for 47% of the time against 72% over the pull as a whole, which is exactly why the old figure read
-	 * those stretches as the pull's largest fault.
+	 * On `cleave` the dot's numerator loses 74 356ms — from 189 111 to 114 755 — which is the dot that was
+	 * up through the stretches the pull was fought as AoE. Less than the 129 356ms the denominator lost,
+	 * and that asymmetry is the finding rather than a discrepancy: through those stretches this player's
+	 * dot was up for 57% of the time against 72% over the pull as a whole, which is exactly why the old
+	 * figure read them as the pull's largest fault.
 	 */
 	it('moves the numerator as well as the denominator on the pull that has AoE time', () => {
-		expect(fx('cleave').flameShock.contactUptimeMs).toBe(150_023);
+		expect(fx('cleave').flameShock.contactUptimeMs).toBe(114_755);
 		// The two single-target pulls keep theirs to the millisecond — no-change guards.
 		expect(fx('phased').flameShock.contactUptimeMs).toBe(202_842);
 		expect(fx('unbroken').flameShock.contactUptimeMs).toBe(181_775);
@@ -230,7 +233,7 @@ describe('both halves of every ratio are cut with the same array', () => {
  * asserting.
  *
  * `targets.counts.points` *is* the core's `targetPoints` — the series the target-count chart draws — and
- * `lightningShield.aoeWindows` is the array the sections grey. So this reconstructs "two enemies up, and
+ * `lightningShield.exemptWindows` is the array the sections grey. So this reconstructs "two enemies up, and
  * not three" out of what a reader can see and then demands the audit agree with it, rather than dividing
  * one of the audit's numbers by another.
  *
@@ -243,7 +246,7 @@ describe('both halves of every ratio are cut with the same array', () => {
 const bandTwo = (a: Analysis & ElementalAuditResult): Interval[] =>
 	intersect(
 		intervalsAtLeast(a.targets?.counts.points ?? [], 2, a.durationMs),
-		complementOf(toIntervals(a.lightningShield.aoeWindows), a.durationMs),
+		complementOf(toIntervals(a.lightningShield.exemptWindows), a.durationMs),
 	);
 
 describe('the second dot is measured over band 2 alone', () => {
@@ -299,15 +302,18 @@ describe('the second dot is measured over band 2 alone', () => {
 		expect(unionMs(intervalsAtLeast(fx('cleave').targets?.counts.points ?? [], 2, fx('cleave').durationMs))).toBe(
 			148_865,
 		);
-		expect(fx('cleave').flameShock.multiTargetMs).toBe(148_865 - 82_858);
-		// The exempt array nests inside the band-2-or-more clock, which is why the line above subtracts all
-		// of it rather than the part that overlapped.
-		const exempt = toIntervals(fx('cleave').lightningShield.aoeWindows);
-		expect(
-			unionMs(
-				intersect(intervalsAtLeast(fx('cleave').targets?.counts.points ?? [], 2, fx('cleave').durationMs), exempt),
-			),
-		).toBe(unionMs(exempt));
+		expect(fx('cleave').flameShock.multiTargetMs).toBe(148_865 - 114_082);
+		// **The exempt array no longer nests inside the band-2-or-more clock, and the line above subtracts
+		// the overlap for that reason rather than the array's whole length.** It did nest while the
+		// exemption was the raw three-or-more count, which is a subset of two-or-more by construction. It
+		// does not now: a `mixed` segment is exempt as a stretch, and the moments inside it where the count
+		// fell to one enemy are moments the band-2 clock never held. 114 082ms of `cleave`'s 129 456ms
+		// exempt array lies inside that clock; the remaining 15 374ms is single-target time in the middle of
+		// a wave, and it was never in this denominator to remove.
+		const exempt = toIntervals(fx('cleave').lightningShield.exemptWindows);
+		const atLeastTwo = intervalsAtLeast(fx('cleave').targets?.counts.points ?? [], 2, fx('cleave').durationMs);
+		expect(unionMs(intersect(atLeastTwo, exempt))).toBe(114_082);
+		expect(unionMs(intersect(atLeastTwo, exempt))).toBeLessThan(unionMs(exempt));
 		// No-change guards: neither single-target pull ever reaches two enemies, so there was never a clock
 		// here to cut and there is none now.
 		expect(fx('phased').flameShock.multiTargetMs).toBe(0);
@@ -369,23 +375,28 @@ describe('the second dot is measured over band 2 alone', () => {
 	 * had. Asserted below by the count of spawns the floor drops.
 	 */
 	it('measures the second dot against every judgeable enemy, not the busiest one', () => {
-		expect(+fx('addsThenBoss').flameShock.multiDotUptimePct.toFixed(2)).toBe(61.02);
-		expect(fx('addsThenBoss').flameShock.multiDotUptimeMs).toBe(106_624);
+		expect(+fx('addsThenBoss').flameShock.multiDotUptimePct.toFixed(2)).toBe(49.77);
+		expect(fx('addsThenBoss').flameShock.multiDotUptimeMs).toBe(62_672);
 		// Non-vacuity: the clock is long and the figure is well clear of both edges, so this is a reading
 		// rather than a zero or a saturation.
-		expect(fx('addsThenBoss').flameShock.multiTargetMs).toBe(174_748);
+		expect(fx('addsThenBoss').flameShock.multiTargetMs).toBe(125_913);
 		// The control. One other enemy, so the two readings coincide and this figure is unchanged.
-		expect(+fx('cleave').flameShock.multiDotUptimePct.toFixed(2)).toBe(18.73);
+		expect(+fx('cleave').flameShock.multiDotUptimePct.toFixed(2)).toBe(35.54);
 	});
 
-	it('reads 18.73% on the mixed pull and still faults it', () => {
-		expect(+fx('cleave').flameShock.multiDotUptimePct.toFixed(2)).toBe(18.73);
+	it('reads 35.54% on the mixed pull and still faults it', () => {
+		expect(+fx('cleave').flameShock.multiDotUptimePct.toFixed(2)).toBe(35.54);
 		const card = scoreAnalysis(fx('cleave'));
 		const md = card.sections['flameShock']?.metrics.find((m) => m.key === 'flameShockMultiDot');
 		expect(md?.value).toBe(fx('cleave').flameShock.multiDotUptimePct);
 		expect(md?.unmeasurable).toBe(false);
 		expect(md?.grade).toBe('bad');
-		expect(card.sections['flameShock']?.grade).toBe('bad');
+		// **The section is `ok` and the dot is still `bad`, which is the pairing this test exists to hold.**
+		// `flameShockMultiDot` is a secondary metric — `score.ts` puts `flameShockUptime` and
+		// `flameShockWaste` alone in `primary` — so the section takes the worst of those two, and the uptime
+		// went `bad` to `ok` when the exemption moved onto the segmentation: 83.90% over 178 814ms became
+		// 86.79% over 132 216ms. The dot's own verdict is untouched by that, and it is the claim here.
+		expect(card.sections['flameShock']?.grade).toBe('ok');
 		// `bad` and not the `ok` this read before `gcdUtilisation`'s lines went to 95/90: this pull fills
 		// 89.18% of its globals, which the old 80/65 pair called `good` and the new one calls `bad`. The
 		// claim here is the dot's, and it is unchanged — the two lines above are what this test is about.
@@ -503,7 +514,7 @@ describe('a pull with no gradable stretch says so instead of grading it good', (
 	/** The premise, asserted rather than assumed: this pull really is band 3 or more throughout. */
 	it('is a pull spent wholly at three or more enemies', () => {
 		expect(allAoe.targets?.counts?.max).toBeGreaterThanOrEqual(3);
-		expect(unionMs(toIntervals(allAoe.lightningShield.aoeWindows))).toBe(allAoe.durationMs);
+		expect(unionMs(toIntervals(allAoe.lightningShield.exemptWindows))).toBe(allAoe.durationMs);
 	});
 
 	/**
@@ -691,7 +702,7 @@ describe('a pull with a band-2 stretch and a band-3 stretch', () => {
 	it('is built with two bands and a second target worth dotting', () => {
 		expect(dotInWave.targets?.counts.max).toBe(3);
 		expect(dotInWave.primaryTarget?.id).toBe(B_BOSS);
-		const aoe = toIntervals(dotInWave.lightningShield.aoeWindows);
+		const aoe = toIntervals(dotInWave.lightningShield.exemptWindows);
 		expect(aoe).toHaveLength(1);
 		expect(aoe[0]?.[0]).toBe(60_000);
 		// The close is one measured global past the last three-wide hit, so it lands inside 121 500 — which
@@ -711,7 +722,7 @@ describe('a pull with a band-2 stretch and a band-3 stretch', () => {
 			['dotBeforeWave', dotBeforeWave],
 		] as const) {
 			const atLeastTwo = unionMs(intervalsAtLeast(a.targets?.counts.points ?? [], 2, a.durationMs));
-			const aoeMs = unionMs(toIntervals(a.lightningShield.aoeWindows));
+			const aoeMs = unionMs(toIntervals(a.lightningShield.exemptWindows));
 			expect(atLeastTwo, name).toBe(155_000);
 			expect(a.flameShock.multiTargetMs, name).toBe(unionMs(bandTwo(a)));
 			expect(a.flameShock.multiTargetMs, name).toBe(155_000 - aoeMs);

@@ -123,7 +123,7 @@ const SUBMERGE: Array<[number, number]> = [
  * only one that can show an AoE exempt row at all.
  *
  * **The reason the tests below are on this fixture and not on `phased`.** Everything above runs on
- * `phased`, which never leaves one enemy: `lightningShield.aoeWindows` is empty there, so a chart that
+ * `phased`, which never leaves one enemy: `lightningShield.exemptWindows` is empty there, so a chart that
  * drew the AoE stretches into its *red* row — fault time its own percentage had stopped charging — would
  * pass every assertion in this file. The guard was blind to the disagreement by fixture choice, which is
  * exactly the shape of bug this file exists to catch. 82 858ms of `cleave`'s 263 233 are above two enemies,
@@ -225,15 +225,15 @@ describe('the exempt row', () => {
 	 * asserted here: the grey row exists, and the red row is out of the same milliseconds.
 	 */
 	it('shades the add waves both dot clocks now drop, and stops calling them a fault', () => {
-		const aoe = toIntervals(cleave.lightningShield.aoeWindows);
-		expect(unionMs(aoe)).toBe(82_858); // the fixture fact the rest of this rests on
+		const aoe = toIntervals(cleave.lightningShield.exemptWindows);
+		expect(unionMs(aoe)).toBe(129_456); // the fixture fact the rest of this rests on
 
 		for (const [name, chart] of [
 			['Flame Shock', FlameShockUptime],
 			['Searing Totem', SearingTotemUptime],
 		] as const) {
 			const rows = rowsOf(createElement(chart, { analysis: cleave }));
-			const grey = rows.find((row) => row.label === 'Three or more enemies');
+			const grey = rows.find((row) => row.label === 'Fought as AoE');
 			expect(grey, name).toBeDefined();
 			expect(unionMs(spans(grey?.windows ?? [])), name).toBeGreaterThan(0);
 
@@ -275,8 +275,8 @@ describe('the exempt row', () => {
 			expect(unionMs(exempt), name).toBe(cleave.durationMs - scoredMs);
 		}
 		// The two figures the equality is against, so a fixture recapture that moved them says so here.
-		expect(cleave.flameShock.scoredMs).toBe(178_814);
-		expect(cleave.searingTotem.scoredMs).toBe(127_378);
+		expect(cleave.flameShock.scoredMs).toBe(132_216);
+		expect(cleave.searingTotem.scoredMs).toBe(80_780);
 	});
 
 	/**
@@ -315,10 +315,10 @@ describe('the exempt row', () => {
 	 * rendering fault.
 	 */
 	it('draws no AoE row on a pull that never left one enemy', () => {
-		expect(phased.lightningShield.aoeWindows).toEqual([]); // no-change guard
+		expect(phased.lightningShield.exemptWindows).toEqual([]); // no-change guard
 		for (const chart of [FlameShockUptime, SearingTotemUptime]) {
 			const labels = rowsOf(createElement(chart, { analysis: phased })).map((row) => row.label);
-			expect(labels).not.toContain('Three or more enemies'); // no-change guard
+			expect(labels).not.toContain('Fought as AoE'); // no-change guard
 		}
 	});
 
@@ -337,14 +337,14 @@ describe('the exempt row', () => {
 	 * rather than by a fourth complement written out beside it.
 	 */
 	it('accounts for the second dot’s clock too, which no chart draws', () => {
-		const aoe = toIntervals(cleave.lightningShield.aoeWindows);
+		const aoe = toIntervals(cleave.lightningShield.exemptWindows);
 		const atLeastTwo = intervalsAtLeast(cleave.targets?.counts.points ?? [], 2, cleave.durationMs);
 		expect(unionMs(atLeastTwo)).toBe(148_865); // the fixture fact the rest of this rests on
 
 		const exempt = exemptRows(
 			[
 				{ label: 'Fewer than two enemies', windows: complementOf(atLeastTwo, cleave.durationMs) },
-				{ label: 'Three or more enemies', windows: aoe },
+				{ label: 'Fought as AoE', windows: aoe },
 			],
 			cleave.durationMs,
 		);
@@ -354,7 +354,7 @@ describe('the exempt row', () => {
 		expect(unionMs(exempt.flatMap((row) => spans(row.windows)))).toBe(
 			cleave.durationMs - cleave.flameShock.multiTargetMs,
 		);
-		expect(cleave.flameShock.multiTargetMs).toBe(66_007);
+		expect(cleave.flameShock.multiTargetMs).toBe(34_783);
 	});
 
 	/**
@@ -429,7 +429,7 @@ describe('the exempt row', () => {
 		});
 
 		// `cleave`'s band-4 refresh: inside an add wave, drawn, and now drawn grey rather than amber.
-		const aoe = toIntervals(cleave.lightningShield.aoeWindows);
+		const aoe = toIntervals(cleave.lightningShield.exemptWindows);
 		const press = cleave.flameShock.presses.find((p) => p.t === 57_499)!;
 		expect(press.remainingMs).not.toBeNull();
 		expect(press.judged).toBe(false);

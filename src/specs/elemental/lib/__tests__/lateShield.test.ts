@@ -185,9 +185,7 @@ describe('a pull whose shield went on late', () => {
 		expect(committed.lightningShield.fellOff).toBe(1);
 
 		const sentence = verdictOf(render(late));
-		expect(sentence).toBe(
-			'The shield sat at seven for 19.2s past the leeway, and came all the way off once — both are charges the next spend lost.',
-		);
+		expect(sentence).toBe('The shield sat at seven for 11.7s past the leeway, and came all the way off once.');
 		// The clause under discussion, named rather than left inside the equality above: it says a removal,
 		// and this pull had none. If it is ever reworded, this is the line that should go red.
 		expect(sentence).toContain('came all the way off once');

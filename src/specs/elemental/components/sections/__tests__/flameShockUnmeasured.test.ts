@@ -146,7 +146,7 @@ describe('the section says one thing about a refresh it did not measure', () => 
 		const html = render(cleave);
 
 		// What the dot did: still every refresh that bought nothing, at every target count.
-		expect(html).toContain('1 of the refreshes also threw away a tick of the running dot');
+		expect(html).toContain('1 of the refreshes threw away a tick of the running dot');
 		// How much of it counted.
 		expect(html).toContain(
 			t('flameShock.wasteSplit', {

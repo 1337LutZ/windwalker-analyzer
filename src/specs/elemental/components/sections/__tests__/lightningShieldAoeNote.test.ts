@@ -59,7 +59,7 @@ describe('the shield chart says what its grey band means', () => {
 	 * would be a note about a pull that had none.
 	 */
 	it('prints the reason on a pull with exempt stretches', () => {
-		expect(cleave.lightningShield.aoeWindows.length).toBeGreaterThan(0);
+		expect(cleave.lightningShield.exemptWindows.length).toBeGreaterThan(0);
 		const html = render(cleave);
 		expect(html).toContain(t('lightningShield.key.aoe'));
 		expect(html).toContain('The AoE priority list has no Earth Shock in it at all');
@@ -86,7 +86,7 @@ describe('the shield chart says what its grey band means', () => {
 	 */
 	it.each(['phased', 'unbroken'])('says nothing about AoE on %s, which never left one enemy', (name) => {
 		const single = analysed(name);
-		expect(single.lightningShield.aoeWindows).toEqual([]); // no-change guard
+		expect(single.lightningShield.exemptWindows).toEqual([]); // no-change guard
 		const html = render(single);
 		expect(html).not.toContain(t('lightningShield.key.aoe')); // no-change guard
 		expect(html).not.toContain('The AoE priority list has no Earth Shock in it at all'); // no-change guard

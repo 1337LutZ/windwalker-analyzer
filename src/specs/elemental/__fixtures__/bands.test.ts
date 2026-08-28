@@ -145,12 +145,15 @@ describe('the reported bug, on the pull it was reported from', () => {
 	 * still graded end to end. That assertion has now gone red, which is exactly what it was for.
 	 *
 	 * **What moved it was the clock cut**, in `specs/elemental/lib/index.ts`: one `gradedSpans`, both
-	 * halves of each ratio intersected with it, 82 858ms of this pull's 263 233ms. Two consequences reach
-	 * this panel, and they are worth telling apart:
+	 * halves of each ratio intersected with it, 129 456ms of this pull's 263 233ms once the exemption moved
+	 * onto the pull's own segments. Two consequences reach this panel, and they are worth telling apart:
 	 *
-	 *   - `flameShockUptime` stays, and stays `bad`. Its clock lost the add waves and the figure went from
-	 *     72.30% to 83.90% — a real improvement, and still 1.1 points under the 85% `ok` line. The dot was
-	 *     dropped on the boss too, and the exemption does not hide that.
+	 *   - `flameShockUptime` **leaves, and it took two changes to get there.** The first cut took the figure
+	 *     from 72.30% to 83.90% — a real improvement, and still 1.1 points under the 85% `ok` line, so the
+	 *     card stayed. Moving the exemption from the raw three-or-more count to the segmentation took it to
+	 *     86.79% over 132 216ms, past that line, and the card goes with it. The dot was dropped on the boss
+	 *     too and neither cut hides that; what the second one stopped charging is the dot's state through
+	 *     the stretches this pull was fought as AoE, where no list asks for it.
 	 *   - `flameShockWaste` **leaves**, and not by exemption. Cutting the clocks let `shareOf`'s sample
 	 *     floor be applied to it, and this pull made two Flame Shock refreshes all fight — under
 	 *     `MIN_GRADED_SAMPLE`, so the metric declines instead of grading a 50% that was one press. Its
@@ -159,9 +162,14 @@ describe('the reported bug, on the pull it was reported from', () => {
 	 *     those refreshes was made at four enemies and is no longer counted. The refusal is the same; what
 	 *     it is a refusal about is not.
 	 *
-	 * So two of the three cards are still the dot, which is the honest outcome: `flameShockMultiDot` reads
-	 * 16.64% and cutting its clock too was measured at 18.73% — see its threshold. That card is a real
-	 * fault rather than an artefact, and the report should keep saying so.
+	 * So one of the three cards is still the dot, and it is the one that should be: `flameShockMultiDot`
+	 * read 16.64% before any cut, 18.73% under the count-derived exemption and 35.54% over the 34 783ms of
+	 * genuine two-target time the segments leave it. Three readings of one habit, each over a shorter and
+	 * more honest clock than the last, and every one of them `bad`. That card is a real fault rather than
+	 * an artefact, and the report should keep saying so.
+	 *
+	 * `elementalDischargeUptime` takes the third place at 65.57% against a 90/80 pair — the tier-16 debuff's
+	 * own uptime, a fault on a clock the exemption cut but did not create.
 	 *
 	 * **The letter under those three cards is now `ok` and not `bad`, and the cards did not move with it.**
 	 * It moved when `fireElementalHasteUptime` was priced at 1: 42.31% of 13 points becomes 46.43% of 14,
@@ -171,12 +179,12 @@ describe('the reported bug, on the pull it was reported from', () => {
 	 */
 	it('replaces one of cleave three Flame Shock cards once the clocks are cut', () => {
 		expect(resolveBands(fixture('cleave').targets, 'auto').bands).toEqual([1, 2, 3, 4]);
-		// **The third card is `gcdUtilisation` now, and the letter under all three is `bad`.** Neither is
-		// the clock cut: `gcdUtilisation`'s lines went from 80/65 to 95/90, and this pull fills 89.18% of
-		// its globals. Under the old pair every committed pull read `good` there, so the metric carried two
-		// weight and never reached a panel; under the new one it is this pull's third-largest shortfall and
-		// `lightningShieldOvercap` — still a genuine fault on its own clock — is fourth.
-		expect(panel('cleave', 'auto')).toEqual(['flameShockUptime', 'flameShockMultiDot', 'gcdUtilisation']);
+		// **`gcdUtilisation` leads the panel and no card is the dot's uptime any more.** Two of the three
+		// are unrelated to the clock cut: `gcdUtilisation`'s lines went from 80/65 to 95/90 and this pull
+		// fills 89.18% of its globals, and `elementalDischargeUptime` is the tier-16 debuff at 65.57%.
+		// `lightningShieldOvercap` is no longer among them — 14 275ms over the segmented clock is `ok`,
+		// where 21 864ms over the counted one was `bad`.
+		expect(panel('cleave', 'auto')).toEqual(['gcdUtilisation', 'flameShockMultiDot', 'elementalDischargeUptime']);
 		// **`ok` since the tier-16 remaining check stopped reading a merged window's end.** That check
 		// charged nearly every shock taken inside a long Elemental Discharge run — see `dischargeExpiry` —
 		// and dropping the false faults lifts this pull's Earth Shock letter and the headline with it.
@@ -187,7 +195,10 @@ describe('the reported bug, on the pull it was reported from', () => {
 		for (const key of BANDED) expect(metric('cleave', 'auto', key)?.exempt, key).toBeUndefined();
 		// And the metric that left did so by refusing, not by grading well.
 		expect(metric('cleave', 'auto', 'flameShockWaste')?.unmeasurable).toBe(true);
-		expect(metric('cleave', 'auto', 'flameShockUptime')?.value).toBeCloseTo(83.899, 3);
+		// And the metric that left the panel did so by *passing*, which is the other way off a panel and the
+		// one this second cut produced: 86.79% is over the 85% `ok` line rather than 1.1 under it.
+		expect(metric('cleave', 'auto', 'flameShockUptime')?.value).toBeCloseTo(86.794, 3);
+		expect(metric('cleave', 'auto', 'flameShockUptime')?.grade).toBe('ok');
 	});
 
 	/**
@@ -724,7 +735,7 @@ describe('the denominator travels with the verdict', () => {
 	it('has no pull whose shield clock the exemption could empty', () => {
 		for (const name of ALL) {
 			const el = fixture(name);
-			const aoeMs = el.lightningShield.aoeWindows.reduce((total, w) => total + (w.end - w.start), 0);
+			const aoeMs = el.lightningShield.exemptWindows.reduce((total, w) => total + (w.end - w.start), 0);
 			expect(el.durationMs - aoeMs, name).toBeGreaterThan(0);
 			expect(metric(name, 'auto', 'lightningShieldOvercap')?.unmeasurable, name).toBe(false);
 		}

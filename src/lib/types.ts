@@ -2907,10 +2907,11 @@ export interface FlameShockAudit {
 	 * **Band 2 alone, which makes this the one clock in the audit cut at both ends.** `cleave.apl.json`
 	 * rung 9 is `maxDots: 2`: there is no such rule at one enemy, because there is no second target, and
 	 * none at three, because `aoe.apl.json` has no multi-dot rung anywhere in it. So the floor is the
-	 * core's `>= 2` series and the ceiling is the same `aoeWindows` complement the dot's uptime clock, the
-	 * totem's and the shield's overcap all take — `>= 2` less `>= 3`. The other three are band-1-or-2 rules
-	 * and need the ceiling only. The derivation, and why it is a difference of two count series rather than
-	 * an "exactly two" series computed once, is at `mdGraded` in the Elemental's `index.ts`.
+	 * core's `>= 2` series and the ceiling is the same `exemptWindows` complement the dot's uptime clock,
+	 * the totem's and the shield's overcap all take — `>= 2` less the pull's own spreading segments. The
+	 * other three are band-1-or-2 rules and need the ceiling only. The derivation, and why the ceiling is
+	 * segmented off the dot's series rather than borrowed from the ladder's, is at `mdGraded` in the
+	 * Elemental's `index.ts`.
 	 *
 	 * It is deliberately *not* the core's `targets.multiTargetMs`, which it used to be verbatim. That field
 	 * is the mode share's own numerator and is untrimmed by design ("evidence and a denominator, not
@@ -3569,7 +3570,7 @@ export interface LightningShieldAudit {
 	/** Time spent at the ceiling past the reader's leeway, summed across `gradedMs`. */
 	overcapMs: number;
 	/**
-	 * The length of the clock `overcapMs` was measured inside — the pull less `aoeWindows` and `awayWindows`.
+	 * The length of the clock `overcapMs` was measured inside — the pull less `exemptWindows` and `awayWindows`.
 	 *
 	 * **The field that keeps this exemption from becoming a free pass**, and the reason it is a published
 	 * number rather than something the score infers. `overcapMs` is a fault counted only inside the
@@ -3586,14 +3587,20 @@ export interface LightningShieldAudit {
 	/** The leeway the overcap was measured beyond, so the section can name the number it used. */
 	leewayMs: number;
 	/**
-	 * The stretches the aoe list applied to — three enemies or more — which `overcapMs` drops.
+	 * The stretches no one-or-two-target rule was asked over — the pull's `aoe` and `mixed` segments —
+	 * which `overcapMs` drops.
 	 *
-	 * Published so the chart shades the same array the denominator refused. Not `fellOff`'s clock: that
-	 * stays graded at every band, because Rolling Thunder returns 2% of maximum mana per charge and only
-	 * while the buff is up. Keeping the shield up is always right; spending its stacks is only right where
-	 * a rung spends them, and from three targets none does.
+	 * Published so the chart shades the same array the denominator refused. **It is the segmentation and
+	 * not the raw three-or-more count**, which is the whole of what changed here: the count is an
+	 * instantaneous reading that punches holes in an add wave every time it dips to two, and the report
+	 * already shows the reader the smoothed one everywhere else. `analyseCore`'s `exemptWindows` carries
+	 * the argument and the measurements.
+	 *
+	 * Not `fellOff`'s clock: that stays graded at every band, because Rolling Thunder returns 2% of maximum
+	 * mana per charge and only while the buff is up. Keeping the shield up is always right; spending its
+	 * stacks is only right where a rung spends them, and from three targets none does.
 	 */
-	aoeWindows: Window[];
+	exemptWindows: Window[];
 	/**
 	 * The stretches with no enemy in contact at all, which `overcapMs` also drops.
 	 *
@@ -3604,7 +3611,7 @@ export interface LightningShieldAudit {
 	 * shamans were charged 18.4%, 43.9%, 65.1% and 7.5% of their overcap for stretches they had no
 	 * target in.
 	 *
-	 * Published for the same reason `aoeWindows` is: the chart greys exactly what the denominator
+	 * Published for the same reason `exemptWindows` is: the chart greys exactly what the denominator
 	 * dropped, rather than a second guess at the same idea.
 	 */
 	awayWindows: Window[];

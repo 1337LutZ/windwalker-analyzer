@@ -31,28 +31,27 @@ describe('the shield overcap clock', () => {
 		expect(load('phased').lightningShield.overcapMs).toBe(17_568);
 		expect(load('unbroken').lightningShield.overcapMs).toBe(4514);
 		for (const name of ['phased', 'unbroken'] as const) {
-			expect(load(name).lightningShield.aoeWindows).toEqual([]);
+			expect(load(name).lightningShield.exemptWindows).toEqual([]);
 			expect(load(name).targets?.counts?.max).toBe(1);
 		}
 	});
 
 	it('drops the AoE stretches on the multi-target pull', () => {
 		const cleave = load('cleave');
-		// 119 313ms before this clock existed — so **65% of the old figure was time the list did not ask the
-		// player to spend the shield in**. The exempt stretches are 82 858ms of a 263 233ms pull, a little
-		// under a third, and they still carry most of the fault.
+		// 119 313ms before this clock existed — so **88% of the old figure was time the list did not ask the
+		// player to spend the shield in**. The exempt stretches are 129 456ms of a 263 233ms pull, just under
+		// half of it, and they still carry most of the fault.
 		//
-		// All three numbers moved with the trailing-edge trim, and every one of them in the direction that
-		// forgives *less*: the exemption used to read 109 869ms over eight stretches and left the overcap at
-		// 28 625ms. A stretch closed by the count falling closed a full 5 000ms window past the last hit
-		// that made it, so a window of boss-only time was handed back at the end of every add wave — 28
-		// 378ms of the old total was time after the last hit any add in its stretch ever took.
-		// `analyseCore`'s `aoeWindows` now cuts that tail to one measured global, and
-		// `targetTails.test.ts` derives the 27 011ms that removes and reproduces this array from the
-		// fixture's raw damage rows.
-		expect(cleave.lightningShield.overcapMs).toBe(21_864);
-		expect(ms(cleave.lightningShield.aoeWindows)).toBe(82_858);
-		expect(cleave.lightningShield.aoeWindows).toHaveLength(7);
+		// **Four stretches and not seven, since the exemption moved from the raw three-or-more count onto
+		// the pull's own segments.** The count crosses three and back inside a single add wave, so it read
+		// the wave as several exempt pieces with graded holes between them; the segmentation reads one
+		// stretch, and the holes were the part of this clock that charged a player for the list they were
+		// actually running. The trailing-edge trim `fbc4963` added survived the move — `exemptFrom` applies
+		// it to each merged stretch — so none of this hands back the window of boss-only time that fix
+		// removed.
+		expect(cleave.lightningShield.overcapMs).toBe(14_275);
+		expect(ms(cleave.lightningShield.exemptWindows)).toBe(129_456);
+		expect(cleave.lightningShield.exemptWindows).toHaveLength(4);
 	});
 
 	/**
@@ -79,15 +78,31 @@ describe('the shield overcap clock', () => {
 	 */
 	it('restarts the grace at each boundary rather than subtracting afterwards', () => {
 		const cleave = load('cleave');
-		const { leewayMs, aoeWindows, overcapWindows } = cleave.lightningShield;
+		const { leewayMs, exemptWindows, overcapWindows } = cleave.lightningShield;
 		expect(leewayMs).toBe(5000);
-		const exemptCloses = new Set(aoeWindows.map((w) => w.end));
+		const exemptCloses = new Set(exemptWindows.map((w) => w.end));
 		const graceRestarted = overcapWindows.filter((w) => exemptCloses.has(w.start - leewayMs));
 		const graceAlreadySpent = overcapWindows.filter((w) => exemptCloses.has(w.start));
-		expect(graceRestarted).toHaveLength(3);
+		// **Nought, and it was three while the exemption was the raw count.** That reading cut each add wave
+		// into several exempt pieces, so the shield came back over the ceiling a leeway after a boundary
+		// three times on this pull alone; the segmentation reads one stretch per wave, and no committed pull
+		// now puts an overcap window exactly one leeway past an exempt close. Pinned at nought rather than
+		// deleted: this line goes red the day a fixture exercises the positive case again, which is when the
+		// count belongs back in it.
+		expect(graceRestarted).toHaveLength(0);
 		// The rejected form's own signature, and it must be absent: a graded window opening flush against a
 		// boundary is a stretch that crossed one and was charged from the first millisecond of the far side.
+		// Widened to all four pulls now that the positive half above is empty, so this case still carries a
+		// falsifiable claim rather than two zeroes.
 		expect(graceAlreadySpent).toEqual([]);
+		for (const name of ['addsThenBoss', 'phased', 'unbroken'] as const) {
+			const other = load(name).lightningShield;
+			const closes = new Set(other.exemptWindows.map((w) => w.end));
+			expect(
+				other.overcapWindows.filter((w) => closes.has(w.start)),
+				name,
+			).toEqual([]);
+		}
 	});
 
 	it('keeps falling off graded on every band, because the shield is a mana engine', () => {
@@ -97,12 +112,12 @@ describe('the shield overcap clock', () => {
 		// the thing a reader would otherwise read as a bug.
 		const cleave = load('cleave');
 		expect(cleave.lightningShield.fellOff).toBe(1);
-		// Just under a third of the pull is exempt from the overcap clock and none of it is exempt from this
-		// one. Was two fifths before the trailing-edge trim; the bounds moved with it and the point did not
-		// — the gap between the two clocks is what this case is about, not its size.
-		const exemptShare = ms(cleave.lightningShield.aoeWindows) / cleave.durationMs;
-		expect(exemptShare).toBeGreaterThan(0.3);
-		expect(exemptShare).toBeLessThan(0.35);
+		// Just under half the pull is exempt from the overcap clock and none of it is exempt from this one.
+		// Was just under a third while the exemption was the raw three-or-more count; the bounds moved with
+		// it and the point did not — the gap between the two clocks is what this case is about, not its size.
+		const exemptShare = ms(cleave.lightningShield.exemptWindows) / cleave.durationMs;
+		expect(exemptShare).toBeGreaterThan(0.45);
+		expect(exemptShare).toBeLessThan(0.55);
 	});
 
 	it('publishes the exempt array rather than leaving the chart to re-derive it', () => {
@@ -110,7 +125,7 @@ describe('the shield overcap clock', () => {
 		// denominator dropped. Checked by construction — every exempt window must be absent from the graded
 		// overcap windows.
 		const cleave = load('cleave');
-		for (const exempt of cleave.lightningShield.aoeWindows) {
+		for (const exempt of cleave.lightningShield.exemptWindows) {
 			for (const graded of cleave.lightningShield.overcapWindows) {
 				const overlap = Math.min(graded.end, exempt.end) - Math.max(graded.start, exempt.start);
 				expect(overlap).toBeLessThanOrEqual(0);

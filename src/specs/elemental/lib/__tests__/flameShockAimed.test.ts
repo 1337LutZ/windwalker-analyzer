@@ -573,14 +573,27 @@ describe('the dot’s own timeline, off the spawn the press was aimed at', () =>
 		expect(card(addsThenBoss)).toEqual({
 			overall: 'bad',
 			judged: { measured: 13, total: 25, unmeasurable: false },
-			sections: { ...sections, earthShock: 'bad', searingTotem: 'bad', ascendance: 'ok', casts: 'ok' },
+			sections: {
+				...sections,
+				earthShock: 'bad',
+				searingTotem: 'bad',
+				ascendance: 'ok',
+				casts: 'ok',
+				// `good` since the exemption moved onto the segmentation: this pull's overcap is measured over
+				// the pull less its `aoe` and `mixed` segments, 9 596ms over 326.3s becoming 3 619ms over
+				// 232.0s — under the 5 000ms `good` line.
+				lightningShield: 'good',
+			},
 			flameShockWaste: 'bad',
 			gcdUtilisation: 'ok',
 		});
 		expect(card(cleavePull)).toEqual({
 			overall: 'ok',
 			judged: { measured: 20, total: 25, unmeasurable: false },
-			sections: { ...sections, searingTotem: 'good', fireElemental: 'good', lightningShield: 'bad' },
+			// Two letters moved with the exemption, both on this pull and neither under this file's change:
+			// `flameShock` because its uptime went 83.90% over 178.8s to 86.79% over 132.2s, and
+			// `lightningShield` because its overcap went 21 864ms to 14 275ms — back to the base `ok`.
+			sections: { ...sections, flameShock: 'ok', searingTotem: 'good', fireElemental: 'good' },
 			flameShockWaste: 'ok',
 			gcdUtilisation: 'bad',
 		});

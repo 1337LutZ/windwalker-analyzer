@@ -486,9 +486,9 @@ copy itself follows — say it once, outside the arms.
      src/lib/i18n/__tests__/conventionsCensus.test.ts. Re-run the block above and paste the whole set
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
-As of the target-mode band, it prints 1770 leaves, 836 prose, 27,705
-words; median 27, p75 45, p90 65, p95 79, p99 110, max 204; longest 9% carry 24%; report.json 758 prose
-leaves, 1,351 sentences, median 17, 287 past 25 (21.2%), 294 em-dashes in 253 sentences (18.7%);
+As of the segment-derived exemption, it prints 1770 leaves, 836 prose, 27,762
+words; median 27, p75 45, p90 65, p95 79, p99 117, max 204; longest 9% carry 24%; report.json 758 prose
+leaves, 1,351 sentences, median 17, 290 past 25 (21.5%), 300 em-dashes in 256 sentences (18.9%);
 71 / 30 / 1 / 2 on the quote lines.
 
 Eight leaves and three sentences, the smallest block to move this census in some time: six column
@@ -574,6 +574,13 @@ last saw someone invites two wrong readings — that a missing enemy was not the
 distance means the player could reach it. Both are answered in that one sentence rather than left to a
 reader to discover, which is the trade this corpus makes every time a picture can be misread: the caption
 carries the caveat, and the picture stays uncluttered.
+
+No new leaves at all in the pass after that, and fifty-seven words: three existing strings grew a clause
+when the exemption moved from the raw three-or-more count onto the pull's own segments. Each of the three
+AoE notes had to stop saying "the ones with three or more enemies up", because the greyed stretches now
+include the ones no single count held long enough to name. That is the signature of a _meaning_ change
+rather than a feature: the leaf count is flat, the prose count is flat, and p99 moves seven words because
+three of the corpus's longest strings each took one more clause.
 
 <!-- /census:figures -->
 

@@ -20,7 +20,7 @@ export default function SearingTotem({ analysis }: { analysis: Analysis }) {
 	// The stretches three or more enemies were up, straight off the array the audit's own `gradedSpans` is
 	// the complement of — the same one `SearingTotemUptime` shades. Read here only to decide whether the
 	// note below has a band to explain.
-	const aoeWindows = el.lightningShield.aoeWindows;
+	const exemptWindows = el.lightningShield.exemptWindows;
 	const { t, gradeOf, unasked, verdict } = useReportCopy(analysis);
 
 	/**
@@ -190,7 +190,7 @@ export default function SearingTotem({ analysis }: { analysis: Analysis }) {
 				    pull. Still said per section rather than left to the control: by the time a reader is here the
 				    toggle is off screen, which is the argument `PriorityLadder` and `Rotation` both make. */}
 				{narrowed ? <Note>{t('targets.switchReading')}</Note> : null}
-				{aoeWindows.length === 0 ? null : <Note>{t('searingTotem.aoeNote')}</Note>}
+				{exemptWindows.length === 0 ? null : <Note>{t('searingTotem.aoeNote')}</Note>}
 				<Note>{t('searingTotem.gate')}</Note>
 			</div>
 		</Section>

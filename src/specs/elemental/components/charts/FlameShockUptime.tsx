@@ -27,7 +27,7 @@ import TrackLane, { type LaneSource } from '~/components/charts/TrackLane';
  * those add waves — fault time the figure beside it no longer charges — which is the one thing this chart
  * may not do. So the AoE stretches leave the red row and arrive as a ground, in the same breath.
  *
- * `lightningShield.aoeWindows` is where they are read from, because it is the array the audit's own
+ * `lightningShield.exemptWindows` is where they are read from, because it is the array the audit's own
  * `gradedSpans` is the complement of — one published set, three clocks cut with it, rather than a fourth
  * reading of "when was it AoE" taken here. That is the identity `exemptTrack.test.ts` enforces, and it is
  * checkable on this chart to the millisecond: the two exempt rows sum to `durationMs - flameShock.scoredMs`.
@@ -133,7 +133,7 @@ export default function FlameShockUptime({ analysis }: { analysis: Analysis }) {
 	// The numerator's own spans, published at `84d41f8`. Read straight rather than re-derived: the green row
 	// below *is* this array, so `unionMs` of it is `flameShock.contactUptimeMs` by the field's own contract.
 	const contactSpans = flameShock.contactWindows;
-	const aoeWindows = el.lightningShield.aoeWindows;
+	const exemptWindows = el.lightningShield.exemptWindows;
 	const { up, elsewhere, uncounted, dropped, exempt } = useMemo(() => {
 		// The dot's whole life on the primary target, before any clip below. Not a row on its own any more,
 		// and no longer the whole of what the three rows it feeds cover either: `up + elsewhere + uncounted`
@@ -150,7 +150,7 @@ export default function FlameShockUptime({ analysis }: { analysis: Analysis }) {
 		// is drawn as a dot the player dropped. The fallback (the whole pull) keeps the chart unchanged on a
 		// fixture captured before the core carried the contact clock.
 		const contact = analysis.timeline?.contactSegments ?? [[0, analysis.durationMs]];
-		const aoe = aoeWindows.map((w): [number, number] => [w.start, w.end]);
+		const aoe = exemptWindows.map((w): [number, number] => [w.start, w.end]);
 		// `intersect(contact, complementOf(aoe))` is `fsGraded` in the audit, spelled the same way round.
 		// Rebuilt here rather than published as an array because what the audit publishes is its *length*
 		// (`scoredMs`), and the two are checked against each other rather than trusted: the rows below sum
@@ -204,7 +204,7 @@ export default function FlameShockUptime({ analysis }: { analysis: Analysis }) {
 				analysis.durationMs,
 			).filter((row) => row.windows.length > 0),
 		};
-	}, [analysis.durationMs, windows, contactSpans, analysis.timeline?.contactSegments, aoeWindows, t]);
+	}, [analysis.durationMs, windows, contactSpans, analysis.timeline?.contactSegments, exemptWindows, t]);
 
 	/**
 	 * Up and counted, up on an enemy the player had left, down, the dot the clock did not count, then the

@@ -2027,8 +2027,8 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		landedHits,
 		spawnLives,
 		dotMultiTargetWindows,
-		dotAoeWindows,
-		aoeWindows,
+		dotExemptWindows,
+		exemptWindows,
 		contact,
 		hasteWindows,
 	} = h;
@@ -2300,7 +2300,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * is the sharpest of those — Rolling Thunder pays 2% of maximum mana per charge and only while the
 	 * buff is up, so keeping the shield up is right at every count and only *spending* it is banded.
 	 */
-	const gradedSpans = complementOf(aoeWindows, duration);
+	const gradedSpans = complementOf(exemptWindows, duration);
 
 	// --------------------------------------------------------- Flame Shock
 	// The dot on the enemy the pull was about. Without a primary there is nothing to measure — the
@@ -3051,7 +3051,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * lifetime floor and has never looked at the strike list, so the dots on struck adds were already in
 	 * it. This is the denominator catching up with a numerator that was already right.
 	 */
-	const mdGraded = intersect(dotMultiTargetWindows, complementOf(dotAoeWindows, duration));
+	const mdGraded = intersect(dotMultiTargetWindows, complementOf(dotExemptWindows, duration));
 	const mdGradedMs = unionMs(mdGraded);
 	const multiDotUptimeMs = unionMs(intersect(fsSecondaryWindows, mdGraded));
 	/**
@@ -5373,7 +5373,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 			leewayMs: lightningShieldOvercapMs,
 			// The stretches `overcapMs` above dropped, so the chart can grey exactly what the denominator
 			// refused rather than a second guess at it — the rule `exemptTrack.test.ts` exists to enforce.
-			aoeWindows: aoeWindows.map(([start, end]): Window => ({ start, end })),
+			exemptWindows: exemptWindows.map(([start, end]): Window => ({ start, end })),
 			// The other half of what the denominator dropped: the stretches with no enemy in contact. Two
 			// causes now, so the chart greys both rather than greying one and quietly under-drawing the
 			// clock it claims to picture — the identity `exemptTrack.test.ts` enforces.

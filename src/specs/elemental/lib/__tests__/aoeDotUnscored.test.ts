@@ -112,7 +112,7 @@ const HYDRA_ITEM_IDS: readonly number[] = [94_521, 95_711, 96_083, 96_455, 96_82
 const toIntervals = (windows: readonly Window[]): Interval[] => windows.map((w) => [w.start, w.end]);
 
 /** The `>= 3` count series, off the array the shield's chart greys — the reader's own view of the pull. */
-const aoe = (a: El): Interval[] => toIntervals(a.lightningShield.aoeWindows);
+const aoe = (a: El): Interval[] => toIntervals(a.lightningShield.exemptWindows);
 const contact = (a: El): Interval[] => (a.timeline?.contactSegments ?? []) as Interval[];
 /** Band-3+ time the player was demonstrably in the fight for — the only clock such a metric could use. */
 const aoeContact = (a: El): Interval[] => intersect(contact(a), aoe(a));
@@ -192,11 +192,11 @@ describe('what the aoe list asks of Flame Shock above two enemies', () => {
 			[96_455],
 		);
 		// **And the count is not the discriminator, which is the half worth stating.** `cleave` reaches
-		// *thirteen* enemies — four more than `addsThenBoss` — and spends 82.8s of its 263.2s at three or
-		// more, and the aoe list asks its shaman for the dot not once across all of it.
+		// *thirteen* enemies — four more than `addsThenBoss` — and 129.4s of its 263.2s is fought as AoE,
+		// and the aoe list asks its shaman for the dot not once across all of it.
 		expect(fx('cleave').targets?.counts.max).toBe(13);
 		expect(fx('addsThenBoss').targets?.counts.max).toBe(9);
-		expect(unionMs(aoeContact(fx('cleave')))).toBe(82_758);
+		expect(unionMs(aoeContact(fx('cleave')))).toBe(129_356);
 		expect(aoeDotDemands(fx('cleave'))).toHaveLength(0);
 	});
 
@@ -257,22 +257,23 @@ describe('why no metric is built on it', () => {
 		}
 	});
 
-	it('offers two readings of the one available clock 61.6 points apart, and the rung asks for neither', () => {
+	it('offers two readings of the one available clock 64.0 points apart, and the rung asks for neither', () => {
 		const a = fx('addsThenBoss');
 		const clock = aoeContact(a);
-		// The clock a band-3+ share would be taken over: 226.1s, every millisecond of it inside contact.
-		expect(unionMs(clock)).toBe(226_113);
-		expect(unionMs(aoe(a))).toBe(226_113);
+		// The clock a band-3+ share would be taken over: 320.4s of the 327.4s exempt array, the 7.0s
+		// difference being stretches the segmentation calls AoE with nothing in the player's contact clock.
+		expect(unionMs(clock)).toBe(320_419);
+		expect(unionMs(aoe(a))).toBe(327_423);
 		// Reading one: the dot on the *primary*, which is the enemy the pull is named for and which this
-		// log leaves untargetable for its first 442 of 560 seconds. 14 448ms — 6.39%.
+		// log leaves untargetable for its first 442 of 560 seconds. 14 448ms — 4.51%.
 		const primary = unionMs(intersect(mergeIntervals(toIntervals(a.flameShock.windows)), clock));
 		expect(primary).toBe(14_448);
 		// Reading two: the union across every one of the nine enemies' lanes, which credits a dot still
-		// ticking on an add the player walked away from. 153 766ms — 68.00%.
+		// ticking on an add the player walked away from. 219 611ms — 68.54%.
 		const anywhere = unionMs(intersect(laneUnion(a), clock));
-		expect(anywhere).toBe(153_766);
+		expect(anywhere).toBe(219_611);
 		const spread = (anywhere - primary) / unionMs(clock);
-		expect(spread * 100).toBeCloseTo(61.6, 1);
+		expect(spread * 100).toBeCloseTo(64.0, 1);
 		// The number a metric would report is therefore the scope it picked, not the play it saw. Both
 		// readings are the audit's own and both are right about their own question — `fsRemainingAt` grades
 		// a press against the enemy being hit, `fsMerged` draws the row — and `not(dotIsActive(8050))` is
@@ -294,10 +295,10 @@ describe('why no metric is built on it', () => {
 			expect(a.flameShock.contactUptimeMs, name).toBeLessThanOrEqual(a.flameShock.scoredMs);
 		}
 		// The two multi-target pulls' figures, so a derivation that had gone to zero on both sides cannot
-		// pass: `addsThenBoss` loses 226 113ms of a 552 420ms contact clock and `cleave` 82 758ms of
+		// pass: `addsThenBoss` loses 320 419ms of a 552 420ms contact clock and `cleave` 129 356ms of
 		// 261 572ms. The single-target pair loses nothing, which is what says the cut found the add waves.
-		expect(fx('addsThenBoss').flameShock.scoredMs).toBe(552_420 - 226_113);
-		expect(fx('cleave').flameShock.scoredMs).toBe(261_572 - 82_758);
+		expect(fx('addsThenBoss').flameShock.scoredMs).toBe(552_420 - 320_419);
+		expect(fx('cleave').flameShock.scoredMs).toBe(261_572 - 129_356);
 		expect(fx('phased').flameShock.scoredMs).toBe(206_557);
 		expect(fx('unbroken').flameShock.scoredMs).toBe(181_775);
 	});

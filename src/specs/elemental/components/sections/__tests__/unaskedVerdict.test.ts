@@ -173,7 +173,7 @@ describe('a section none of whose rules were asked', () => {
 
 		const fs = verdictOf(render(FlameShock, cleave, 'multi'));
 		expect(fs).toContain('asks only that Flame Shock go back up when it is off the enemy in front of you');
-		expect(fs).toContain('83.9% uptime across 10 casts is drawn above');
+		expect(fs).toContain('86.79% uptime across 10 casts is drawn above');
 		expect(fs).not.toContain('Flame Shock was never cast in this pull');
 
 		const es = verdictOf(render(EarthShock, cleave, 'multi'));
@@ -219,7 +219,7 @@ describe('a section none of whose rules were asked', () => {
 	 * case that shows an exemption has not become a way out of a real fault.
 	 */
 	it('leaves all three alone on the reading nobody forced', () => {
-		expect(verdictOf(render(FlameShock, cleave, 'auto'))).toContain('83.9% uptime across 10 casts'); // no-change guard
+		expect(verdictOf(render(FlameShock, cleave, 'auto'))).toContain('86.79% uptime across 10 casts'); // no-change guard
 		expect(verdictOf(render(EarthShock, cleave, 'auto'))).toContain(
 			'shocks were spent with the shield charged up and the Flame Shock dot still long',
 		); // no-change guard, reworded with the string itself

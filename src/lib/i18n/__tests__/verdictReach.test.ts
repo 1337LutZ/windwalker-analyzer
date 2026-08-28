@@ -254,10 +254,17 @@ const UNREACHED: string[] = [
 	'karma.verdict_bad',
 	'karma.verdict_none',
 	'lightningShield.verdict_bad_noOvercap',
+	// **`verdict_bad_one` joined this list and `verdict_ok_one` left it when the exemption moved onto the
+	// segmentation.** `cleave` is the one committed pull that drops its shield, and its overcap fell from
+	// 21 864ms to 14 275ms once the clock stopped running through the stretches the pull was fought as
+	// AoE — under the 15 000ms `ok` line, so the sentence it renders is the `ok` arm of the same pair.
+	// `verdict_ok_zero` went the other way for the same reason: the pulls that never drop the shield now
+	// read `good` on the overcap rather than `ok`, so nothing renders the zero-drop `ok` arm.
+	'lightningShield.verdict_bad_one',
 	'lightningShield.verdict_bad_other',
 	'lightningShield.verdict_none',
-	'lightningShield.verdict_ok_one',
 	'lightningShield.verdict_ok_other',
+	'lightningShield.verdict_ok_zero',
 	'mana.verdict_bad_noRage',
 	'mana.verdict_bad_noThunderstorm',
 	'mana.verdict_bad_one',
