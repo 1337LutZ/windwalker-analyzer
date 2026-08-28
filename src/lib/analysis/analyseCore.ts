@@ -70,6 +70,7 @@ import { aggregateDamage, damageByTarget, primaryTargetID } from './damage';
 import { pointsResourceAudit, poolResourceAudit, resourceSamples, wclPowerTypeOf } from './energy';
 import { engagedWindows } from './engagement';
 import { readGear, readTalents } from './gear';
+import { buildReplay } from './replay';
 import { segmentPull } from './segments';
 import { complementOf, intersect, type Interval, unionMs } from './intervals';
 import { enforcedDowntime, unavoidableWindows } from './enforced';
@@ -1283,6 +1284,14 @@ export function analyseCore(
 		windowMs: spec.thresholds.targetWindowMs,
 	});
 	/**
+	 * Where the pull happened, when the stream says.
+	 *
+	 * Read off the same `events` every clock above is built from, and free: the positions ride in the
+	 * resource block the fetch already asks for. Undefined on a capture taken before `includeResources`
+	 * reached this query, which is why the field is optional — see `buildReplay`.
+	 */
+	const replay = buildReplay(events, t0, duration);
+	/**
 	 * The stretches the **aoe** priority list was the applicable one — three enemies or more.
 	 *
 	 * Off `aplTargetPoints` and deliberately not `targetPoints` beside it, because this is a question
@@ -1988,6 +1997,7 @@ export function analyseCore(
 		// intermissions against — the spec's audit merges its own presses and lanes over this.
 		timeline: { deaths, contactSegments: contact, cancels, hasteWindows, berserkingWindows },
 		segments,
+		replay,
 		lostCasts,
 		// **Both series are published, because both questions are asked downstream.** `counts` is
 		// `targetPoints`, the evidence one — what the target-count section draws, and the half of

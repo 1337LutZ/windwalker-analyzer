@@ -1,11 +1,12 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { TFunction } from 'i18next';
 
 import type { FightSegment, SegmentMode } from '~/lib/analysis/segments';
 import type { Analysis } from '~/lib/types';
 
 import ChartKey from '../charts/ChartKey';
+import FightReplay from './FightReplay';
+import { segmentLabel, segmentLength } from './segmentCopy';
 import ScrollableTrack from '../charts/ScrollableTrack';
 import SegmentLane, { type LaneSpan } from '../charts/SegmentLane';
 import { ChartFigure } from '../primitives';
@@ -82,37 +83,6 @@ export const KEY_ORDER: readonly SegmentMode[] = ['single', 'cleave', 'aoe', 'mi
  * `segments` is optional because every captured fixture predates it, so the absent case is the ordinary
  * one rather than a defensive check.
  */
-/**
- * What a segment is called, in words.
- *
- * **Exported so the segment tool's table says the same thing its strip does.** A reader who hovers a bar
- * and then hovers the row under it is asking one question twice, and two spellings of the answer — "aoe"
- * in one place and "Three or more enemies" in the other — is the page disagreeing with itself.
- *
- * The tooltip names the mix rather than repeating the key: a stretch that ran between one and three
- * enemies says so, which is the question a `mixed` bar raises and used not to answer. A mixed stretch
- * with no bands recorded cannot describe its own range, and `Math.min` of an empty list is `Infinity` —
- * so that case keeps the generic name rather than printing one.
- */
-export function segmentLabel(segment: FightSegment, t: TFunction<'report'>): string {
-	return segment.mode === 'mixed' && segment.bands.length > 0
-		? t('summary.shape.rowMixed', {
-				low: Math.min(...segment.bands),
-				high: Math.max(...segment.bands),
-				// Floored at one, for the same reason `shortOf` floors it: a stretch can hold enough zero-run
-				// to median at nought without ever being idle — `spoils` opens with 13s of exactly that — and
-				// "mostly 0 enemies" on a bar that is not the idle bar reads as a contradiction of the bar
-				// beside it.
-				median: Math.max(1, Math.round(segment.medianEnemies)),
-			})
-		: t('summary.shape.row', { context: segment.mode });
-}
-
-/** How long it ran, in the strip's own words. Exported beside `segmentLabel`, for the same reason. */
-export function segmentLength(segment: FightSegment, t: TFunction<'report'>): string {
-	return t('summary.shape.length', { seconds: Math.round((segment.endMs - segment.startMs) / 1000) });
-}
-
 export default function SegmentStrip({
 	analysis,
 	detailOf,
@@ -157,9 +127,15 @@ export default function SegmentStrip({
 
 	return (
 		<div className="flex flex-col gap-3.5">
-			<h3 className="m-0 font-mono text-sm font-semibold tracking-[0.14em] uppercase text-muted">
-				{t('summary.shape.title')}
-			</h3>
+			{/* The heading and the way in to the geometry behind it. `FightReplay` draws nothing when the
+			    analysis carried no track, so a pull fetched before positions were read keeps the bare
+			    heading rather than a button that opens an empty dialog. */}
+			<div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+				<h3 className="m-0 font-mono text-sm font-semibold tracking-[0.14em] uppercase text-muted">
+					{t('summary.shape.title')}
+				</h3>
+				<FightReplay analysis={analysis} />
+			</div>
 			<ChartFigure
 				gap="wide"
 				caption={present.map((mode) => (
@@ -176,3 +152,5 @@ export default function SegmentStrip({
 		</div>
 	);
 }
+
+export { segmentLabel, segmentLength };

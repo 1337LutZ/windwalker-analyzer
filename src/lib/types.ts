@@ -20,6 +20,7 @@ import type { AplAudit, Band } from '~/lib/spec/apl';
 // Circular with `analysis/auras` in the same way and for the same reason: a window that remembers
 // which of an aura's ids opened it is defined beside the walk that produces it, and an audit below
 // carries those rather than a copy of the shape that could drift from them.
+import type { ReplayTrack } from '~/lib/analysis/replay';
 import type { SegmentTimeline } from '~/lib/analysis/segments';
 // And again for the same reason: a spawn record is the shape of one pass over the damage stream, so it
 // is declared beside that pass rather than restated here. A restatement is how a field gets added to one
@@ -2180,6 +2181,27 @@ export interface AnalysisCore {
 	 * output from before this existed. Guard on truthiness rather than assuming an array.
 	 */
 	segments?: SegmentTimeline;
+	/**
+	 * Where the player and the bodies they hit stood, once a second across the pull.
+	 *
+	 * The geometry the two series above are silent about. `targets` says how many enemies were up and
+	 * `segments` says what that made the rotation; neither can say that the player spent that stretch
+	 * seventy yards from the pack, which is a different fact and one a reader of an add fight asks first.
+	 *
+	 * **Free.** `wcl/fightEvents.graphql` has asked for `includeResources: true` since the energy bar
+	 * needed it, and WarcraftLogs puts `x`/`y` in the same block as `classResources` — so this is a field
+	 * the fetch was already paying for and discarding, not a second request. `buildReplay` carries the
+	 * measurement.
+	 *
+	 * **Nothing is graded off it and nothing may be.** A distance between two coordinates knows nothing
+	 * about the wall between them, so this is drawn and never scored; `UNITS_PER_YARD` states that rule
+	 * where the scale is defined.
+	 *
+	 * Optional for the reason `segments` above it is, and one more: a pull whose stream carries no
+	 * resource block at all — every committed Windwalker capture predates the flag — produces no track.
+	 * Guard on truthiness.
+	 */
+	replay?: ReplayTrack;
 	/**
 	 * One row per enemy **body** the player touched — the evidence the two series above are reductions of.
 	 *
