@@ -35,6 +35,13 @@ import { isCast, isDamage, type WclEvent } from '~/lib/events';
  * gate are all invisible to a coordinate pair, so a range test built on this would call an add through
  * a wall reachable. Frames are in yards because a reader can hold a yard; no rule in this repo may
  * branch on one.
+ *
+ * **What that forbids is a range test, and `game/splitGroups.ts` is not one.** It asks whether the two
+ * Kor'kron Dark Shaman bosses stood in the same place — measured, 2 to 4 yards apart when they were
+ * tanked together and 170 when they were pulled apart — which is a fact about where the encounter was
+ * fought and not a claim about what the player could reach. Nothing is graded off the answer either:
+ * it decides which sentence the report prints above the grades, and moves no figure. A rule that used
+ * this to decide whether an add was in range would still be wrong.
  */
 export const UNITS_PER_YARD = 100;
 
@@ -132,8 +139,14 @@ interface Sample {
 	y: number;
 }
 
-/** Whether an event carries a resource block with a position in it. */
-function positionOf(e: WclEvent): { actor: number; x: number; y: number } | null {
+/**
+ * Whether an event carries a resource block with a position in it.
+ *
+ * Exported for `game/splitGroups.ts`, the one reader outside this module, so the `resourceActor`
+ * convention is read here and nowhere else — a second decoder of index 1 vs index 2 is exactly the
+ * drift the module header warns about.
+ */
+export function positionOf(e: WclEvent): { actor: number; x: number; y: number } | null {
 	const { resourceActor, x, y } = e as WclEvent & { resourceActor?: number; x?: number; y?: number };
 	if (resourceActor === undefined || x === undefined || y === undefined) return null;
 	return { actor: resourceActor, x, y };

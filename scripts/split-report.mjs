@@ -94,7 +94,7 @@ async function main() {
 				console.log(
 					`${label}\n    ${split.kind}  share ${(split.share * 100).toFixed(1)}%` +
 						`  away ${(split.awayMs / 1000).toFixed(1)}s` +
-						`${split.name ? `  ${split.name}` : ''}${windows ? `  ${windows}` : ''}`,
+						`${split.partedYards ? `  parted ${split.partedYards}y` : ''}${split.name ? `  ${split.name}` : ''}${windows ? `  ${windows}` : ''}`,
 				);
 			}
 		}

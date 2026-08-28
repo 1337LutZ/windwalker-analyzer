@@ -44,9 +44,10 @@ describe('the callout', () => {
 				[310_535, 335_950],
 			],
 			awayMs: 43_748,
+			partedYards: null,
 			name: null,
 		});
-		expect(said).toContain('Your raid split up');
+		expect(said).toContain('Tower duty');
 		expect(said).toContain('You went up the towers 2 times');
 		expect(said).toContain('43.7s');
 	});
@@ -54,12 +55,19 @@ describe('the callout', () => {
 	// One run reads as one run, which is the arm the Protection Paladin of `protection/galakras.json`
 	// gets. A count of 1 through the plural arm above would render "the towers 1 times".
 	it('speaks of one tower in the singular', () => {
-		const said = text({ kind: 'towerRuns', share: 0.044, windows: [[280_000, 291_400]], awayMs: 11_400, name: null });
+		const said = text({
+			kind: 'towerRuns',
+			share: 0.044,
+			windows: [[280_000, 291_400]],
+			awayMs: 11_400,
+			partedYards: null,
+			name: null,
+		});
 		expect(said).toContain('You went up a tower');
 		expect(said).not.toContain('times');
 	});
 
-	it('gives the belt its share and its trips', () => {
+	it('names belt duty and says the report is the wrong tool for it', () => {
 		const said = text({
 			kind: 'belt',
 			share: 1,
@@ -68,15 +76,43 @@ describe('the callout', () => {
 				[54_000, 74_000],
 			],
 			awayMs: 30_000,
+			partedYards: null,
 			name: null,
 		});
-		expect(said).toContain('You were on the belt');
-		expect(said).toContain('100%');
-		expect(said).toContain('2 trips');
+		expect(said).toContain('Belt duty');
+		expect(said).toContain('nothing below is a fair read of how you played');
+		expect(said).toContain('the analyzer is not optimised for this');
+	});
+
+	/**
+	 * The measured arm, which is the one the damage share cannot reach.
+	 *
+	 * It leads with the distance and names no boss, so there is no `unnamed` twin of it to keep.
+	 */
+	it('leads with the yards when the pair was measured standing apart', () => {
+		const said = text({
+			kind: 'splitPair',
+			share: 0.593,
+			windows: [],
+			awayMs: 0,
+			partedYards: 170,
+			name: 'Earthbreaker Haromm',
+		});
+		expect(said).toContain('Split bosses');
+		expect(said).toContain('You spent this pull on Earthbreaker Haromm');
+		expect(said).toContain('tanked 170 yards away');
+		expect(said).not.toContain('59%');
 	});
 
 	it('names the boss a split group held, and holds the sentence up without one', () => {
-		const held: SplitGroup = { kind: 'splitPair', share: 0.99, windows: [], awayMs: 0, name: 'Earthbreaker Haromm' };
+		const held: SplitGroup = {
+			kind: 'splitPair',
+			share: 0.99,
+			windows: [],
+			awayMs: 0,
+			partedYards: null,
+			name: 'Earthbreaker Haromm',
+		};
 		expect(text(held)).toContain('Earthbreaker Haromm took 99% of your damage');
 		// The report's actor list names every enemy in its own stream, so the unnamed arm is a guard
 		// rather than an observed case — and a guard that rendered `{{name}}` empty would read as a

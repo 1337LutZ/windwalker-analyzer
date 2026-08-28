@@ -1407,6 +1407,7 @@ export function analyseCore(
 		enemyNPCs: table.fight.enemyNPCs,
 		events,
 		mine,
+		actorID: actor.id,
 		fightStartMs: t0,
 		nameOf: (id) => actorNames.get(id) ?? null,
 	});

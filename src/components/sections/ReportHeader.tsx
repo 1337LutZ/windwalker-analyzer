@@ -9,6 +9,8 @@ import { WCL_REPORT_BASE } from '~/lib/wcl/endpoint';
 import { secondaryButtonClass } from '../primitives/controls';
 import { gradeClass } from '../primitives/grade';
 
+import SplitGroupCallout from '../report/SplitGroupCallout';
+
 import { difficultyLabel } from '../format';
 
 /**
@@ -154,6 +156,19 @@ export default function ReportHeader({ analysis }: { analysis: Analysis }) {
 			>
 				{t('summary.openInLogs')}
 			</a>
+			{/* Directly under the way back to the log, and that is the placement argued for rather than a
+			    slot that happened to be free. The callout says the raid split up and this player went with
+			    the half that walked away — a claim about *which pull this is*, which belongs with the
+			    encounter, the difficulty and the parse rather than beside a control. A reader who doubts it
+			    has the log open one line above, at the same fight and the same source.
+
+			    Renders nothing on a pull the raid fought together, which is every pull on eleven of the
+			    fourteen Siege encounters, so the header keeps its shape. */}
+			{analysis.splitGroup ? (
+				<div className="mt-5">
+					<SplitGroupCallout split={analysis.splitGroup} />
+				</div>
+			) : null}
 		</header>
 	);
 }

@@ -1,5 +1,6 @@
 import { engagedWindows } from '~/lib/analysis/engagement';
 import { type Interval, unionMs } from '~/lib/analysis/intervals';
+import { positionOf, REPLAY_STEP_MS, UNITS_PER_YARD } from '~/lib/analysis/replay';
 import { isDamage, type WclEvent } from '~/lib/events';
 
 import { baseEncounterID } from './rankingExclusions';
@@ -182,12 +183,56 @@ export const AWAY_RUN_MS = 5000;
  * them all on 40–60%.
  *
  * **What this cannot tell apart, and does not claim to.** A player who stayed on one boss all pull while
- * the raid cleaved both is indistinguishable from one whose group had a boss to itself, because a single
- * player's stream holds no evidence about where the *other* boss was. Both readings mean the same thing
+ * the raid cleaved both is indistinguishable from one whose group had a boss to itself, because on those
+ * pulls the stream holds no evidence about where the *other* boss was. Both readings mean the same thing
  * for the grade — this was a single-target pull for them — so the copy says what was measured and lets
  * the reader supply which of the two it was.
+ *
+ * ***And this gate alone misses the clearest split there is, which is why `PARTED_YARDS` exists.*** A
+ * Windwalker's Storm, Earth and Fire spirits can be bound to a target across the room, so a monk whose
+ * body never leaves Haromm can still have two thirds of their damage land on Kardris a hundred and
+ * seventy yards away. Measured on `avbdQAfxzRD7q49Y` fight 22: the player's own hits are 97.2% Haromm,
+ * the spirits are 96% Kardris, and the pair share the two of them add up to is **59.3%** — nowhere near
+ * this line, on a pull whose bosses were never in the same postcode. The two arms are therefore an
+ * `or`, and they fail in opposite directions: this one is blind when the pets reach the far boss, and
+ * the separation is blind when nothing of the player's does.
  */
 export const PAIR_SHARE = 0.9;
+
+/**
+ * How far apart the two bosses have to stand before the pull reads as parted.
+ *
+ * **40 yards, in a gap two orders of magnitude wide.** Measured through the app's own fetch on the
+ * separation between Earthbreaker Haromm and Wavebinder Kardris, sampled once a second off the
+ * positions their own damage events carry:
+ *
+ * ```
+ *   tanked together   median 2y, 3y, 4y, 4y      max 20–43y     four pulls
+ *   pulled apart      median 170y                p25 146y       one pull, 86% of samples over 40y
+ * ```
+ *
+ * The line sits above the worst wobble a stacked pair produces — one of the four touches 43y for a
+ * moment as a boss is repositioned — because the **median** is what it is compared against, and those
+ * four sit at 2 to 4. Nothing measured lands between 43 and 146.
+ */
+export const PARTED_YARDS = 40;
+
+/**
+ * How many paired samples the separation needs before it is worth reading.
+ *
+ * **30, and the reason is that the samples are not spread evenly over the pull.** A boss only appears
+ * in this stream while the player is damaging it, so on a pull where they were taken off the second
+ * boss early, every paired sample comes from the opening seconds — when the two are still standing on
+ * the pull marker together. Measured: three pulls whose player never touched the far boss again after
+ * 23s, 34s and 43s of a 294s, 418s and 295s fight, all reading a median 2–3y from 17 to 34 samples
+ * that describe the first tenth of the pull and nothing after it.
+ *
+ * Those three are the case the share gate above already catches, so the floor costs nothing and stops
+ * this arm from answering a question its samples cannot reach. The pull this arm exists for has 243
+ * samples spanning 3s to 250s of a 251s fight — the spirits were parked on the far boss all pull, so
+ * the coverage is the whole clock.
+ */
+export const MIN_PARTED_SAMPLES = 30;
 
 /**
  * How long a gap in the away set's damage ends one run and starts the next.
@@ -221,10 +266,23 @@ export interface SplitGroup {
 	/** `windows` totalled. Zero for `splitPair`. */
 	awayMs: number;
 	/**
+	 * How far apart the two bosses stood, in yards, when that was measurable and they were parted.
+	 *
+	 * Null for the other two kinds, and null on a `splitPair` found by the damage share alone — which is
+	 * the ordinary case, because a player taken off the second boss stops carrying its position with them.
+	 * A number here is the strong reading: the pair was measured standing apart across the pull.
+	 */
+	partedYards: number | null;
+	/**
 	 * The boss the player held, for `splitPair`. Null for the other two, which have no one enemy to name.
 	 *
 	 * Resolved through the caller's own actor names rather than from the table above, so the report says
 	 * what the log calls it — `enemyNPCs` carries ids and no name at all.
+	 *
+	 * **Taken from the player's own hits, not from the pair share the gate reads.** The share counts the
+	 * pets because a cleave has to; the name answers "which one were you standing on", and a spirit sent
+	 * across the room is not the player standing anywhere. On `avbdQAfxzRD7q49Y` fight 22 the two answers
+	 * differ by boss: the spirits put more damage into Kardris than the monk's body put into Haromm.
 	 */
 	name: string | null;
 }
@@ -255,6 +313,8 @@ export interface SplitGroupInput {
 	 * With the pets counted the same four read 50.3–62.0%, which is what a cleave looks like.
 	 */
 	mine: (sourceID: number | undefined) => boolean;
+	/** The player themself, for the one question `mine` is too wide for — see `SplitGroup.name`. */
+	actorID: number;
 	/** Report-relative ms of the pull's first moment, so the windows come back fight-relative. */
 	fightStartMs: number;
 	/** The report's own actor names. Only `splitPair` asks, and it may answer null. */
@@ -273,7 +333,7 @@ export interface SplitGroupInput {
  * a tower run measured through one would run until the boss died.
  */
 export function detectSplitGroup(input: SplitGroupInput): SplitGroup | null {
-	const { encounterID, enemyNPCs, events, mine, fightStartMs, nameOf } = input;
+	const { encounterID, enemyNPCs, events, mine, actorID, fightStartMs, nameOf } = input;
 	if (encounterID === undefined) return null;
 	const here = baseEncounterID(encounterID);
 
@@ -300,7 +360,7 @@ export function detectSplitGroup(input: SplitGroupInput): SplitGroup | null {
 		// One gate each, and the asymmetry is the encounters rather than an inconsistency. See
 		// `AWAY_RUN_MS`, which is where the pair of them is argued.
 		if (away.kind === 'belt' ? share < AWAY_SHARE : awayMs < AWAY_RUN_MS) return null;
-		return { kind: away.kind, share, windows, awayMs, name: null };
+		return { kind: away.kind, share, windows, awayMs, partedYards: null, name: null };
 	}
 
 	const pair = BOSS_PAIRS.find((rule) => baseEncounterID(rule.encounterID) === here);
@@ -308,23 +368,77 @@ export function detectSplitGroup(input: SplitGroupInput): SplitGroup | null {
 		const sides = pair.gameIDs.map((gameID) => {
 			const ids = actorIDsFor(enemyNPCs, [gameID]);
 			const hits = landed.filter((e) => e.targetID !== undefined && ids.has(e.targetID));
-			return { total: totalOf(hits), actorID: hits[0]?.targetID ?? null };
+			const ownHits = hits.filter((e) => e.sourceID === actorID);
+			return {
+				ids,
+				total: totalOf(hits),
+				own: totalOf(ownHits),
+				stood: ownHits[0]?.targetID ?? hits[0]?.targetID ?? null,
+			};
 		});
 		const both = sides.reduce((sum, side) => sum + side.total, 0);
 		if (both === 0) return null;
-		const held = sides.reduce((most, side) => (side.total > most.total ? side : most));
-		const share = held.total / both;
-		if (share < PAIR_SHARE) return null;
+		const share = Math.max(...sides.map((side) => side.total)) / both;
+
+		// The two arms, and they are an `or` because each is blind where the other sees — the paragraph
+		// on `PAIR_SHARE` carries the pull that proved it.
+		const parted = partedYardsOf(events, sides[0]!.ids, sides[1]!.ids);
+		if (share < PAIR_SHARE && !(parted !== null && parted >= PARTED_YARDS)) return null;
+
+		// Which boss the player *stood on*, which is their own hits and not the pair share. See `name`.
+		const held = sides.reduce((most, side) => (side.own > most.own ? side : most));
 		return {
 			kind: pair.kind,
 			share,
 			windows: [],
 			awayMs: 0,
-			name: held.actorID === null ? null : nameOf(held.actorID),
+			partedYards: parted !== null && parted >= PARTED_YARDS ? Math.round(parted) : null,
+			name: held.stood === null ? null : nameOf(held.stood),
 		};
 	}
 
 	return null;
+}
+
+/**
+ * The median distance between two enemies while both were being damaged, in yards, or null.
+ *
+ * **Read through `analysis/replay.ts`'s own decoder, never a second one.** `resourceActor` is `1` for
+ * the event's source and `2` for its target, and a module that re-decoded that convention is the drift
+ * `replay.ts`' header warns about — so `positionOf` is imported rather than re-written, and the yard
+ * scale with it.
+ *
+ * Sampled onto the same one-second grid the replay uses, so two enemies hit a fraction of a second apart
+ * are compared where they both were rather than dropped for not sharing a millisecond. The **median** and
+ * not the mean, because a boss being repositioned drags a mean through a distance neither of them held.
+ *
+ * Null when the pull produced fewer than `MIN_PARTED_SAMPLES` moments with both in it — see that constant
+ * for why a thin sample here is not a small sample but a *biased* one.
+ */
+function partedYardsOf(events: readonly WclEvent[], a: Set<number>, b: Set<number>): number | null {
+	const track = (ids: Set<number>): Map<number, [number, number]> => {
+		const out = new Map<number, [number, number]>();
+		for (const e of events) {
+			if (!isDamage(e) || e.targetID === undefined || !ids.has(e.targetID)) continue;
+			const at = positionOf(e);
+			// Index 2 is the target's own position, which is the enemy — the only half of the block that
+			// says where a boss stood.
+			if (at === null || at.actor !== 2) continue;
+			out.set(Math.floor(e.timestamp / REPLAY_STEP_MS), [at.x, at.y]);
+		}
+		return out;
+	};
+
+	const first = track(a);
+	const second = track(b);
+	const gaps: number[] = [];
+	for (const [step, here] of first) {
+		const there = second.get(step);
+		if (there !== undefined) gaps.push(Math.hypot(here[0] - there[0], here[1] - there[1]) / UNITS_PER_YARD);
+	}
+	if (gaps.length < MIN_PARTED_SAMPLES) return null;
+	gaps.sort((x, y) => x - y);
+	return gaps[Math.floor(gaps.length / 2)] ?? null;
 }
 
 /** The report's own actor numbers for a set of game ids — the same resolution every rule table needs. */

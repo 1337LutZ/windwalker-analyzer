@@ -14,7 +14,14 @@ import { rawFixture, rawFixtures } from '~/lib/analysis/fixtures';
 import type { WclEvent } from '~/lib/events';
 import type { FightDataset } from '~/lib/types';
 
-import { AWAY_RUN_MS, AWAY_SHARE, detectSplitGroup, PAIR_SHARE } from '../splitGroups';
+import {
+	AWAY_RUN_MS,
+	AWAY_SHARE,
+	detectSplitGroup,
+	MIN_PARTED_SAMPLES,
+	PAIR_SHARE,
+	PARTED_YARDS,
+} from '../splitGroups';
 
 const GALAKRAS = 51_622;
 const DARK_SHAMAN = 51_606;
@@ -40,6 +47,46 @@ const PET = 2;
 const hit = (targetID: number, timestamp: number, amount: number, sourceID = PLAYER): WclEvent =>
 	({ type: 'damage', timestamp, sourceID, targetID, amount }) as WclEvent;
 
+/**
+ * A hit that also says where the target stood, at 100 units to the yard.
+ *
+ * `resourceActor: 2` is the target's half of the resource block — the convention `analysis/replay.ts`
+ * owns and this suite writes rather than restates, so a change to that decoder fails here too.
+ */
+const hitAt = (targetID: number, timestamp: number, yardsX: number, sourceID = PLAYER): WclEvent =>
+	({
+		type: 'damage',
+		timestamp,
+		sourceID,
+		targetID,
+		amount: 100,
+		resourceActor: 2,
+		x: yardsX * 100,
+		y: 0,
+	}) as WclEvent;
+
+/**
+ * `avbdQAfxzRD7q49Y` fight 22 in miniature: the player's body on one boss, their spirits on the other.
+ *
+ * The proportions are the measured ones — the monk's own hits are 97.2% Haromm and the spirits are 96%
+ * Kardris, so the **pair share is 59.3%**, well under `PAIR_SHARE`. That is the point of the shape: any
+ * finding here has to come from the separation, because the damage gate is nowhere near firing. `paired`
+ * is how many moments carry a position for both, which is the only thing the three cases vary.
+ */
+function pairedPull(paired: number, yards = 170): WclEvent[] {
+	const events: WclEvent[] = [];
+	for (let i = 0; i < paired; i += 1) {
+		events.push(hitAt(HAROMM, i * 1000, 0, PLAYER));
+		events.push(hitAt(KARDRIS, i * 1000 + 200, yards, PET));
+	}
+	// The bulk of the damage, with no positions on it: 77 to the player's boss, 54 to the spirits'.
+	for (let i = 0; i < 200; i += 1) {
+		events.push(hit(HAROMM, i * 1000 + 400, 77_000, PLAYER));
+		events.push(hit(KARDRIS, i * 1000 + 600, 54_000, PET));
+	}
+	return events;
+}
+
 /** A run of hits a second apart, so a window has a length rather than a point. */
 function run(targetID: number, from: number, to: number, amount: number, sourceID = PLAYER): WclEvent[] {
 	const out: WclEvent[] = [];
@@ -60,6 +107,7 @@ function pull(encounterID: number, gameIDs: readonly number[], events: readonly 
 		enemyNPCs: gameIDs.map((gameID) => ({ id: gameID, gameID })),
 		events,
 		mine: (sourceID: number | undefined) => sourceID === PLAYER || sourceID === PET,
+		actorID: PLAYER,
 		fightStartMs: 0,
 		nameOf: (id: number) => `NPC ${id}`,
 	};
@@ -74,6 +122,7 @@ function onFixture(dataset: FightDataset) {
 		enemyNPCs: dataset.table.fight.enemyNPCs,
 		events: dataset.events,
 		mine: (sourceID) => sourceID !== undefined && (sourceID === dataset.actor.id || pets.has(sourceID)),
+		actorID: dataset.actor.id,
 		fightStartMs: dataset.fight.startTime,
 		nameOf: (id) => names.get(id) ?? null,
 	});
@@ -173,6 +222,43 @@ describe('Kor’kron Dark Shaman — the two bosses pulled apart', () => {
 		expect(found?.share).toBeGreaterThan(PAIR_SHARE);
 		// A whole-pull fact, not an excursion: there is no stretch of it to point at.
 		expect([found?.windows, found?.awayMs]).toEqual([[], 0]);
+	});
+
+	/**
+	 * The pull the whole separation arm exists for, in miniature.
+	 *
+	 * On `avbdQAfxzRD7q49Y` fight 22 the monk's own hits are 97.2% Earthbreaker Haromm while their Storm,
+	 * Earth and Fire spirits put 96% of their damage into Wavebinder Kardris — a hundred and seventy
+	 * yards away, measured. The pair share those two add up to is 59.3%, so the damage gate alone calls a
+	 * raid that plainly split the bosses "fought together". The two bosses standing apart is the fact the
+	 * gate cannot see, and the one the reader was asking about.
+	 */
+	it('finds a split the damage share hides, when the two were measured standing apart', () => {
+		const events = pairedPull(MIN_PARTED_SAMPLES + 5);
+		const found = detectSplitGroup(pull(DARK_SHAMAN, [HAROMM, KARDRIS], events));
+		expect(found?.kind).toBe('splitPair');
+		expect(found?.share).toBeLessThan(PAIR_SHARE);
+		expect(found?.partedYards).toBe(170);
+		// The name is where the player's *body* was, which the pair share disagrees with here.
+		expect(found?.name).toBe(`NPC ${HAROMM}`);
+	});
+
+	/**
+	 * The bias `MIN_PARTED_SAMPLES` is for, not merely a small sample.
+	 *
+	 * A player taken off the second boss early carries its position only for those first seconds — when
+	 * the two are still on the pull marker together. Three measured pulls stop at 23s, 34s and 43s of
+	 * fights lasting 294s, 418s and 295s. Under the floor this arm declines to answer, and the damage
+	 * share is what catches those pulls.
+	 */
+	it('declines to read a separation from too few paired moments', () => {
+		const events = pairedPull(MIN_PARTED_SAMPLES - 1);
+		expect(detectSplitGroup(pull(DARK_SHAMAN, [HAROMM, KARDRIS], events))).toBeNull();
+	});
+
+	it('reads a pair standing together as together, however long it watches them', () => {
+		// Inside the line, which is where four measured stacked pulls sit at a median of 2 to 4 yards.
+		expect(detectSplitGroup(pull(DARK_SHAMAN, [HAROMM, KARDRIS], pairedPull(200, PARTED_YARDS - 5)))).toBeNull();
 	});
 
 	/**

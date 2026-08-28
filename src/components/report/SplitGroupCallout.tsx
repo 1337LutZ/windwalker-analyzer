@@ -19,6 +19,18 @@ const COPY: Record<SplitGroupKind, string> = {
 };
 
 /**
+ * And one title each, because the three are not one event.
+ *
+ * Written out for the same reason the bodies are — a key built from a variable is invisible to
+ * `keys.test.ts` in both directions.
+ */
+const TITLE: Record<SplitGroupKind, string> = {
+	towerRuns: 'splitGroup.title_towerRuns',
+	belt: 'splitGroup.title_belt',
+	splitPair: 'splitGroup.title_splitPair',
+};
+
+/**
  * What the raid did to this pull, said before any of it is graded.
  *
  * **Nothing below is suppressed because of it, and no figure moves.** A belt team's four minutes of
@@ -39,7 +51,7 @@ export default function SplitGroupCallout({ split }: { split: SplitGroup | null 
 	if (!split) return null;
 
 	return (
-		<Callout tone="brew" title={t('splitGroup.title')}>
+		<Callout tone="brew" title={t(TITLE[split.kind])}>
 			<p className="m-0">
 				{t(COPY[split.kind], {
 					// The excursion count, and i18next's plural selector in the same value: one tower run and
@@ -48,9 +60,18 @@ export default function SplitGroupCallout({ split }: { split: SplitGroup | null 
 					// `percent` divides by a hundred, so the share arrives as 0-100 like every other one.
 					share: split.share * 100,
 					away: split.awayMs,
-					// Only `splitPair` names an enemy, and only when the report's actor list could name it —
-					// the context arm is what the sentence falls back to rather than an empty `{{name}}`.
-					...(split.name === null ? { context: 'unnamed' } : { name: split.name }),
+					yards: split.partedYards ?? 0,
+					// Two readings, each with a fallback for the enemy the actor list could not name. `parted` is
+					// the measured one — the pair was seen standing apart — and it leads with the boss the
+					// player stood on; the other leads with the share. Every arm falls back to a context rather
+					// than rendering an empty `{{name}}`, which reads as a sentence with a word missing.
+					...(split.partedYards !== null
+						? split.name === null
+							? { context: 'partedUnnamed' }
+							: { context: 'parted', name: split.name }
+						: split.name === null
+							? { context: 'unnamed' }
+							: { name: split.name }),
 				})}
 			</p>
 		</Callout>
