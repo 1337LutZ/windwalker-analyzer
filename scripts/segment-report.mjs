@@ -64,6 +64,43 @@ const DIFFICULTY = { 1: 'LFR', 3: 'Normal', 4: 'Heroic', 5: 'Mythic' };
 /** Share of the pull each mode holds, in the order a reader scans them. */
 const MODES = ['single', 'cleave', 'aoe', 'mixed', 'idle'];
 
+/**
+ * One glyph per mode, ordered by ink so the bar reads as a density.
+ *
+ * Deliberately not arbitrary symbols: idle is nearly blank, single is light, and the fill thickens with
+ * the target count until `aoe` is solid. A reader can see where the pull got busy without consulting the
+ * legend, and `mixed` sits between `cleave` and `aoe` because that is where its counts sat.
+ */
+const GLYPH = { idle: '·', single: '░', cleave: '▒', mixed: '▓', aoe: '█' };
+
+const BAR_WIDTH = 72;
+
+/**
+ * The pull as one horizontal strip, each cell a proportional slice of the clock.
+ *
+ * **A segment shorter than a cell still gets one.** Rounding both bounds to the same cell would erase it,
+ * and a segment the derivation bothered to emit is exactly what somebody reading this wants to see — the
+ * eight-second floor means a short one is at the floor, which is the interesting case. It borrows the
+ * cell from its neighbour, which costs a fraction of a second of width and keeps the count honest.
+ */
+function bar(segments, durationMs) {
+	if (durationMs <= 0) return '';
+	const cells = Array.from({ length: BAR_WIDTH }, () => ' ');
+	for (const segment of segments) {
+		const from = Math.min(BAR_WIDTH - 1, Math.round((segment.startMs / durationMs) * BAR_WIDTH));
+		const to = Math.max(from + 1, Math.round((segment.endMs / durationMs) * BAR_WIDTH));
+		for (let i = from; i < Math.min(to, BAR_WIDTH); i++) cells[i] = GLYPH[segment.mode] ?? '?';
+	}
+	return cells.join('');
+}
+
+/** The strip with a clock under each end, so the width means something. */
+function barBlock(segments, durationMs) {
+	const end = clock(durationMs);
+	const ruler = `0:00${' '.repeat(Math.max(1, BAR_WIDTH - 4 - end.length))}${end}`;
+	return ['```', bar(segments, durationMs), ruler, '```', ''];
+}
+
 function modeTotals(segments, durationMs) {
 	const held = new Map();
 	for (const segment of segments) {
@@ -125,6 +162,14 @@ async function main() {
 			'pull holding one target-count mode, after the floor and the hysteresis have had their say.',
 			'`dominance` is the share of the segment actually spent in its own mode; a low one is why a span',
 			'reads `mixed`.',
+			'',
+			`Each pull is drawn as a strip ${BAR_WIDTH} cells wide, one cell per equal slice of the clock:`,
+			'',
+			`- \`${GLYPH.idle}\` idle — nothing was being damaged`,
+			`- \`${GLYPH.single}\` single`,
+			`- \`${GLYPH.cleave}\` cleave — two enemies`,
+			`- \`${GLYPH.mixed}\` mixed — no count held the span`,
+			`- \`${GLYPH.aoe}\` aoe — three or more`,
 			'',
 		];
 
@@ -202,6 +247,7 @@ async function main() {
 				}
 
 				lines.push(
+					...barBlock(segments, analysis.durationMs),
 					'| # | from | to | length | mode | dominance |',
 					'| --: | --- | --- | --: | --- | --: |',
 					...segments.map(
