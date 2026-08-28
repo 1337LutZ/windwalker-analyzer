@@ -45,6 +45,18 @@ export function specRoute(spec: SpecDefinition): string {
 }
 
 /**
+ * Where one spec's compare page lives — the same route with `compare` on the end.
+ *
+ * Beside `specRoute` and built from the same `BASE` rather than joined onto its result, so neither can
+ * pick up a second prefix if the deployment's base ever changes shape. The two pages link to each other
+ * from the header (`Analyzer`), and a reader who reached one from a bookmark should not have to go back
+ * to the landing page to find the other.
+ */
+export function compareRoute(spec: SpecDefinition): string {
+	return `${BASE}/${spec.classSlug}/${spec.key}/compare`;
+}
+
+/**
  * The query a picked link carries over, less the `?spec=` the path now answers.
  *
  * Dropped rather than passed on so that an address never names a spec twice. The two can disagree —

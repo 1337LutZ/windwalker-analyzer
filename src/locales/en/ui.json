@@ -20,7 +20,9 @@
 			"body": "It used to live at one address per spec, and now serves both from here. Your WarcraftLogs API client still points at the old address, so sign-in will fail until you add the one below to it. Adding it is enough — nothing has to be removed, and one entry covers every spec.",
 			"uri": "Redirect URI to add",
 			"dismiss": "Got it"
-		}
+		},
+		"toCompare": "Compare two pulls",
+		"toReport": "Read a single pull"
 	},
 	"steps": {
 		"signIn": "Sign in to WarcraftLogs",

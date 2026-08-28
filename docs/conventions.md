@@ -486,7 +486,7 @@ copy itself follows — say it once, outside the arms.
      src/lib/i18n/__tests__/conventionsCensus.test.ts. Re-run the block above and paste the whole set
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
-As of the analysis mode on the sticky bar, it prints 1746 leaves, 831 prose, 27,530
+As of the link between each spec's two pages, it prints 1748 leaves, 831 prose, 27,530
 words; median 27, p75 45, p90 65, p95 78, p99 110, max 204; longest 9% carry 24%; report.json 753 prose
 leaves, 1,341 sentences, median 17, 286 past 25 (21.3%), 293 em-dashes in 252 sentences (18.8%);
 71 / 30 / 1 / 2 on the quote lines.
@@ -496,6 +496,13 @@ headings, a table caption and one line of prose, added when the Method section's
 grew a give-or-take beside each fight. Headings are one or two words, so they lift the leaf count without
 touching the median string length or any of the percentiles — which is what a table of labels should do
 to a corpus, and a useful contrast with the rotation pass above it.
+
+Two leaves and no prose at all in the pass after that: `app.toCompare` and `app.toReport`, the header
+link each of a spec's two pages carries to the other. Both are three-word button labels, so they lift the
+leaf count and touch neither the prose count nor any percentile — the same signature the table of column
+headings above has, and the reason the two counts are kept apart. The pair also has to stay spelled out
+at the call site rather than reached through the function that picks the address, because `keys.test.ts`
+reads copy off a literal inside `t('…')` and would have deleted both as copy nothing asks for.
 
 One leaf and thirteen words in the pass after that, when the analysis mode joined the target mode on the
 sticky bar. The block control's hint is split around a link and cannot be reused by a popup that closes on
