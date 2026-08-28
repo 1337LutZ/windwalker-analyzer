@@ -681,6 +681,7 @@ describe('report copy with no reader', () => {
 				'ascendance-up-at-the-pull',
 				'no-two-piece-evidence',
 				'nothing-to-hit',
+				'pressed-in-aoe',
 				'pull-ends-too-soon',
 				't16-2pc-not-in-log',
 			],
@@ -1096,7 +1097,7 @@ describe('report copy with no reader', () => {
 	 */
 	const FAMILY_LEAVES: Record<string, number> = {
 		'ascendance.read.fault.*': 5,
-		'ascendance.read.reason.*': 5,
+		'ascendance.read.reason.*': 6,
 		'castLog.resource.*': 7,
 		'castLog.resourceAria.*': 7,
 		'castLog.target.*': 3,

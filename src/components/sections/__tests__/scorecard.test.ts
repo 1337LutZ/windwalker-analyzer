@@ -119,17 +119,23 @@ describe('the scorecard grid', () => {
 		// are not.
 		//
 		// **And neither end is decided by `headroom` any more**, because the Elemental spec names two
-		// sections that lead their grade group — see `SpecTakeaways.lead`. Ascendance is `bad` on this pull
-		// and leads the reds; Fire Elemental is `good` and leads the greens, which puts Searing Totem last.
-		// The letter is still the first key: every red card sits above every green one either way.
+		// sections that lead their grade group — see `SpecTakeaways.lead`. The letter is still the first
+		// key: every red card sits above every amber one and every amber above every green.
+		//
+		// **Ascendance has crossed the board and that is the AoE exemption.** It was `bad` here and led the
+		// reds; its one faulted press was made where the AoE list was in force, so it is exempt,
+		// `ascendanceLatePresses` reads zero and all four of the section's metrics are `good`. It leads the
+		// greens now instead — above Fire Elemental, the other led section — which is the same rule seen
+		// from the other end of the card. `casts` is the only red left and takes the head of the grid.
 		const drawn = cards(html(fixture('cleave')));
-		expect(drawn[0]).toBe('Ascendance');
+		expect(drawn[0]).toBe('Casts per minute');
 		expect(drawn.at(-1)).toBe('Searing Totem');
 		// The claim the two assertions above cannot make on their own: leading is *inside* a group. Flame
-		// Shock is the largest miss on this pull by `headroom` and still sits under Ascendance, while Fire
-		// Elemental — the other led section — sits below every red card rather than above them.
-		expect(drawn.indexOf('Ascendance')).toBeLessThan(drawn.indexOf('Flame Shock'));
-		expect(drawn.indexOf('Flame Shock')).toBeLessThan(drawn.indexOf('Fire Elemental'));
+		// Shock is the largest miss on this pull by `headroom` and sits above Ascendance because it is
+		// amber and Ascendance is green — and Ascendance still sits above Fire Elemental and Searing Totem,
+		// which is `lead` working inside the group rather than across the grid.
+		expect(drawn.indexOf('Flame Shock')).toBeLessThan(drawn.indexOf('Ascendance'));
+		expect(drawn.indexOf('Ascendance')).toBeLessThan(drawn.indexOf('Fire Elemental'));
 		// Non-vacuity: an order over one card is not an order.
 		expect(drawn.length).toBeGreaterThan(4);
 	});

@@ -1729,6 +1729,7 @@
       "reason": {
         "ascendance-up-at-the-pull": "Already running at the pull, so this press is not in your log",
         "nothing-to-hit": "Nothing was in reach when this press was due, so it cannot be read either way",
+        "pressed-in-aoe": "Pressed in AoE, where the priority list drops Earth Shock — so there was no proc to pair it with, and nothing here counts against you",
         "no-two-piece-evidence": "No tier-16 two-piece in your gear, so there was no proc to pair it with",
         "t16-2pc-not-in-log": "Your tier-16 two-piece never procced on this pull, so there was nothing to pair it with",
         "pull-ends-too-soon": "Less pull left than the pairing needs — nothing you could press would have met it"

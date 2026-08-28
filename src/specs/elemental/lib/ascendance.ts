@@ -463,6 +463,19 @@ export type AscendanceReason =
 	| 'ascendance-up-at-the-pull'
 	/** Nothing was reachable when the press had to be made, so it could not have bought anything. */
 	| 'nothing-to-hit'
+	/**
+	 * The press landed where the AoE list was in force, and that list has no Earth Shock rung.
+	 *
+	 * Entry 15 asks the press to sync with Elemental Discharge, and Elemental Discharge is *bought* —
+	 * Fulmination applies it, two seconds per Lightning Shield charge spent. `aoe.apl.json` never spends
+	 * the shield, so above two enemies there is no Fulmination to press and therefore no debuff to sync
+	 * against. Faulting the press for a short one charges the player for following the list.
+	 *
+	 * The audit already answers this everywhere else: `dischargeScoredMs` is measured over the graded
+	 * clock precisely so the absence is not counted there either. This is that same exemption, reaching
+	 * the one rule it had not.
+	 */
+	| 'pressed-in-aoe'
 	/** The caller established the player does not have the two-piece, so entry 15 does not apply. */
 	| 'no-two-piece-evidence'
 	/** The two-piece rule applies and the pull carries no Elemental Discharge at all to sync against. */
@@ -649,6 +662,21 @@ export interface AscendanceSyncInput {
 	 */
 	t16TwoPieceWindows: readonly Window[] | null;
 	/**
+	 * The stretches no one-or-two-target rule was asked over — the core's `exemptWindows`, verbatim.
+	 *
+	 * **Handed over rather than re-derived, which is the whole of why this is a field and not a count
+	 * series.** "Was the AoE list in force here" already has one answer in this tree: the segmentation
+	 * the core cuts, which every graded clock in the audit is cut with. A second derivation inside this
+	 * module — a target count, a threshold, a tail trim — would be free to disagree with the greyed
+	 * stretches the reader is looking at on the charts, and a press exempted on one chart and faulted on
+	 * another is the worst of both readings.
+	 *
+	 * Required rather than optional, because `[]` is a claim the core can always make and it is the
+	 * right one: this pull held no stretch the AoE list governed, so no press can be exempt for it. An
+	 * optional field would let a caller that simply forgot look identical to a single-target pull.
+	 */
+	exemptWindows: readonly Interval[];
+	/**
 	 * Skull Banner as this player received it, one entry per caster — rules 3 and 4's only input.
 	 *
 	 * **Optional, and its absence is silence.** `undefined` is the state this module ships in until
@@ -678,9 +706,15 @@ function contactStart(contact: readonly Interval[]): number | null {
 	return contact[0]?.[0] ?? null;
 }
 
-/** Whether an instant fell inside any contact segment. */
-function inContact(contact: readonly Interval[], t: number): boolean {
-	return contact.some(([start, end]) => t >= start && t <= end);
+/**
+ * Whether an instant fell inside any of a list of spans.
+ *
+ * Two callers with two subjects — the contact clock and the exempt stretches — and one predicate, so
+ * the name is the predicate rather than either subject. Closed at both ends, which is what "the press
+ * was in this stretch" means for an instant read against a stretch the audit published.
+ */
+function within(spans: readonly Interval[], t: number): boolean {
+	return spans.some(([start, end]) => t >= start && t <= end);
 }
 
 const GRADE_ORDER = { none: 0, good: 1, bad: 2 } as const;
@@ -742,6 +776,7 @@ export function ascendanceSync(input: AscendanceSyncInput): AscendanceSyncVerdic
 		contact,
 		durationMs,
 		t16TwoPieceWindows,
+		exemptWindows,
 		skullBannerWindows,
 	} = input;
 
@@ -892,7 +927,7 @@ export function ascendanceSync(input: AscendanceSyncInput): AscendanceSyncVerdic
 		//     for its timing. Folded into this condition rather than hoisted above it, so the order of
 		//     the refusals — and the reason a real press comes back with — is exactly what §39 settled.
 		const readyAtMs = (ascendanceCasts[index - 1] ?? 0) + ASCENDANCE_COOLDOWN_MS;
-		if (wastedMs !== null && readyAtMs <= lastFittingPressMs && inContact(contact, t)) {
+		if (wastedMs !== null && readyAtMs <= lastFittingPressMs && within(contact, t)) {
 			return {
 				t,
 				rule,
@@ -909,6 +944,17 @@ export function ascendanceSync(input: AscendanceSyncInput): AscendanceSyncVerdic
 			};
 		}
 
+		// **First of the arm's refusals, and ahead of every question about the set.** The others ask what
+		// the *player* had — a two-piece, a discharge, enough pull left, something in front of them — and
+		// this one asks whether entry 15 was a rule here at all. Above two enemies it is not: the AoE list
+		// spends no shield, so no Fulmination, so no debuff, and a press made under that list cannot be
+		// held to a sync the list never offered. Asked before `t16-2pc-not-in-log` deliberately — a pull
+		// fought entirely in AoE carries no discharge *because* of the list, and reporting that as "the
+		// set never procced" would name the symptom and hide the cause.
+		//
+		// Only this arm. Rule 1's opener bound, rule 2's window and rule 3's banner ask nothing of the
+		// shock and are unmoved: an opener pressed late is late in AoE too.
+		if (within(exemptWindows, t)) return none('pressed-in-aoe');
 		if (t16TwoPieceWindows === null) return none('no-two-piece-evidence');
 		if (t16TwoPieceWindows.length === 0) return none('t16-2pc-not-in-log');
 		// Nothing the player did could have met a ten-second demand with less than ten seconds of pull
@@ -916,7 +962,7 @@ export function ascendanceSync(input: AscendanceSyncInput): AscendanceSyncVerdic
 		if (durationMs - t < limitMs) return none('pull-ends-too-soon');
 		// An instant, not a window: a later press is a moment in the pull, and asking whether the player
 		// was in contact at it is the honest question for a moment.
-		if (!inContact(contact, t)) return none('nothing-to-hit');
+		if (!within(contact, t)) return none('nothing-to-hit');
 
 		// Zero when the press found no discharge at all, which is the fault entry 15 describes rather
 		// than a missing measurement: the set is in evidence, so Fulmination was the player's to press.

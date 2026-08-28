@@ -559,10 +559,15 @@ describe('the dot’s own timeline, off the spawn the press was aimed at', () =>
 			// which is why every pull below overrides this key except `cleave`. The base value is `cleave`'s:
 			// 89.18% under Blackfuse's p50 of 92.32.
 			casts: 'bad',
-			// The cooldown's own section, four rules. `bad` on the two pulls whose second press found too
-			// little Elemental Discharge, `good` on `unbroken`, and `ok` on `addsThenBoss` — where every press
-			// came back refused, so `section()` parks at `ok` with nothing decided.
-			ascendance: 'bad',
+			// The cooldown's own section, four rules. `bad` on `phased`, whose second press found too little
+			// Elemental Discharge; `good` on `unbroken` and on `cleave`; and `ok` on `addsThenBoss` — where
+			// every press came back refused, so `section()` parks at `ok` with nothing decided.
+			//
+			// The base is `cleave`'s and it reads `good` since the AoE exemption: that pull's second press
+			// was made where the AoE list was in force, and the discharge entry 15 wanted is one that list
+			// never buys. `phased`, which has no exempt stretch at all, is the only committed pull still
+			// carrying the fault, and overrides below.
+			ascendance: 'good',
 		};
 		// `addsThenBoss` never laid a Searing Totem, so its totem letter is `bad` off nought per cent and
 		// its judged weight is one higher than the other three. Nothing here aimed a dot at either.
@@ -617,6 +622,7 @@ describe('the dot’s own timeline, off the spawn the press was aimed at', () =>
 				fireElemental: 'good',
 				lightningShield: 'bad',
 				casts: 'good',
+				ascendance: 'bad',
 			},
 			flameShockWaste: 'ok',
 			gcdUtilisation: 'good',
@@ -633,7 +639,6 @@ describe('the dot’s own timeline, off the spawn the press was aimed at', () =>
 				fireElemental: 'good',
 				lightningShield: 'good',
 				casts: 'ok',
-				ascendance: 'good',
 			},
 			flameShockWaste: 'bad',
 			gcdUtilisation: 'ok',

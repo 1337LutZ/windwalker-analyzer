@@ -366,7 +366,11 @@ describe('a declared scope is not asked of a pull outside it', () => {
 		// not. The line it falls short of has moved and the card has not: the fixed 95/90 became Blackfuse's
 		// own p90/p50 of 95.01/92.32, over the five kills the reference holds for that fight, and 89.18% is
 		// under both. The whole-pull letter is unmoved — the six are still under the floor.
-		expect(panel('cleave', 'multi')).toEqual(['gcdUtilisation', 'ascendanceLatePresses', 'lightningShieldFellOff']);
+		// `ascendanceLatePresses` has left this panel: `cleave`'s late press was pressed where the AoE list
+		// was in force, so it is exempt rather than faulted and the metric reads zero. That is the exemption
+		// working on the pull it was written for — a card telling a shaman to hold Ascendance for a proc the
+		// list he was playing never buys.
+		expect(panel('cleave', 'multi')).toEqual(['gcdUtilisation', 'lightningShieldFellOff']);
 		// **`phased`'s panel was empty, then held two, and holds one again — and the middle state is the one
 		// that was wrong.** `gcdUtilisation` earned a card at 94.44% only because the fixed `good` line was
 		// 95, half a point above it, on every fight in the tier. Iron Juggernaut's own p90 is 94.16 over the

@@ -136,6 +136,10 @@ function buildPull(name: string): { input: AscendanceSyncInput; analysis: Analys
 			contact: (analysis.timeline?.contactSegments ?? []).map(([start, end]): Interval => [start, end]),
 			durationMs: analysis.durationMs,
 			t16TwoPieceWindows: discharge,
+			// The audit's own published exempt series, which is what the wiring hunk hands over — not a
+			// second reading of the same question built here. `lightningShield.exemptWindows` is the core's
+			// array in `Window` shape, so this is only the shape change back.
+			exemptWindows: analysis.lightningShield.exemptWindows.map(({ start, end }): Interval => [start, end]),
 		},
 	};
 }
@@ -275,14 +279,17 @@ describe('the committed anonymous pulls', () => {
 		}
 	});
 
-	it('faults the second press on the two pulls where the pull had time left', () => {
-		// `phased` presses again at 196.2s with 62.1s of pull left, `cleave` at 184.2s with 79.0s left.
-		// Neither has any Elemental Discharge up at all — both fall between debuff windows — so the sync
-		// entry 15 asks for was simply not attempted.
-		for (const [name, t] of [
-			['phased', 196_197],
-			['cleave', 184_240],
-		] as const) {
+	it('faults the second press on the one pull that had time left and was not in AoE', () => {
+		// `phased` presses again at 196.2s with 62.1s of pull left and no Elemental Discharge up at all —
+		// it falls between debuff windows — so the sync entry 15 asks for was simply not attempted.
+		//
+		// **This used to sweep `cleave` too, and that pull is the AoE exemption's first real subject.**
+		// Its second press at 184.2s has the identical shape — 79.0s left, no discharge — and sits inside
+		// `175 925 – 205 085`, a stretch the core marked exempt. The list being played there has no Earth
+		// Shock rung, so the discharge it is short of is one that list never buys. The case below is that
+		// press; the two are kept apart because they are two different findings that happened to produce
+		// one sentence.
+		for (const [name, t] of [['phased', 196_197]] as const) {
 			const { input } = pull(name);
 			expect(input.durationMs - t).toBeGreaterThan(T16_2PC_SYNC_MIN_MS);
 			expect(ascendanceSync(input).presses[1]).toEqual({
@@ -294,8 +301,8 @@ describe('the committed anonymous pulls', () => {
 				dischargeRemainingMs: 0,
 				syncStartMs: null,
 				limitMs: 10_000,
-				// 62.1s and 79.0s of pull left, so the fifteen seconds fitted and rule 2 is silent on
-				// both. The fault here is the sync's, exactly as before the rule existed.
+				// 62.1s of pull left, so the fifteen seconds fitted and rule 2 is silent. The fault here is
+				// the sync's, exactly as before the rule existed.
 				wastedMs: null,
 				// Unwired, as above — and worth having on the press rules 3 and 4 could both reach, because
 				// the `Skull Banner` suite below shows both of them *pass* on this press once the argument
@@ -335,6 +342,37 @@ describe('the committed anonymous pulls', () => {
 		});
 	});
 
+	it('exempts a second press made where the AoE list was in force', () => {
+		// `cleave` presses again at 184 240 of a 263 233 ms pull — 79.0s left, so rule 2 is silent — and
+		// finds no Elemental Discharge at all. Read on entry 15 alone that is `discharge-too-short` at
+		// zero, which is what this pull used to report.
+		//
+		// It is inside `175 925 – 205 085`, one of the four stretches the core marks exempt on this pull,
+		// and the list in force there spends no Lightning Shield: no Fulmination, no debuff, nothing for
+		// the press to have synced with. The press is exempt and the pull's grade goes with it — see the
+		// roll-up below.
+		const { input } = pull('cleave');
+		expect(input.durationMs - 184_240).toBeGreaterThan(T16_2PC_SYNC_MIN_MS);
+		expect(input.exemptWindows.some(([start, end]) => 184_240 >= start && 184_240 <= end)).toBe(true);
+		expect(ascendanceSync(input).presses[1]).toEqual({
+			t: 184_240,
+			rule: 't16-2pc',
+			grade: 'none',
+			reason: 'pressed-in-aoe',
+			delayMs: null,
+			// Null and not zero, which is the difference between the two readings of this press. Zero was
+			// entry 15's measurement — "the set is yours and you found none of it" — and the exemption is
+			// the claim that entry 15 was never asked, so there is no measurement to report.
+			dischargeRemainingMs: null,
+			syncStartMs: null,
+			limitMs: 10_000,
+			wastedMs: null,
+			bannerOverlapMs: null,
+			secondBannerOverlapMs: null,
+			secondBannerSynced: null,
+		});
+	});
+
 	it('rolls the pull up to its worst gradeable press', () => {
 		// `unbroken` is a good opener plus one exempt press, so the pull is good; two others carry a
 		// real fault and are bad. An exemption must not drag a pull down and must not lift one up.
@@ -348,7 +386,11 @@ describe('the committed anonymous pulls', () => {
 		// `fightEnd - 15s` comparison.
 		expect(ascendanceSync(pull('unbroken').input).grade).toBe('good');
 		expect(ascendanceSync(pull('phased').input).grade).toBe('bad');
-		expect(ascendanceSync(pull('cleave').input).grade).toBe('bad');
+		// `cleave` was `bad` here until the AoE exemption, and it is the one committed pull whose headline
+		// the exemption moves. Its only faulted press was the second, faulted for a discharge the list it
+		// was pressed under never buys; with that press exempt the pull is a good opener and nothing else,
+		// which is `good`. The case above is that press.
+		expect(ascendanceSync(pull('cleave').input).grade).toBe('good');
 		// And the fourth, which is the case the reduce's `'none'` seed was written for and had never been
 		// reached by a committed pull: every press exempt, so the pull has not failed to take a chance it
 		// never had. A pull-level `none` on real data.
@@ -402,10 +444,16 @@ describe('the committed anonymous pulls', () => {
 		const { input } = pull('addsThenBoss');
 		expect(input.t16TwoPieceWindows).toBeNull();
 		const { presses } = ascendanceSync(input);
+		// Two of the three now come back `'pressed-in-aoe'` instead, and the reason each does is the
+		// arm's order rather than the pull's gear: 173 985 sits in `157 638 – 198 754` and 395 244 in
+		// `391 217 – 456 468`, both stretches the core marked exempt, and the AoE refusal is asked before
+		// the set is consulted. The last press at 539 625 is past the final exempt stretch (which closes
+		// at 456 468), so it is still the gear that answers for it — which is what keeps this pull's
+		// evidence for `'no-two-piece-evidence'` on real data rather than losing it to the new refusal.
 		expect(presses.map((p) => [p.t, p.rule, p.grade, p.reason])).toEqual([
 			[17_101, 'bloodlust', 'none', 'nothing-to-hit'],
-			[173_985, 't16-2pc', 'none', 'no-two-piece-evidence'],
-			[395_244, 't16-2pc', 'none', 'no-two-piece-evidence'],
+			[173_985, 't16-2pc', 'none', 'pressed-in-aoe'],
+			[395_244, 't16-2pc', 'none', 'pressed-in-aoe'],
 			[539_625, 't16-2pc', 'none', 'no-two-piece-evidence'],
 		]);
 		// Rule 2 is silent because nothing was wasted, not because the set was missing: every window fits.
@@ -469,15 +517,19 @@ describe('the wiring, end to end', () => {
 		// missing rather than by recomputing them — plus the fourth pull's, which §53 never saw.
 		expect(pull('unbroken').analysis.ascendance.grade).toBe('good');
 		expect(pull('phased').analysis.ascendance.grade).toBe('bad');
-		expect(pull('cleave').analysis.ascendance.grade).toBe('bad');
+		// `cleave` was §53's third `bad` and is `good` now: its one faulted press was pressed where the
+		// AoE list was in force, and that list buys no Elemental Discharge to sync with. The audit
+		// publishing the same letter the rules give is what this suite is for, and the exemption reaching
+		// the published grade — not only `ascendanceSync`'s return — is what it proves here.
+		expect(pull('cleave').analysis.ascendance.grade).toBe('good');
 		// `addsThenBoss`: every press exempt, so the pull is `none` — published as well as computed, which
 		// is the whole point of this suite. A wiring that dropped the input would also produce `none` here,
 		// which is why the presses and reasons are pinned separately above rather than only the letter.
 		expect(pull('addsThenBoss').analysis.ascendance.grade).toBe('none');
 		expect(pull('addsThenBoss').analysis.ascendance.presses.map((pr) => pr.sync.reason)).toEqual([
 			'nothing-to-hit',
-			'no-two-piece-evidence',
-			'no-two-piece-evidence',
+			'pressed-in-aoe',
+			'pressed-in-aoe',
 			'no-two-piece-evidence',
 		]);
 	});
@@ -539,9 +591,14 @@ describe('the wiring, end to end', () => {
 
 	it('passes the two-piece debuff and not the id the game never writes', () => {
 		// If the wiring had reached for the dead 144998 reading the windows would be empty, the arm would
-		// refuse with `no-two-piece-evidence`, and `phased` and `cleave` would come back `none` instead of
-		// carrying the fault. So the reason field is the evidence for which id arrived.
-		for (const name of ['phased', 'cleave'] as const) {
+		// refuse with `no-two-piece-evidence`, and `phased` would come back `none` instead of carrying the
+		// fault. So the reason field is the evidence for which id arrived.
+		//
+		// **`cleave` used to sweep here beside it and cannot any more**, because its second press is now
+		// refused before the set is consulted at all — `'pressed-in-aoe'`, which the wiring would produce
+		// whichever id it read. It proves nothing about the id now, so the claim is made on the one pull
+		// that still can make it rather than restated on a press that no longer carries it.
+		for (const name of ['phased'] as const) {
 			const second = pull(name).analysis.ascendance.presses[1]?.sync;
 			expect([second?.rule, second?.grade, second?.reason, second?.dischargeRemainingMs]).toEqual([
 				't16-2pc',
@@ -581,6 +638,9 @@ const base: AscendanceSyncInput = {
 	contact: [[900, 300_000]],
 	durationMs: 300_000,
 	t16TwoPieceWindows: null,
+	// A pull the AoE list never governed, which is what "a clean pull" means for this field: `[]` is the
+	// claim, not the absence of one. Cases that want the exemption pass their own stretches.
+	exemptWindows: [],
 };
 
 const at = (over: Partial<AscendanceSyncInput>): ReturnType<typeof ascendanceSync> =>
@@ -809,6 +869,61 @@ describe('the two-piece rule, on every press that is not the opener', () => {
 		// An instant, not a window — the honest question for a moment mid-pull.
 		const v = second({ contact: [[900, 150_000]] });
 		expect([v.grade, v.reason]).toEqual(['none', 'nothing-to-hit']);
+	});
+
+	/**
+	 * The AoE exemption: entry 15 is not a rule where the list that would buy the proc is not the list
+	 * being played.
+	 *
+	 * The press sits in a stretch the core marked exempt, and the *only* thing that changes is the
+	 * verdict — the discharge around it is untouched, so a fault is exactly what the same input produces
+	 * without the exemption. That pairing is the assertion: same discharge, two answers, one field apart.
+	 */
+	describe('a press made where the AoE list was in force', () => {
+		it('is exempt rather than faulted for a proc that list never buys', () => {
+			const bare = second({ t16TwoPieceWindows: [win(195_000, 201_000)] });
+			expect([bare.grade, bare.reason, bare.dischargeRemainingMs]).toEqual(['bad', null, 1000]);
+			const exempt = second({
+				t16TwoPieceWindows: [win(195_000, 201_000)],
+				exemptWindows: [[190_000, 220_000]],
+			});
+			expect([exempt.rule, exempt.grade, exempt.reason, exempt.dischargeRemainingMs]).toEqual([
+				't16-2pc',
+				'none',
+				'pressed-in-aoe',
+				null,
+			]);
+		});
+
+		it('takes precedence over the two-piece questions, so the cause is named and not the symptom', () => {
+			// A pull fought in AoE carries no discharge *because* the list spends no shield, so
+			// `t16-2pc-not-in-log` here would report the symptom. Both empty and absent go the same way.
+			for (const windows of [[], null]) {
+				const v = second({ t16TwoPieceWindows: windows, exemptWindows: [[190_000, 220_000]] });
+				expect([v.grade, v.reason]).toEqual(['none', 'pressed-in-aoe']);
+			}
+		});
+
+		it('leaves the opener alone, because rule 1 asks nothing of the shock', () => {
+			// Entry 14 is the opener and a haste cooldown; neither is bought with Fulmination, so an opener
+			// pressed inside an AoE stretch is graded exactly as it would be outside one.
+			const v = at({ exemptWindows: [[0, 300_000]] }).presses[0];
+			expect([v?.rule, v?.grade, v?.reason]).toEqual(['bloodlust', 'good', null]);
+		});
+
+		it('leaves rule 2 alone, because the wasted window belongs to the button', () => {
+			// Fifteen seconds running past the kill is a fault whatever the target count — the window
+			// belongs to the button, not to the priority list. Rule 2 is asked before this exemption.
+			const v = second({ durationMs: 205_000, exemptWindows: [[0, 300_000]] });
+			expect([v.grade, v.reason, v.wastedMs]).toEqual(['bad', null, 10_000]);
+		});
+
+		it('is closed at both ends, and a press outside the stretch is judged', () => {
+			const edge = second({ t16TwoPieceWindows: [win(195_000, 201_000)], exemptWindows: [[200_000, 220_000]] });
+			expect(edge.reason).toBe('pressed-in-aoe');
+			const past = second({ t16TwoPieceWindows: [win(195_000, 201_000)], exemptWindows: [[200_001, 220_000]] });
+			expect([past.grade, past.reason]).toEqual(['bad', null]);
+		});
 	});
 });
 
@@ -1408,8 +1523,8 @@ describe('Skull Banner on the committed pulls', () => {
 				.map((p) => [name, p.t, p.reason] as const),
 		);
 		expect(exemptAndShort).toEqual([
-			['addsThenBoss', 173_985, 'no-two-piece-evidence'],
-			['addsThenBoss', 395_244, 'no-two-piece-evidence'],
+			['addsThenBoss', 173_985, 'pressed-in-aoe'],
+			['addsThenBoss', 395_244, 'pressed-in-aoe'],
 			['addsThenBoss', 539_625, 'no-two-piece-evidence'],
 			['unbroken', 183_734, 'pull-ends-too-soon'],
 		]);
@@ -1443,9 +1558,10 @@ describe('Skull Banner on the committed pulls', () => {
 	});
 
 	it('moves no grade on any pull, and no press verdict either', () => {
-		// The before/after, and it is a nil result on all three: `bad` / `good` / `bad` before rules 3 and
-		// 4 and after them, with every press keeping the verdict lane D's change left it with. Rule 3 can
-		// only fault, and the lowest overlap any *gradeable* press has is 10 149ms against a 9 000 bound.
+		// The before/after, and it is a nil result on every pull: each grade is what it was before rules 3
+		// and 4 and after them, with every press keeping the verdict lane D's change left it with. Rule 3
+		// can only fault, and the lowest overlap any *gradeable* press has is 10 149ms against a 9 000
+		// bound — `cleave`'s 10 273 was the other one, and that press is exempt now.
 		//
 		// **Also not a red against the old behaviour, and it cannot be** — a test that a change moved
 		// nothing has nothing to fail against. What it does guard is the next change: it is the line that
@@ -1461,7 +1577,11 @@ describe('Skull Banner on the committed pulls', () => {
 		// over the same five values and pass whatever they were.
 		const expected: Record<string, [string, string[]]> = {
 			addsThenBoss: ['none', ['none', 'none', 'none', 'none']],
-			cleave: ['bad', ['good', 'bad']],
+			// `cleave`'s second press is exempt before rule 3 is asked — `'pressed-in-aoe'` — so this row
+			// reads `good` / `['good', 'none']` where it read `bad` / `['good', 'bad']`. The claim the suite
+			// makes is unchanged and is still nil: rules 3 and 4 move nothing, and what moved this row was
+			// the AoE exemption, pinned where it belongs above.
+			cleave: ['good', ['good', 'none']],
 			phased: ['bad', ['good', 'bad']],
 			unbroken: ['good', ['good', 'none']],
 		};

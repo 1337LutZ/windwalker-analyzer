@@ -173,9 +173,14 @@ describe('each fault is the demand its own quantity actually broke', () => {
 
 describe('the committed pulls, measured rather than assumed', () => {
 	/**
-	 * What the four fixtures actually publish. **One** of the five faults is exercised by real data, on two
-	 * pulls — so this table is the record of which cases the pulls can and cannot speak to, and the reason
+	 * What the four fixtures actually publish. **One** of the five faults is exercised by real data, on one
+	 * pull — so this table is the record of which cases the pulls can and cannot speak to, and the reason
 	 * the suite above is synthetic where it is.
+	 *
+	 * It was two pulls until the AoE exemption: `cleave`'s second press has the same shape as `phased`'s
+	 * and was faulted the same way, and it was made where the AoE list was in force — a list with no Earth
+	 * Shock rung, so nothing buys the discharge it was short of. That press is `'pressed-in-aoe'` now, and
+	 * a press the grade never called bad can carry no fault.
 	 *
 	 * The grid was positional over a hardcoded `['unbroken', 'phased', 'cleave']`; it is keyed by name and
 	 * checked against `rawFixtures` now, because a positional grid re-pairs itself silently when a fixture
@@ -190,8 +195,11 @@ describe('the committed pulls, measured rather than assumed', () => {
 			// inside it, then three presses on a shaman with no T16 two-piece. No fault can be named on a
 			// press the grade never called bad, which is this function's first rule and its only reading here.
 			addsThenBoss: [null, null, null, null],
-			// cleave and phased: a good opener each, and a second press that found no discharge at all.
-			cleave: [null, 'discharge-too-short'],
+			// cleave: a good opener, and a second press that found no discharge at all — and was made inside
+			// an exempt stretch, so the arm refused it before entry 15 was asked and there is no fault.
+			cleave: [null, null],
+			// phased: a good opener, and the one press on any committed pull that carries a named fault. It
+			// has no exempt stretch anywhere in it, which is what leaves this reading standing.
 			phased: [null, 'discharge-too-short'],
 			// unbroken: a good opener, and a second press rule 2's guard exempts — 58ms after the button
 			// came back, so the 14 286ms it wasted is the pull's length and not the player's choice.
@@ -210,9 +218,14 @@ describe('the committed pulls, measured rather than assumed', () => {
 	 * **The rendering commit moves no graded figure**, asserted rather than claimed. `cbc9259` pinned
 	 * these three and drawing them must not disturb them.
 	 */
-	it('leaves every pull grade where cbc9259 left it', () => {
+	it('leaves every pull grade where cbc9259 left it, less the one the AoE exemption moved', () => {
 		// `rawFixtures` order — and `addsThenBoss`' `none` is a value `cbc9259` never saw, because every one
 		// of its presses is exempt.
-		expect(FIXTURES.map((name) => load(name).ascendance.grade)).toEqual(['none', 'bad', 'bad', 'good']);
+		//
+		// `cleave` is the second position and reads `good` where `cbc9259` left `bad`. Its only faulted
+		// press is exempt now, so the pull is a good opener and nothing else. The rendering commit still
+		// moves nothing, which is what this line is for; the exemption is what moved it, and it is pinned
+		// where it belongs in `ascendance.test.ts`.
+		expect(FIXTURES.map((name) => load(name).ascendance.grade)).toEqual(['none', 'good', 'bad', 'good']);
 	});
 });

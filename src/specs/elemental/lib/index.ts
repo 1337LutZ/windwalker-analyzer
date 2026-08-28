@@ -4217,6 +4217,10 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		contact,
 		durationMs: duration,
 		t16TwoPieceWindows: twoPieceWindows.length > 0 ? twoPieceWindows : null,
+		// The core's own exempt series, unmodified. `gradedSpans` above is its complement and every graded
+		// clock in this audit is cut with one or the other, so handing the array over is what keeps a press
+		// exempted here and a stretch greyed on the charts saying the same thing about the same seconds.
+		exemptWindows,
 		// Rules 3 and 4's input, and two things in this expression are load-bearing.
 		//
 		// **`drawn` and `hidden` both.** `raidSourceLanes` caps drawn rows at `RAID_SOURCE_LANES`, because
