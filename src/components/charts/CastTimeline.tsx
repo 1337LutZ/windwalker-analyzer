@@ -45,7 +45,7 @@ import { formatGap, formatStamp } from '~/lib/format';
 
 import { fmt, n } from '../format';
 import { jumpToHeading } from '../jump';
-import { readTheme, tip, type ChartTheme, type TipRow } from './apex';
+import { readTheme, tooltip, type ChartTheme, type TipRow } from './apex';
 import ChartEmpty from './ChartEmpty';
 import { GCD_ICON_PX, commitOf, packCasts } from './castRows';
 import { DEFAULT_ZOOM, ZOOM_LADDER, tickStepMs, useDragScroll } from './scroll';
@@ -137,7 +137,7 @@ const GROUP_SWATCH: Record<Toggle, string> = {
 };
 
 /**
- * The same four categories again, as the token `tip()` tints a tooltip's title line with.
+ * The same four categories again, as the token `tooltip()` tints a tooltip's title line with.
  *
  * A second table rather than a parse of the first: the swatches are Tailwind classes and the tooltip
  * is built as an HTML string from resolved values, so the two cannot share a spelling. Kept beside
@@ -1743,7 +1743,7 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 	 * several hundred marks. That objection is about *per-mark* nodes and it is answered by having
 	 * exactly one: every mark carries its content in `data-*` attributes, which are not elements, and
 	 * `elementsFromPoint` at the cursor says which mark to read — the same technique `trackCursor` in
-	 * `apex.ts` uses to work around ApexCharts' own hover resolution. The markup comes from `tip()`, so
+	 * `apex.ts` uses to work around ApexCharts' own hover resolution. The markup comes from `tooltip()`, so
 	 * this is the tooltip the four ApexCharts charts already draw rather than a second design of one.
 	 *
 	 * Imperative, and outside React's render, for the same reason the marks are memoised: a pointer
@@ -1859,7 +1859,7 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 				if (by !== null) rows.push([t('castLog.tip.by'), by]);
 				if (wait !== null) rows.push([t('castLog.tip.wait'), wait]);
 				if (hit !== null) rows.push([t('castLog.tip.hit'), hit]);
-				node.innerHTML = tip(theme, {
+				node.innerHTML = tooltip(theme, {
 					title: mark.getAttribute('data-tip') ?? '',
 					tone: (mark.getAttribute('data-tip-tone') ?? GROUP_TONE.casts) as keyof ChartTheme,
 					rows,

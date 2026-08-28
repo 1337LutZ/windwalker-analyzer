@@ -22,8 +22,13 @@ import { Dialog } from '@base-ui/react/dialog';
 import { useTranslation } from 'react-i18next';
 
 import type { FightSegment } from '~/lib/analysis/segments';
+import { formatClockFixed } from '~/lib/format';
 import type { Analysis } from '~/lib/types';
 
+import { readTheme } from '../charts/theme';
+import type { ChartTheme } from '../charts/theme';
+import Tooltip from '../charts/Tooltip';
+import type { TipContent } from '../charts/tooltip';
 import { COUNT } from '../charts/tones';
 import { DialogShell, StatTiles } from '../primitives';
 import { buttonClass } from '../primitives/controls';
@@ -50,6 +55,10 @@ const VIEW_LONG = 520;
 const MAX_ASPECT = 2.5;
 /** Room for the scale bar and the outermost dot, in view units. */
 const PAD = 26;
+/** The invisible disc that catches the pointer for a mark, in view units. */
+const HIT = 11;
+/** How far the card sits from the pointer, and off the viewport edges. Matches the cast timeline. */
+const TIP_OFFSET_PX = 14;
 /** How fast playback runs, in real ms per frame. Roughly 12× — a seven-minute pull in about 35 seconds. */
 const TICK_MS = 80;
 
@@ -77,6 +86,27 @@ function ReplayStage({ analysis }: { analysis: Analysis }) {
 	const segments = analysis.segments?.segments ?? [];
 	const [frame, setFrame] = useState(0);
 	const [playing, setPlaying] = useState(false);
+	/**
+	 * The mark under the pointer, and where to put the card that names it.
+	 *
+	 * **The report's own tooltip, not the browser's.** A native `<title>` waits a second, arrives in the
+	 * system font and cannot be styled; every chart on this page draws `TipContent` instead. This one is
+	 * rendered rather than written into a node as markup — the map has at most a couple of dozen marks,
+	 * so the hovered one is cheap to hold in state, and `Tooltip` is that same card as elements.
+	 *
+	 * Held here rather than resolved by a hit test, which is what `CastTimeline` needs and this does
+	 * not: that chart has several hundred marks and pays for them with `elementsFromPoint`. Two dozen
+	 * `onMouseEnter` handlers are the simpler answer at this size.
+	 */
+	const [hover, setHover] = useState<{ x: number; y: number; content: TipContent } | null>(null);
+	/**
+	 * The palette, resolved once on mount.
+	 *
+	 * `readTheme` reads computed styles off the document, so it cannot run during render on the server
+	 * and should not run on every pointer move on the client.
+	 */
+	const [theme, setTheme] = useState<ChartTheme | null>(null);
+	useEffect(() => setTheme(readTheme()), []);
 	const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 
 	const frames = replay?.frames ?? [];
@@ -159,34 +189,67 @@ function ReplayStage({ analysis }: { analysis: Analysis }) {
 				{Array.from({ length: Math.ceil(projected.h / grid) + 1 }, (_, i) => i * grid).map((at) => (
 					<line key={`h${at}`} x1={0} y1={at} x2={projected.w} y2={at} className="stroke-line" strokeWidth={1} />
 				))}
+				{/* An invisible disc catches the pointer for each mark: a 7px diamond is a hard target on a
+				    trackpad, and growing the mark itself would make a room full of adds read as a room full of
+				    bigger ones. A body the actor table did not name falls back to its key, which is at least
+				    something to match against the log. */}
 				{here.foes.map((foe) => (
-					<rect
+					<g
 						key={foe.key}
-						x={projected.px(foe.x) - 3.6}
-						y={projected.py(foe.y) - 3.6}
-						width={7.2}
-						height={7.2}
-						transform={`rotate(45 ${projected.px(foe.x)} ${projected.py(foe.y)})`}
-						className="fill-ink-2"
-						opacity={0.65}
+						onMouseEnter={(e) =>
+							setHover({
+								x: e.clientX,
+								y: e.clientY,
+								content: {
+									title: foe.name === '' ? foe.key : foe.name,
+									tone: 'ink2',
+									rows: [[t('summary.shape.replay.tipAt'), formatClockFixed(here.ms)]],
+								},
+							})
+						}
+						onMouseLeave={() => setHover(null)}
 					>
-						{/* `<title>` rather than a hover handler and a floating div: the browser's own tooltip is
-						    what a screen reader reads as the shape's accessible name, so one element answers both
-						    the pointer and the reader. A body the actor table did not name falls back to its key,
-						    which is at least something to match against the log. */}
-						<title>{foe.name === '' ? foe.key : foe.name}</title>
-					</rect>
+						<circle cx={projected.px(foe.x)} cy={projected.py(foe.y)} r={HIT} className="fill-transparent" />
+						<rect
+							x={projected.px(foe.x) - 3.6}
+							y={projected.py(foe.y) - 3.6}
+							width={7.2}
+							height={7.2}
+							transform={`rotate(45 ${projected.px(foe.x)} ${projected.py(foe.y)})`}
+							className="pointer-events-none fill-ink-2"
+							opacity={0.65}
+						/>
+					</g>
 				))}
 				{here.self !== null ? (
-					<circle
-						cx={projected.px(here.self[0])}
-						cy={projected.py(here.self[1])}
-						r={6}
-						className="fill-kick stroke-track"
-						strokeWidth={2}
+					<g
+						onMouseEnter={(e) =>
+							setHover({
+								x: e.clientX,
+								y: e.clientY,
+								content: {
+									title: t('summary.shape.replay.you'),
+									tone: 'kick',
+									rows: [[t('summary.shape.replay.tipAt'), formatClockFixed(here.ms)]],
+								},
+							})
+						}
+						onMouseLeave={() => setHover(null)}
 					>
-						<title>{t('summary.shape.replay.you')}</title>
-					</circle>
+						<circle
+							cx={projected.px(here.self[0])}
+							cy={projected.py(here.self[1])}
+							r={HIT}
+							className="fill-transparent"
+						/>
+						<circle
+							cx={projected.px(here.self[0])}
+							cy={projected.py(here.self[1])}
+							r={6}
+							className="pointer-events-none fill-kick stroke-track"
+							strokeWidth={2}
+						/>
+					</g>
 				) : null}
 				<line
 					x1={16}
@@ -317,6 +380,21 @@ function ReplayStage({ analysis }: { analysis: Analysis }) {
 			    the title row, the mode readout, the controls and the note, measured at the width where they
 			    each take two lines. `maxWidth` is computed rather than a class because the ratio is the
 			    pull's, not a value Tailwind could know. */}
+			{/* Below and right of the mark, folded back inside the viewport at either edge — the placement
+			    the cast timeline's card already uses. `aria-hidden` because the drawing carries its own
+			    description and a card that follows a pointer is not something a reader can be pointed at. */}
+			{hover !== null && theme !== null ? (
+				<div
+					aria-hidden="true"
+					className="pointer-events-none fixed z-50 w-max max-w-[calc(100vw-28px)]"
+					style={{
+						left: Math.max(TIP_OFFSET_PX, Math.min(hover.x + TIP_OFFSET_PX, window.innerWidth - 240)),
+						top: Math.max(TIP_OFFSET_PX, Math.min(hover.y + TIP_OFFSET_PX, window.innerHeight - 96)),
+					}}
+				>
+					<Tooltip theme={theme} content={hover.content} />
+				</div>
+			) : null}
 			<p className="m-0 text-sm leading-relaxed text-muted">{t('summary.shape.replay.note')}</p>
 		</div>
 	);

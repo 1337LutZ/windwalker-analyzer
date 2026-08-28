@@ -486,7 +486,7 @@ copy itself follows — say it once, outside the arms.
      src/lib/i18n/__tests__/conventionsCensus.test.ts. Re-run the block above and paste the whole set
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
-As of the fight replay, it prints 1760 leaves, 835 prose, 27,646
+As of the fight replay, it prints 1761 leaves, 835 prose, 27,646
 words; median 27, p75 45, p90 65, p95 78, p99 110, max 204; longest 9% carry 24%; report.json 758 prose
 leaves, 1,349 sentences, median 17, 286 past 25 (21.2%), 294 em-dashes in 253 sentences (18.8%);
 71 / 30 / 1 / 2 on the quote lines.
@@ -543,7 +543,9 @@ and it arrived a step later than the rest: the dialog went full-screen, which ta
 a dialog with nothing to click past has to carry its own way out. Two more followed on the same terms —
 `You`, which names the dot on the map, and one sentence for the pull that held a single shape the whole
 way and therefore draws no chart. That last one is the only prose in the family after the note, and it is
-the pass's one real reminder that a section which refuses to draw still has to say something.
+the pass's one real reminder that a section which refuses to draw still has to say something. `At` is the
+thirteenth and the shortest string in the family — one word, labelling the clock on a hovered mark — and
+it arrived when the map stopped using the browser's own tooltip and started drawing the report's.
 
 **The note is the one long string, and it is long on purpose.** A replay that draws a dot where the log
 last saw someone invites two wrong readings — that a missing enemy was not there, and that a short

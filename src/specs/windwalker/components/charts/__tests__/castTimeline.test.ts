@@ -15,7 +15,7 @@ import i18n, { initI18n } from '~/lib/i18n/config';
 
 import CastLog from '~/components/sections/CastLog';
 import CastTimeline from '~/components/charts/CastTimeline';
-import { tip, type ChartTheme } from '~/components/charts/apex';
+import { tooltip, type ChartTheme } from '~/components/charts/apex';
 import { collapseTargets, perTargetBlock } from '~/components/charts/targetLanes';
 import { HIDDEN_AURAS, HIDDEN_CASTS } from '~/components/charts/hidden';
 import { spellIconUrl } from '~/components/primitives/spellIcon';
@@ -1803,7 +1803,7 @@ describe('the tooltip markup', () => {
 
 	/** A row whose value is a spell draws that spell, inside the one node rather than as a new element. */
 	it('draws the icon a row carries', () => {
-		const html = tip(theme, {
+		const html = tooltip(theme, {
 			title: 'Focus of Xuen',
 			tone: 'rune',
 			rows: [['Spent by', 'Blackout Kick', 'https://x/i.jpg']],
@@ -1814,7 +1814,7 @@ describe('the tooltip markup', () => {
 
 	/** And a row without one is exactly what it was before, which is every row on every other chart. */
 	it('draws no icon for a row that carries none', () => {
-		expect(tip(theme, { title: 'Up', tone: 'kick', rows: [['Up', '0:10']] })).not.toContain('<img');
+		expect(tooltip(theme, { title: 'Up', tone: 'kick', rows: [['Up', '0:10']] })).not.toContain('<img');
 	});
 });
 
