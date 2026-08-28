@@ -9,6 +9,7 @@ import { useSpec } from '~/components/report/specContext';
 
 import { DataGrid, DialogShell, Note } from '../primitives';
 import type { GridColumn, GridRow } from '../primitives';
+import { secondaryButtonClass } from '../primitives/controls';
 
 /**
  * What the grading lines were measured against, and how firmly.
@@ -58,9 +59,12 @@ export default function ReferenceNote({ analysis }: { analysis: Analysis }) {
 	const widths = rows.map(({ cell }) => cell.ci).filter((ci): ci is number => typeof ci === 'number');
 	const typical = widths.length === 0 ? null : [...widths].sort((a, b) => a - b)[Math.floor(widths.length / 2)]!;
 
-	// The trigger is a sibling of the note rather than a child of it. `Note` is a paragraph, so a button
-	// inside it can only ever be inline — which is how this read at first, wrapping into the middle of the
-	// last sentence — and a block-level wrapper inside a `<p>` is invalid markup rather than a fix.
+	// `secondaryButtonClass`, the same one "Open in Warcraft Logs" wears. Two buttons a reader meets in one
+	// report should not be two different inventions, and the first draft of this was a third.
+	//
+	// It is a sibling of the note rather than a child of it: `Note` is a paragraph, so a button inside it
+	// can only ever be inline — which is how this first read, wrapping into the middle of the last
+	// sentence — and a block-level wrapper inside a `<p>` is invalid markup rather than a fix.
 	return (
 		<>
 			<Note>
@@ -76,10 +80,12 @@ export default function ReferenceNote({ analysis }: { analysis: Analysis }) {
 			</Note>
 			<DialogShell
 				width="table"
+				// `self-start` because the Method section is a flex column, whose default `stretch` pulls an
+				// `inline-flex` child the full width of the page — which is not what the same class does in
+				// `ReportHeader`, where the parent is an ordinary block.
 				trigger={
-					<Dialog.Trigger className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-md border border-line bg-raised px-3 py-2 font-inherit text-sm font-semibold text-ink transition-colors hover:border-accent hover:text-accent">
+					<Dialog.Trigger className={`${secondaryButtonClass} mt-3 self-start`}>
 						{t('method.reference.open')}
-						<span aria-hidden="true">→</span>
 					</Dialog.Trigger>
 				}
 				title={t('method.reference.dialogTitle')}
@@ -101,9 +107,10 @@ export default function ReferenceNote({ analysis }: { analysis: Analysis }) {
 /**
  * Every encounter's reference, as a range from its median kill to its ninetieth percentile.
  *
- * **The two marks are the two lines.** `p50` is where `ok` begins and `p90` is where `good` does, so the
- * bar between them is the middle grade's width on that fight — a fight whose bar is narrow is one where
- * very little separates the two.
+ * **The two boundaries are the two lines.** `p50` is where `ok` begins and `p90` is where `good` does, so
+ * the bar is the whole 50-to-100 axis painted by what each stretch of it would grade as — and the width of
+ * the middle colour is how much room a fight leaves between the two. It uses the scorecard's own three
+ * grade colours — see `GRADE_ZONE` for why at a heavier weight than the scorecard paints them.
  *
  * Positioned `div`s rather than the app's chart library, and rather than SVG. Fourteen static rows on one
  * shared percentage axis is exactly what a flex row and a `left`/`width` pair already express, and the
@@ -114,6 +121,22 @@ export default function ReferenceNote({ analysis }: { analysis: Analysis }) {
  * like every other table in the report, and so the columns are announced rather than merely aligned.
  */
 type Copy = ReturnType<typeof useReportCopy>['t'];
+
+/**
+ * The scorecard's three grade colours, at the weight this bar needs.
+ *
+ * `ZONE` in `score/bandScale` is the same three hues mixed 26% into the surface, and it is right there:
+ * those zones sit *behind* a mark, so they have to stay recessive or they compete with the thing a reader
+ * is meant to look at. Here the painted stretch is the content — there is no mark on top of it — and at
+ * 26% the three read as one faint smear.
+ *
+ * Same tokens, so a reader who has learnt the colours upstairs reads these without being taught again.
+ */
+const GRADE_ZONE = {
+	bad: 'bg-[color-mix(in_oklch,var(--color-miss)_62%,var(--color-surface))]',
+	ok: 'bg-[color-mix(in_oklch,var(--color-brew)_62%,var(--color-surface))]',
+	good: 'bg-[color-mix(in_oklch,var(--color-good)_62%,var(--color-surface))]',
+};
 
 function ReferenceTable({ rows, t }: { rows: ReturnType<typeof rowsFor>; t: Copy }) {
 	const lo = 50;
@@ -134,11 +157,10 @@ function ReferenceTable({ rows, t }: { rows: ReturnType<typeof rowsFor>; t: Copy
 		cells: {
 			name: cell.name,
 			range: (
-				<div className="relative h-[10px] w-full rounded-sm bg-track" aria-hidden="true">
-					<div
-						className="absolute h-[10px] rounded-sm bg-kick/70"
-						style={{ left: `${x(cell.p50)}%`, width: `${Math.max(x(cell.p90) - x(cell.p50), 1.5)}%` }}
-					/>
+				<div className="flex h-[10px] w-full overflow-hidden rounded-sm" aria-hidden="true">
+					<div className={GRADE_ZONE.bad} style={{ width: `${x(cell.p50)}%` }} />
+					<div className={GRADE_ZONE.ok} style={{ width: `${Math.max(x(cell.p90) - x(cell.p50), 1)}%` }} />
+					<div className={GRADE_ZONE.good} style={{ width: `${Math.max(100 - x(cell.p90), 1)}%` }} />
 				</div>
 			),
 			ok: cell.p50.toFixed(1),

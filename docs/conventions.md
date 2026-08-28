@@ -486,16 +486,17 @@ copy itself follows — say it once, outside the arms.
      src/lib/i18n/__tests__/conventionsCensus.test.ts. Re-run the block above and paste the whole set
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
-As of the reference table carrying its own uncertainty, it prints 1740 leaves, 829 prose, 27,544
-words; median 27, p75 45, p90 65, p95 78, p99 110, max 204; longest 9% carry 24%; report.json 752 prose
-leaves, 1,341 sentences, median 17, 287 past 25 (21.4%), 294 em-dashes in 253 sentences (18.9%);
-72 / 30 / 1 / 2 on the quote lines.
+As of the reference table carrying its own uncertainty, it prints 1740 leaves, 830 prose, 27,546
+words; median 27, p75 45, p90 65, p95 78, p99 110, max 204; longest 9% carry 24%; report.json 753 prose
+leaves, 1,343 sentences, median 17, 287 past 25 (21.4%), 293 em-dashes in 252 sentences (18.8%);
+71 / 30 / 1 / 2 on the quote lines.
 
-Eight leaves and three sentences, the smallest block to move this census in some time: six column
-headings, a table caption and one line of prose, added when the Method section's per-encounter figures
-grew a give-or-take beside each fight. Headings are one or two words, so they lift the leaf count without
-touching the median string length or any of the percentiles — which is what a table of labels should do
-to a corpus, and a useful contrast with the rotation pass above it.
+Eight leaves and five sentences, the smallest block to move this census in some time: six column
+headings, a table caption and two lines of prose, added when the Method section's per-encounter figures
+grew a give-or-take beside each fight and its bars were repainted in the scorecard's own three colours.
+Headings are one or two words, so they lift the leaf count without touching the median string length or
+any of the percentiles — which is what a table of labels should do to a corpus, and a useful contrast
+with the rotation pass above it. One straight apostrophe left with the sentence it was in.
 
 **The em-dash count did not move at all, and that is the interesting row.** It is 292 either side,
 across 55 more sentences, so the share carrying one fell from 20.5% to 19.6% — the new copy was written
