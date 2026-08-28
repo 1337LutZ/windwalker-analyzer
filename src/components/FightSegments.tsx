@@ -12,7 +12,9 @@
 // It reuses the report page's own pieces throughout — the session, the fetch, the analysis, and
 // `SegmentStrip` for the drawing. A second copy of any of them would be a second thing to drift.
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { DEFAULT_ANALYSIS_MODE, type AnalysisMode } from '~/lib/analysis/analysisMode';
+import AnalysisModeControl from './report/AnalysisModeControl';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Tooltip } from '@base-ui/react/tooltip';
 
@@ -140,6 +142,16 @@ interface FightRow {
 	durationMs: number;
 	analysis: Analysis | null;
 	specName: string | null;
+	/**
+	 * The events this row was read from, kept so the analysis mode can be changed without buying it again.
+	 *
+	 * A reference, not a copy — `snapshot` spreads the row and the array around it and never the row's
+	 * fields, so holding this costs one pointer per pull rather than a clone per render. It is the only
+	 * way the toggle can be honest here: the analysis is built during the fetch loop rather than by a
+	 * hook, so without the events there is nothing to re-read and switching would mean a second sweep of
+	 * the API.
+	 */
+	dataset: FightDataset | null;
 	/** Segment index to the enemies it was spent on, ready for a tooltip. */
 	targets: Map<number, string>;
 	error: string | null;
@@ -540,6 +552,17 @@ function Runner() {
 		if (params.reports) setInput(params.reports);
 		if (params.player) setPlayer(params.player);
 	}, []);
+	/**
+	 * Which question every row on this page answers — see `lib/analysis/analysisMode`.
+	 *
+	 * Held in a ref beside the state because the fetch loop is a long-lived closure: it reads the mode once
+	 * per pull as it goes, and a loop that captured the value would keep applying whatever was selected
+	 * when it started.
+	 */
+	const [analysisMode, setAnalysisMode] = useState<AnalysisMode>(DEFAULT_ANALYSIS_MODE);
+	const modeRef = useRef(analysisMode);
+	modeRef.current = analysisMode;
+
 	const [busy, setBusy] = useState(false);
 	const [progress, setProgress] = useState<string | null>(null);
 	const [reports, setReports] = useState<ReportRows[]>([]);
@@ -594,6 +617,7 @@ function Runner() {
 						durationMs: fight.endTime - fight.startTime,
 						analysis: null,
 						specName: null,
+						dataset: null,
 						targets: new Map<number, string>(),
 						error: null,
 					}));
@@ -621,14 +645,16 @@ function Runner() {
 						// The spec the pull reads as. Every spec runs the same core, so segments would exist
 						// whichever was used — but the target-count exclusions belong to the spec, and the wrong
 						// one would quietly change them.
-						const spec = SPECS.map((candidate) => ({ candidate, result: candidate.analyse(dataset) })).find(
-							(pair) => pair.result.isSpec,
-						);
+						const spec = SPECS.map((candidate) => ({
+							candidate,
+							result: candidate.analyse(dataset, undefined, modeRef.current),
+						})).find((pair) => pair.result.isSpec);
 						if (spec === undefined) {
 							fight.error = 'No registered spec recognised this pull.';
 						} else {
 							fight.analysis = spec.result;
 							fight.specName = spec.candidate.specName;
+							fight.dataset = dataset;
 							fight.targets = targetsInSegments(dataset, spec.result.segments?.segments ?? []);
 						}
 					} catch (error) {
@@ -644,6 +670,38 @@ function Runner() {
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [codesKey, input, player, token]);
+
+	/**
+	 * Re-read every pull already on the page when the mode changes, from the events it was read from.
+	 *
+	 * No request: the datasets are on the rows, so this is the same walk the fetch loop does minus the
+	 * network. It skips the first render — the rows have no datasets yet then, and running would rebuild
+	 * nothing at the cost of a pass over an empty list.
+	 */
+	const rereadFor = useRef<AnalysisMode>(DEFAULT_ANALYSIS_MODE);
+	useEffect(() => {
+		if (rereadFor.current === analysisMode) return;
+		rereadFor.current = analysisMode;
+		setReports((current) =>
+			current.map((report) => ({
+				...report,
+				fights: report.fights.map((fight) => {
+					if (fight.dataset === null) return fight;
+					const spec = SPECS.map((candidate) => ({
+						candidate,
+						result: candidate.analyse(fight.dataset!, undefined, analysisMode),
+					})).find((pair) => pair.result.isSpec);
+					if (spec === undefined) return fight;
+					return {
+						...fight,
+						analysis: spec.result,
+						specName: spec.candidate.specName,
+						targets: targetsInSegments(fight.dataset, spec.result.segments?.segments ?? []),
+					};
+				}),
+			})),
+		);
+	}, [analysisMode]);
 
 	return (
 		/* A single column of blocks, one of which is itself two columns: the rail belongs to the results
@@ -688,6 +746,10 @@ function Runner() {
 						</button>
 						{progress !== null ? <span className="font-mono text-xs text-ink-3">{progress}</span> : null}
 					</div>
+					{/* Under the button rather than beside it, because it applies to everything the page holds
+					    rather than to the next press. Changing it re-reads every pull already listed from the
+					    events they were read from, so the choice costs nothing after the first sweep. */}
+					<AnalysisModeControl value={analysisMode} onChange={setAnalysisMode} />
 					{/*
 					 * The hour's budget, and how many pulls are left in it.
 					 *

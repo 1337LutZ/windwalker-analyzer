@@ -1,3 +1,5 @@
+import { DEFAULT_ANALYSIS_MODE, type AnalysisMode } from '~/lib/analysis/analysisMode';
+import AnalysisModeControl from '../report/AnalysisModeControl';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -84,8 +86,27 @@ export default function CompareFlow({ spec }: { spec: SpecDefinition }) {
 
 	// Both slots are given the encounter before it is chosen, which is null, and behave exactly as the
 	// report page's slot does until it is.
-	const a = useReportSlot({ token, spec, settings: settingsState.settings, seed: seedA, encounter: chosenEncounter });
-	const b = useReportSlot({ token, spec, settings: settingsState.settings, seed: seedB, encounter: chosenEncounter });
+	/**
+	 * One mode for both pulls, for the reason the settings are one set for both: a comparison read under
+	 * two different readings is not a comparison. See `lib/analysis/analysisMode`.
+	 */
+	const [analysisMode, setAnalysisMode] = useState<AnalysisMode>(DEFAULT_ANALYSIS_MODE);
+	const a = useReportSlot({
+		token,
+		spec,
+		settings: settingsState.settings,
+		mode: analysisMode,
+		seed: seedA,
+		encounter: chosenEncounter,
+	});
+	const b = useReportSlot({
+		token,
+		spec,
+		settings: settingsState.settings,
+		mode: analysisMode,
+		seed: seedB,
+		encounter: chosenEncounter,
+	});
 
 	const resetA = a.reset;
 	const resetB = b.reset;
@@ -260,6 +281,11 @@ export default function CompareFlow({ spec }: { spec: SpecDefinition }) {
 							    both pulls, because a comparison read at two different sets of them is not one. */}
 							<SettingsDialog {...settingsState} />
 						</div>
+
+						{/* Below the button rather than beside it, and applying to both pulls at once. Switching
+						    re-reads what is already fetched, so a reader can compare the same two pulls under
+						    either reading without spending a request. */}
+						<AnalysisModeControl value={analysisMode} onChange={setAnalysisMode} />
 						{a.progress ? <FetchProgress progress={a.progress} /> : null}
 						{b.progress ? <FetchProgress progress={b.progress} /> : null}
 					</div>

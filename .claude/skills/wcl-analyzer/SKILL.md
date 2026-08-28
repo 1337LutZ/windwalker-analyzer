@@ -91,7 +91,7 @@ export PATH="$HOME/.nvm/versions/node/v24.19.0/bin:$PATH"
 npm run check && npm test && npm run build
 ```
 
-`npm run check` = astro check + tsc + oxlint + oxfmt. Current baseline: **3304 tests pass, 11 skipped**
+`npm run check` = astro check + tsc + oxlint + oxfmt. Current baseline: **3504 tests pass, 11 skipped**
 across 232 files, check 0 errors, build clean. All three must be green after every step.
 
 **Prefix every verification command with `RTK_DISABLED=1`.**
@@ -134,6 +134,75 @@ reproducible hazard is the vitest one.
 - Tailwind v4, **dark only**, semantic tokens from `styles/global.css` (`brew`, `rune`, `kick`, `miss`,
   `lust`, `track`…). No raw hex. Body copy 16px minimum; dense tables may reach 14px.
 - Charts: never put column labels in SVG text — they scale down and collide at phone widths.
+
+## Analysis mode — which question a report answers
+
+**Every figure that touches damage or target count depends on this, and it has two settings.**
+WarcraftLogs strikes a list of NPCs from its damage rankings so nobody can pad a parse on adds that
+respawn, heal to full or never die. That list is transcribed in `src/lib/game/rankingExclusions.ts` from
+`archon.gg/classic-mop/articles/news/siege-of-orgrimmar-on-warcraft-logs`, which is the ruleset's only
+published source.
+
+- **`parsing`** — the default, and the reading that cannot overstate a pull. Every row of the table is
+  struck: the NPC leaves the target count _and_ the globals spent on it are not scored. This is what the
+  ladder sees.
+- **`progression`** — nothing is struck. The pull reads as it was fought, which is the honest answer for
+  somebody working a fight rather than comparing a parse.
+
+`src/lib/analysis/analysisMode.ts` owns the type and `appliesExemptions`, which is the single question
+every call site asks. It reaches `analyseCore` as a fourth argument and gates three things: the two
+static sets from `rankingExclusions` and the fight-evaluated `conditionalExclusions` beside them.
+
+**The clearest measurement is Malkorok.** One committed kill, twenty Living Corruptions, read both ways:
+
+|               | peak enemies | multi-target | spawns struck |
+| ------------- | ------------ | ------------ | ------------- |
+| `parsing`     | 1            | 0.00%        | 20 of 21      |
+| `progression` | 3            | 35.37%       | 0             |
+
+`game/__tests__/exclusionEvidence.test.ts` asserts both off one dataset. Six other pinned figures move
+with the default, all on Fallen Protectors and Garrosh — the two encounters the ruleset names adds on.
+
+_**`RankingExclusion.reach` no longer drives anything.**_ It was a per-row judgement about whether an NPC
+was a body the rotation had to react to, and neither mode consults it: a parsing reader does not want a
+struck body counted however genuinely it was fought, and a progression reader wants every body counted
+whatever the ruleset says. The field and its hand-measured evidence are kept as a record — a third mode
+may want the distinction back — and both it and `analysisMode.ts` say so beside it. **Do not read it as
+live behaviour.**
+
+### Where the toggle is, and why it is dynamic
+
+`AnalysisModeControl` is one component on all three pages. Switching never refetches — the events are
+already cached, so it costs one synchronous re-analysis:
+
+- **Report** (`ReportFlow`) — beside the target mode, because both re-read a pull already fetched. They
+  are not variants of one another: this changes what was measured, the target mode changes which stretch
+  of the pull is read.
+- **Compare** (`CompareFlow`) — one mode over both slots, for the reason the settings are one set over
+  both: a comparison read under two different readings is not a comparison.
+- **Fight segments** (`FightSegments`) — the awkward one. Its analysis is built inside the fetch loop
+  rather than by a hook, so the loop reads the mode through a **ref** (a captured value would apply
+  whatever was selected when the sweep started), and each row keeps the `FightDataset` it was read from
+  so a later switch re-reads from events rather than buying them again. `snapshot` is a shallow copy, so
+  that costs one pointer per pull rather than a clone.
+
+The control's copy links `Parsing` to the Archon article. A reader who can follow the rule to its source
+does not also need it paraphrased — the first draft carried two forty-word hints saying what each mode
+did, and they were this report's reading of someone else's rule rather than the rule.
+
+## The fight-segments page
+
+`/fight-segments`, and the one page that is **not** per spec: it identifies the spec per pull through
+each registry entry's `identify` hook rather than being told. Give it report codes and a character name
+and it reads every kill that character appears in, one pull at a time.
+
+**It is the page that can spend the hour's whole budget.** A report page reads one pull; this reads every
+kill in every report it is given, so five raid nights is a hundred-odd pulls. `ApiCredits` sits beside the
+button for that reason — the reader should see the cost before pressing.
+
+Two things about its state worth knowing before editing it: rows hold their own `FightDataset` (see the
+analysis mode above), and `snapshot` is deliberately shallow, so row objects are shared by reference
+across renders and a mutation inside the fetch loop is visible without a copy.
 
 ## The compare page
 
