@@ -120,6 +120,17 @@ reproducible hazard is the vitest one.
   must agree are a bug.
 - Settings arrive from `localStorage`/text fields: every clamp total, never NaN, and absent ≠ 0.
 - Spec refusal: `identify(h)` false → the UI refuses to render rather than guessing.
+- **Look for the component before writing one.** Grep `src/components/primitives/` and
+  `src/components/primitives/controls.ts` first, and the charts and hooks after that. This repo already
+  owns a button (`primaryButtonClass`, `buttonClass`, `secondaryButtonClass`), a field and its label
+  (`fieldClass`, `labelClass`), a tile row (`StatTiles`/`StatTile`), a table (`DataGrid`), a rail entry
+  (`NavLink`), a scroll spy (`useCurrentAnchor`), a skeleton, a section, a tooltip (`tip()` plus the
+  `[data-tip]` pointer walk `TrackLane` and `SegmentLane` share) and much else. A hand-rolled copy looks
+  right on the day and is wrong by the next change: the `/fight-segments` form shipped its own button,
+  textarea and label, and the only control on the page that started real work was also the only one with
+  no hover, disabled or focus state. Reuse first; when a primitive genuinely does not fit, extend it
+  (an optional prop, defaulted off) rather than forking it, and say in the docblock why the fork was
+  refused.
 - Tailwind v4, **dark only**, semantic tokens from `styles/global.css` (`brew`, `rune`, `kick`, `miss`,
   `lust`, `track`…). No raw hex. Body copy 16px minimum; dense tables may reach 14px.
 - Charts: never put column labels in SVG text — they scale down and collide at phone widths.
