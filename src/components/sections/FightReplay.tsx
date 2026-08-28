@@ -249,9 +249,12 @@ function ReplayStage({ analysis }: { analysis: Analysis }) {
 				>
 					{playing ? '⏸' : '▶'}
 				</button>
-				{/* `--range-progress` is how much of the track is painted in the spec's accent: WebKit has no
+				{/* `--range-fraction` is how far through the pull this is, as a plain 0–1: WebKit has no
 				    pseudo-element for a slider's filled half, so `global.css` draws it as a hard-stopped
-				    gradient and this is the stop. Firefox ignores it and uses `::-moz-range-progress`. */}
+				    gradient and works the stop out from this. A fraction rather than a percentage because
+				    the stop is not one — the thumb travels `track - thumb`, and that arithmetic belongs
+				    where the thumb's width is declared. Firefox ignores it and uses
+				    `::-moz-range-progress`. */}
 				<input
 					type="range"
 					min={0}
@@ -261,7 +264,7 @@ function ReplayStage({ analysis }: { analysis: Analysis }) {
 						setPlaying(false);
 						setFrame(Number(e.target.value));
 					}}
-					style={{ '--range-progress': `${last > 0 ? (Math.min(frame, last) / last) * 100 : 0}%` } as CSSProperties}
+					style={{ '--range-fraction': last > 0 ? Math.min(frame, last) / last : 0 } as CSSProperties}
 					className="w-full"
 					aria-label={t('summary.shape.replay.scrub')}
 				/>

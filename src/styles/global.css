@@ -420,16 +420,31 @@ input[type='range'] {
 	height: 2.75rem;
 	width: 100%;
 	background: transparent;
+	/* The thumb's size, declared once: the track's fill has to do arithmetic with it. */
+	--range-thumb: 14px;
+	/* Grab rather than the pointer the rest of the app's controls take. A slider is dragged, not
+	 * pressed, and the `cursor: pointer` rule above deliberately names controls by role — a range input
+	 * is not one of them, so it would otherwise keep the arrow that means "this is text". The cursor is
+	 * on the input rather than only on the thumb, because clicking anywhere on the track seizes it too:
+	 * a hand that only appears over a 14px dot would be lying about where the control is. */
+	cursor: grab;
 }
 
+input[type='range']:active {
+	cursor: grabbing;
+}
+
+/* **The fill stops under the thumb's centre, which is not the same as its percentage of the track.**
+ * WebKit insets the thumb by half its width at each end, so the thumb travels `track - thumb` rather
+ * than the whole track: a stop written as a flat `50%` lands on the thumb only at the midpoint and is
+ * seven pixels out at either end — the fill visibly pokes past a thumb parked at zero. So the
+ * component hands over `--range-fraction`, a plain 0–1, and the stop is computed over the travel the
+ * thumb actually has. The arithmetic lives here because the thumb's width does. */
 input[type='range']::-webkit-slider-runnable-track {
 	height: 4px;
 	border-radius: 2px;
-	background: linear-gradient(
-		to right,
-		var(--color-kick) var(--range-progress, 0%),
-		var(--color-line) var(--range-progress, 0%)
-	);
+	--range-stop: calc(var(--range-thumb) / 2 + (100% - var(--range-thumb)) * var(--range-fraction, 0));
+	background: linear-gradient(to right, var(--color-kick) var(--range-stop), var(--color-line) var(--range-stop));
 }
 
 input[type='range']::-moz-range-track {
@@ -445,25 +460,45 @@ input[type='range']::-moz-range-progress {
 }
 
 /* The ring is the surface the slider sits on rather than a colour of its own, so the thumb reads as
- * cut out of the track instead of stacked on top of it. `margin-top` centres it on a 4px track:
- * half the thumb, less half the track, less the border. */
+ * cut out of the track instead of stacked on top of it.
+ *
+ * **`box-sizing` is declared rather than inherited, and that is what centres the thumb.** WebKit
+ * gives the thumb no vertical alignment of its own: it hangs off the top of the track and
+ * `margin-top` is the only way to pull it back, which makes the sum exact rather than approximate —
+ * half the track, less half the thumb. Tailwind's preflight sets `border-box` on `*`, `::before`,
+ * `::after` and `::backdrop`, and a slider thumb is none of those, so without this line the box is
+ * `content-box`, the 2px ring lands outside the 14px, and the offset is two pixels wrong in a
+ * direction nothing in the rule says out loud. Firefox centres `::-moz-range-thumb` itself and takes
+ * the same `box-sizing` only so the two engines draw one size. */
 input[type='range']::-webkit-slider-thumb {
 	-webkit-appearance: none;
 	appearance: none;
-	width: 14px;
-	height: 14px;
-	margin-top: -7px;
+	box-sizing: border-box;
+	cursor: grab;
+	width: var(--range-thumb);
+	height: var(--range-thumb);
+	margin-top: calc((4px - var(--range-thumb)) / 2);
 	border: 2px solid var(--color-surface);
 	border-radius: 9999px;
 	background: var(--color-kick);
 }
 
 input[type='range']::-moz-range-thumb {
-	width: 14px;
-	height: 14px;
+	box-sizing: border-box;
+	cursor: grab;
+	width: var(--range-thumb);
+	height: var(--range-thumb);
 	border: 2px solid var(--color-surface);
 	border-radius: 9999px;
 	background: var(--color-kick);
+}
+
+input[type='range']:active::-webkit-slider-thumb {
+	cursor: grabbing;
+}
+
+input[type='range']:active::-moz-range-thumb {
+	cursor: grabbing;
 }
 
 /* The spec's identity, drawn on every section heading. The ground carries the faint tint; this is
