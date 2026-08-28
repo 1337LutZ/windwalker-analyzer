@@ -58,24 +58,10 @@ export default function SegmentLane({
 	spans,
 	durationMs,
 	label,
-	interactive = false,
 }: {
 	spans: readonly LaneSpan[];
 	durationMs: number;
 	label: string;
-	/**
-	 * Whether the tooltip can be hovered without closing.
-	 *
-	 * **Off by default, because almost no tooltip here needs it.** A tip that follows the cursor is the
-	 * better shape for a glance: it is never in the way and never has to be aimed at. The cost only shows
-	 * up when the tip is long enough to want reading rather than glancing at — a stretch naming twenty-two
-	 * separate adds — because a following tip cannot be moved onto. Reaching for it moves it.
-	 *
-	 * Turned on, the tip anchors to the bar instead of the pointer, takes pointer events, and survives the
-	 * trip from bar to tip: leaving the lane schedules the close rather than doing it, and entering the tip
-	 * calls it off. The delay is what covers the gap between the two.
-	 */
-	interactive?: boolean;
 }) {
 	const total = Math.max(1, durationMs);
 	const laneRef = useRef<HTMLDivElement>(null);
@@ -99,22 +85,10 @@ export default function SegmentLane({
 		if (lane === null || node === null) return;
 		const theme = readTheme();
 		let over: { bar: Element; title: string } | null = null;
-		let closing: ReturnType<typeof setTimeout> | null = null;
-		const cancelClose = () => {
-			if (closing !== null) clearTimeout(closing);
-			closing = null;
-		};
 		const hide = () => {
-			cancelClose();
 			if (over !== null) over.bar.setAttribute('title', over.title);
 			over = null;
 			node.style.display = 'none';
-		};
-		// Long enough to cross the gap between a bar and the tip under it, short enough that a pointer
-		// leaving for anywhere else does not leave a tip hanging behind it.
-		const scheduleClose = () => {
-			cancelClose();
-			closing = setTimeout(hide, 160);
 		};
 		const move = (event: PointerEvent) => {
 			const bar = document
@@ -143,34 +117,19 @@ export default function SegmentLane({
 				bar.removeAttribute('title');
 				node.style.display = 'block';
 			}
-			// Anchored to the bar when the tip is meant to be reachable, and to the cursor when it is not.
-			// A tip that follows the pointer cannot be moved onto — reaching for it moves it — so the
-			// interactive one parks under the bar it belongs to and stays there.
-			//
-			// Either way folded back inside the viewport at both edges, and measured after the content is
-			// written, so this is the size the tip will actually have.
-			const anchor = interactive ? bar.getBoundingClientRect() : null;
-			const fromX = anchor ? anchor.left : event.clientX + 14;
-			const fromY = anchor ? anchor.bottom + 6 : event.clientY + 14;
-			const x = Math.min(fromX, window.innerWidth - node.offsetWidth - 14);
-			const y = Math.min(fromY, window.innerHeight - node.offsetHeight - 14);
+			// Below and right of the cursor, folded back inside the viewport at either edge. Measured after
+			// the content is written, so this is the size the tip will actually have.
+			const x = Math.min(event.clientX + 14, window.innerWidth - node.offsetWidth - 14);
+			const y = Math.min(event.clientY + 14, window.innerHeight - node.offsetHeight - 14);
 			node.style.left = `${Math.max(14, x)}px`;
 			node.style.top = `${Math.max(14, y)}px`;
 		};
 		hide();
-		const leave = interactive ? scheduleClose : hide;
 		lane.addEventListener('pointermove', move);
-		lane.addEventListener('pointerleave', leave);
-		if (interactive) {
-			node.style.pointerEvents = 'auto';
-			node.addEventListener('pointerenter', cancelClose);
-			node.addEventListener('pointerleave', hide);
-		}
+		lane.addEventListener('pointerleave', hide);
 		return () => {
 			lane.removeEventListener('pointermove', move);
-			lane.removeEventListener('pointerleave', leave);
-			node.removeEventListener('pointerenter', cancelClose);
-			node.removeEventListener('pointerleave', hide);
+			lane.removeEventListener('pointerleave', hide);
 			hide();
 		};
 		/**
@@ -183,7 +142,7 @@ export default function SegmentLane({
 		 * under the cursor a dozen times a run. That is why it read as not working at all.
 		 */
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [interactive]);
+	}, []);
 
 	return (
 		<>
@@ -227,11 +186,7 @@ export default function SegmentLane({
 				})}
 			</div>
 			{/* Fixed, above the chart's own stacking, and hidden until a pointer finds a bar. */}
-			<div
-				ref={tipRef}
-				className={`fixed z-50 hidden ${interactive ? '' : 'pointer-events-none'}`}
-				role="presentation"
-			/>
+			<div ref={tipRef} className="pointer-events-none fixed z-50 hidden" role="presentation" />
 		</>
 	);
 }

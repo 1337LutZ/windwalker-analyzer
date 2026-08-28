@@ -243,8 +243,16 @@ function TargetsCell({
 }) {
 	if (!roster) return <span className="text-ink-3">—</span>;
 	const names = roster.split('\n').filter(Boolean);
+	/*
+	 * `disableHoverablePopup`, and the popup takes no pointer events at all.
+	 *
+	 * Base UI keeps a tooltip open while the pointer is over its popup, which is right for a tooltip
+	 * holding something to click and wrong for one holding a list to read: the popup sits between the
+	 * button and everything under it, so it stands in the way of the next move and lingers instead of
+	 * getting out of the way. There is nothing in here to interact with.
+	 */
 	return (
-		<Tooltip.Root>
+		<Tooltip.Root disableHoverablePopup>
 			<Tooltip.Trigger
 				render={
 					<button
@@ -260,7 +268,7 @@ function TargetsCell({
 			</Tooltip.Trigger>
 			<Tooltip.Portal>
 				<Tooltip.Positioner sideOffset={6}>
-					<Tooltip.Popup className="min-w-52 max-w-80 rounded-sm border border-line bg-surface px-3 py-2.5 font-mono text-xs leading-relaxed text-ink shadow-lg">
+					<Tooltip.Popup className="pointer-events-none min-w-52 max-w-80 rounded-sm border border-line bg-surface px-3 py-2.5 font-mono text-xs leading-relaxed text-ink shadow-lg">
 						<div className="mb-1.5 font-semibold text-rune">{segmentLabel(segment, t)}</div>
 						<div className="flex justify-between gap-3.5">
 							<span className="text-muted">for</span>
@@ -389,13 +397,7 @@ function Fight({ code, fight }: { code: string; fight: FightRow }) {
 			    exactly like one the feature does not work on, and the two are worth telling apart. A stretch
 			    with nothing in it says so. */}
 			<ModeSplit analysis={analysis} t={t} />
-			{/* Hoverable here and nowhere else: a roster can name twenty-two adds, and a tip that follows the
-			    pointer cannot be moved onto to read them — reaching for it moves it. */}
-			<SegmentStrip
-				analysis={analysis}
-				interactive
-				detailOf={(segment) => fight.targets.get(segment.index) ?? 'no enemies hit'}
-			/>
+			<SegmentStrip analysis={analysis} detailOf={(segment) => fight.targets.get(segment.index) ?? 'no enemies hit'} />
 			<DataGrid
 				caption={`Segments of ${fight.name}`}
 				columns={COLUMNS}
