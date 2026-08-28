@@ -40,6 +40,7 @@ import { SPECS } from '~/lib/spec';
 import { fetchFightDataset, listReportFights } from '~/lib/wcl/fetchFight';
 import { WclClient } from '~/lib/wcl/client';
 import type { Analysis, FightDataset } from '~/lib/types';
+import { instanceKey } from '~/lib/events/guards';
 import type { FightSegment, SegmentMode } from '~/lib/analysis/segments';
 import '~/lib/i18n';
 
@@ -56,6 +57,12 @@ import '~/lib/i18n';
  * `aoe` lists the three enemies that made it so. Ticks and pets included exactly as they arrive — this is
  * a roster for a tooltip, not a second derivation to disagree with the first.
  *
+ * **The bracketed number is a count of damage events, not damage dealt**, and the row is labelled `hits`
+ * for that reason. Hits are what `targetCounts` reads to decide how many enemies were being fought, so
+ * this is the evidence for the mode beside it: a segment reading `aoe` on three enemies with four hits
+ * each is a different finding from one with forty, and neither is a claim about damage. Damage dealt is
+ * the more interesting number for a different question and the wrong one for this.
+ *
  * **Which is why an `idle` segment can still name an enemy, and that is not a contradiction.** The mode
  * comes from a count series taken over a trailing window and then held to a floor and a hysteresis; this
  * is the raw hits inside the bounds. A stretch with one hit at its edge reads idle by the derivation and
@@ -64,7 +71,19 @@ import '~/lib/i18n';
  */
 export function targetsInSegments(dataset: FightDataset, segments: readonly FightSegment[]): Map<number, string> {
 	const names = new Map((dataset.actors ?? []).map((actor) => [actor.id, actor.name]));
-	const tally = new Map<number, Map<number, number>>();
+	/**
+	 * Tallied per **spawn**, not per actor id.
+	 *
+	 * WarcraftLogs gives one actor id to an NPC *type*, so every Congealed Sha in a pull arrives as the
+	 * same `targetID` and they are told apart only by `targetInstance` — the distinction `instanceKey`
+	 * exists for and the one this file has to keep, or a roster reads "Congealed Sha (127)" where three
+	 * separate adds took forty each. Counting them apart is also what makes the tally agree with the
+	 * target *count* beside it: a segment reading `aoe` on three copies of one add would otherwise name a
+	 * single enemy.
+	 */
+	const tally = new Map<number, Map<string, { id: number; instance: number | undefined; hits: number }>>();
+	/** Every instance seen per actor id, so a name is only numbered when there is more than one to tell apart. */
+	const spawns = new Map<number, Set<number | undefined>>();
 	const t0 = dataset.fight.startTime;
 	const sourceID = dataset.actor?.id;
 	for (const event of dataset.events) {
@@ -75,18 +94,37 @@ export function targetsInSegments(dataset: FightDataset, segments: readonly Figh
 		// Linear rather than a search: a pull holds a handful of segments, and the walk is over events.
 		const segment = segments.find((candidate) => at >= candidate.startMs && at < candidate.endMs);
 		if (segment === undefined) continue;
-		const bucket = tally.get(segment.index) ?? new Map<number, number>();
-		bucket.set(target, (bucket.get(target) ?? 0) + 1);
+		(spawns.get(target) ?? spawns.set(target, new Set()).get(target)!).add(event.targetInstance);
+		const bucket = tally.get(segment.index) ?? new Map();
+		const key = instanceKey(target, event.targetInstance);
+		const seen = bucket.get(key);
+		if (seen) seen.hits += 1;
+		else bucket.set(key, { id: target, instance: event.targetInstance, hits: 1 });
 		tally.set(segment.index, bucket);
 	}
+
+	/**
+	 * The name a spawn is shown under, numbered by WarcraftLogs' own index where the name is ambiguous.
+	 *
+	 * **Only when there is something to disambiguate.** A boss is one spawn and reads as its plain name;
+	 * numbering it would be answering a question nobody asked. The count is taken across the whole pull
+	 * rather than the segment, so a given add is "Congealed Sha #3" wherever it appears — a label that
+	 * changed between two rows of the same table would be worse than no label.
+	 */
+	const label = (id: number, instance: number | undefined): string => {
+		const name = names.get(id) ?? `Enemy ${id}`;
+		const copies = spawns.get(id);
+		return copies && copies.size > 1 && instance !== undefined ? `${name} #${instance}` : name;
+	};
+
 	return new Map(
 		[...tally].map(([index, bucket]) => [
 			index,
 			// Newline separated, and therefore comma-free: every surface that shows this puts one name per
 			// line, so a separator between them would be punctuation with nothing to separate.
-			[...bucket]
-				.sort((a, b) => b[1] - a[1])
-				.map(([id, hits]) => `${names.get(id) ?? `#${id}`} (${hits})`)
+			[...bucket.values()]
+				.sort((a, b) => b.hits - a.hits)
+				.map((spawn) => `${label(spawn.id, spawn.instance)} (${spawn.hits})`)
 				.join('\n'),
 		]),
 	);
@@ -232,7 +270,7 @@ function TargetsCell({
 						    than as new facts — the same shape the strip's tooltip takes. */}
 						{names.map((name, i) => (
 							<div key={name} className="flex justify-between gap-3.5">
-								<span className="text-muted">{i === 0 ? 'targets' : ''}</span>
+								<span className="text-muted">{i === 0 ? 'hits' : ''}</span>
 								<span className="text-right font-semibold">{name}</span>
 							</div>
 						))}
@@ -351,7 +389,13 @@ function Fight({ code, fight }: { code: string; fight: FightRow }) {
 			    exactly like one the feature does not work on, and the two are worth telling apart. A stretch
 			    with nothing in it says so. */}
 			<ModeSplit analysis={analysis} t={t} />
-			<SegmentStrip analysis={analysis} detailOf={(segment) => fight.targets.get(segment.index) ?? 'no enemies hit'} />
+			{/* Hoverable here and nowhere else: a roster can name twenty-two adds, and a tip that follows the
+			    pointer cannot be moved onto to read them — reaching for it moves it. */}
+			<SegmentStrip
+				analysis={analysis}
+				interactive
+				detailOf={(segment) => fight.targets.get(segment.index) ?? 'no enemies hit'}
+			/>
 			<DataGrid
 				caption={`Segments of ${fight.name}`}
 				columns={COLUMNS}

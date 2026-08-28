@@ -51,13 +51,15 @@ describe('the enemies a segment was spent on', () => {
 	/**
 	 * Every name is a real actor and every count is a real count.
 	 *
-	 * The guard against the join drifting: an id the report does not name would print as `#123`, which is
-	 * the shape a wrong actor map produces and the one thing a roster must never do silently.
+	 * The guard against the join drifting: an id the report does not name falls back to `Enemy 123`, which
+	 * is the shape a wrong actor map produces and the one thing a roster must never do silently. Tested
+	 * against that fallback rather than against a bare `#`, because `#` is now the spawn index and a real
+	 * part of a correct name.
 	 */
 	it('names actors rather than printing ids', () => {
 		const roster = targetsInSegments(dataset, segments);
 		for (const [index, text] of roster) {
-			expect(text, `segment ${index}`).not.toMatch(/#\d/);
+			expect(text, `segment ${index}`).not.toMatch(/\bEnemy \d+/);
 			expect(text, `segment ${index}`).toMatch(/\(\d+\)/);
 		}
 	});
@@ -75,6 +77,28 @@ describe('the enemies a segment was spent on', () => {
 		for (const text of roster.values()) {
 			expect(text).not.toContain(', ');
 			for (const line of text.split('\n')) expect(line).toMatch(/^.+ \(\d+\)$/);
+		}
+	});
+
+	/**
+	 * Copies of one NPC are told apart by WarcraftLogs' own index, and only when there are copies.
+	 *
+	 * A report gives one actor id to an NPC *type*, so a pull with three Congealed Sha in it carries them
+	 * all as the same `targetID`. Merged, the roster reads one enemy with the sum of their hits — which
+	 * also contradicts the target count beside it, since a segment can read `aoe` on three copies of one
+	 * add. A boss is one spawn and keeps its plain name: numbering it would answer a question nobody asked.
+	 */
+	it('numbers repeated spawns and leaves single ones alone', () => {
+		const roster = targetsInSegments(dataset, segments);
+		const lines = [...roster.values()].flatMap((text) => text.split('\n'));
+		const numbered = lines.filter((line) => / #\d+ \(/.test(line));
+		expect(numbered.length, 'this pull has no repeated spawns to tell apart').toBeGreaterThan(0);
+		// The index is WarcraftLogs' own, so it is a positive integer rather than a position in our list.
+		for (const line of numbered) expect(line).toMatch(/ #[1-9]\d* \(\d+\)$/);
+		// And a name is numbered consistently or not at all — never both ways in one pull.
+		const bare = new Set(lines.filter((line) => !/ #\d+ \(/.test(line)).map((l) => l.replace(/ \(\d+\)$/, '')));
+		for (const line of numbered) {
+			expect(bare, line).not.toContain(line.replace(/ #\d+ \(\d+\)$/, ''));
 		}
 	});
 

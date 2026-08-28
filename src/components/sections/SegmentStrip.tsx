@@ -116,8 +116,16 @@ export function segmentLength(segment: FightSegment, t: TFunction<'report'>): st
 export default function SegmentStrip({
 	analysis,
 	detailOf,
+	interactive = false,
 }: {
 	analysis: Analysis;
+	/**
+	 * Whether the tooltip can be hovered without closing — see `SegmentLane`.
+	 *
+	 * Off here, on in the segment tool. The report page's strip carries a name and a length, which is a
+	 * glance; the tool's carries a roster that can run to twenty-two adds, which is a read.
+	 */
+	interactive?: boolean;
 	/**
 	 * A third tooltip line per segment, when a caller has one.
 	 *
@@ -170,7 +178,12 @@ export default function SegmentStrip({
 				note={t('summary.shape.note')}
 			>
 				<ScrollableTrack durationMs={analysis.durationMs}>
-					<SegmentLane spans={spans} durationMs={analysis.durationMs} label={t('summary.shape.chartLabel')} />
+					<SegmentLane
+						spans={spans}
+						durationMs={analysis.durationMs}
+						label={t('summary.shape.chartLabel')}
+						interactive={interactive}
+					/>
 				</ScrollableTrack>
 			</ChartFigure>
 		</div>
