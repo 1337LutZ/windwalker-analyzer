@@ -3188,18 +3188,34 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		// Every moment this player's debuff on the primary changed, in order: the applies and refreshes that
 		// open a window and the removes that close one. A span runs from one to the next whatever its kind,
 		// because any of the three ends the application that was running.
-		const changes: Array<{ t: number; opens: boolean }> = [];
+		/**
+		 * **Bucketed per enemy spawn, and that is load-bearing rather than tidy.** A span runs from one
+		 * change on *one* enemy to the next change on that same enemy; measured across a merged stream, a
+		 * shock on an add would be closed by an unrelated application on the boss and the charge count read
+		 * off a span that never belonged to it. This walked the primary alone before, which on an add fight
+		 * meant it walked almost nothing — see `t16Anywhere`.
+		 */
+		const perSpawn = new Map<string, Array<{ t: number; opens: boolean }>>();
 		for (const e of events) {
-			if (e.sourceID !== actor.id || e.targetID !== primaryID) continue;
+			if (e.sourceID !== actor.id || e.targetID === undefined) continue;
 			const id = abilityIdOf(e);
 			if (id === null || !ids.has(id) || !isAuraEvent(e)) continue;
-			changes.push({ t: e.timestamp - t0, opens: isAuraApply(e) || isAuraRefresh(e) });
+			const key = instanceKey(e.targetID, e.targetInstance);
+			const bucket = perSpawn.get(key);
+			const entry = { t: e.timestamp - t0, opens: isAuraApply(e) || isAuraRefresh(e) };
+			if (bucket) bucket.push(entry);
+			else perSpawn.set(key, [entry]);
 		}
-		changes.sort((a, b) => a.t - b.t);
+		const changes = [...perSpawn.values()].flatMap((bucket) => {
+			bucket.sort((a, b) => a.t - b.t);
+			// The span each application owns, closed by the next change *on its own enemy* or by the pull's
+			// end. Carried on the entry so the flattened list below needs no second pass over the buckets.
+			return bucket.map((entry, i) => ({ ...entry, span: (bucket[i + 1]?.t ?? duration) - entry.t }));
+		});
 		for (let i = 0; i < changes.length; i++) {
 			const change = changes[i];
 			if (change === undefined || !change.opens) continue;
-			const span = (changes[i + 1]?.t ?? duration) - change.t;
+			const span = change.span;
 			/**
 			 * **A span the aura cannot hold is not a big window, it is a missing event.**
 			 *
@@ -3302,8 +3318,21 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * It is also a *debuff on the target*, not a buff on the player, so the scoping was wrong as well as
 	 * the id: `selfWindows` would have found nothing even had the number been right.
 	 */
-	const t16DebuffWindows = dotWindowsOnTarget(events, T16_2PC_DEBUFF, t0, fightEnd, primaryID, actor.id).merged;
-	const twoPieceWindows: Window[] = t16DebuffWindows.map(([start, end]) => ({ start, end }));
+	/**
+	 * The tier-16 debuff on **every enemy this player put it on**, not on the primary alone.
+	 *
+	 * **Scoping it to the primary was the defect, and an add fight is where it shows.** Elemental Discharge
+	 * is a per-target damage amp — Fulmination leaves it on whatever the shock hit — so a shaman working an
+	 * add wave spreads it correctly across the wave. On `WZPFBcJ6bxXmph9r` fight 17, a Galakras kill, this
+	 * player's twenty-one Discharge events land on **seven** different enemies and **none** of them is the
+	 * enemy they damaged most. Read off the primary, the debuff they had kept up all fight was invisible,
+	 * and the uptime came out near nought for a player doing exactly the right thing.
+	 *
+	 * On a single-target pull the two readings are the same array, which is why all four committed fixtures
+	 * are untouched by this and why the fault survived them.
+	 */
+	const t16Anywhere = dotWindowsBySpawn(events, T16_2PC_DEBUFF, t0, fightEnd, actor.id);
+	const twoPieceWindows: Window[] = t16Anywhere.merged.map(([start, end]) => ({ start, end }));
 	/**
 	 * Whether this player owns the T16 two-piece, which is what picks Earth Shock's branch.
 	 *
@@ -3669,13 +3698,48 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * `aoe.apl.json` has no Earth Shock rung, so above two enemies nothing asks for the Fulmination that
 	 * would carry this debuff, and grading its absence there would charge a player for following the list.
 	 *
+	 * **The numerator is per-enemy and contact-clipped**, not a union of the debuff across the pull — see
+	 * `dischargeCovered`. The gate above stays a pull-wide question, because "does this shaman own the
+	 * two-piece" is answered by the debuff appearing anywhere at all.
+	 *
 	 * **Zero clock when the set is not owned, which is the gate and not a special case.** `twoPieceWindows`
 	 * is empty for a shaman without the two-piece, so `dischargeScoredMs` is 0 and `gradedOver` refuses the
 	 * metric through the same path an empty clock is refused anywhere else. No `if` in the score, no
 	 * fourth arm in the copy: a pull without the set is simply a pull this question was not asked of.
 	 */
 	const dischargeScoredMs = twoPieceWindows.length === 0 ? 0 : shieldGradedMs;
-	const dischargeUptimeMs = unionMs(intersect(toIntervals(twoPieceWindows), shieldSpans));
+	/**
+	 * The numerator: the debuff **on the enemy the player was actually hitting**, second by second.
+	 *
+	 * **The same walk `flameShockUptime` takes over the dot, and for the same reason.** A union of the
+	 * debuff across every enemy would answer "was it up on *something*", which on an add wave is true
+	 * almost continuously and says nothing about whether the amp was on the target taking the damage. Each
+	 * landed hit owns the clock until the next one — that is how long the player was demonstrably on that
+	 * enemy — and the debuff only counts inside the stretch it belonged to.
+	 *
+	 * Clipped to `shieldSpans` first, so the parts are already inside the graded clock and the share below
+	 * cannot exceed it. Merged per spawn once rather than per hit: a boss carried through a whole pull is
+	 * thousands of hits against a handful of windows.
+	 */
+	const dischargeBySpawn = new Map<string, Interval[]>();
+	const dischargeOn = (key: string): Interval[] => {
+		const known = dischargeBySpawn.get(key);
+		if (known !== undefined) return known;
+		const windows = mergeIntervals(intersect(toIntervals(t16Anywhere.byInstance.get(key) ?? []), shieldSpans));
+		dischargeBySpawn.set(key, windows);
+		return windows;
+	};
+	const dischargeCovered: Interval[] = [];
+	for (let i = 0; i < landedHits.length; i++) {
+		const hit = landedHits[i];
+		if (hit === undefined) continue;
+		const until = landedHits[i + 1]?.t ?? duration;
+		for (const [start, end] of dischargeOn(hit.key)) {
+			if (start >= until) break;
+			if (end > hit.t) dischargeCovered.push([Math.max(start, hit.t), Math.min(end, until)]);
+		}
+	}
+	const dischargeUptimeMs = unionMs(mergeIntervals(dischargeCovered));
 	const dischargeUptimePct = dischargeScoredMs > 0 ? (dischargeUptimeMs / dischargeScoredMs) * 100 : 0;
 	// Fell off: the stretches the shield was down, which is the complement of the stretches it was up.
 	// `complementOf` rather than the walk that was written here — same merge, same gap-push, same tail,
