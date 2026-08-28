@@ -129,13 +129,13 @@ const REACHED = SIEGE_RANKING_EXCLUSIONS.map((rule) => ({
 
 describe('which rows a committed pull can actually check', () => {
 	/**
-	 * The partition, written out. Twelve rows, one line each, so removing a fixture is as loud as adding one.
+	 * The partition, written out. Thirteen rows, one line each, so removing a fixture is as loud as adding one.
 	 *
 	 * These are not rows anybody decided to skip — they are rows of encounters this repository holds no pull
 	 * of. Three of them would stay unmeasurable even with the pull committed, and say so themselves:
 	 * `Starved Yeti`, `Amber Parasites` and `Manifestation of Rage` are all *"Absent from the reference
 	 * pull"*, so a second pull of the same encounter is as likely to be silent about them as the first was.
-	 * The other nine are rows with real hand-measured numbers behind them and nothing in this tree to check
+	 * The other ten are rows with real hand-measured numbers behind them and nothing in this tree to check
 	 * them against.
 	 */
 	const UNREACHABLE = [
@@ -149,6 +149,7 @@ describe('which rows a committed pull can actually check', () => {
 		'Amber Parasites',
 		'Blood',
 		'Desecrated Weapon',
+		'Empowered Desecrated Weapon',
 		'Manifestation of Rage',
 		"Minion of Y'Shaarj",
 	];
@@ -158,7 +159,7 @@ describe('which rows a committed pull can actually check', () => {
 	});
 
 	/**
-	 * *** The non-vacuity test. *** Twelve of thirteen rows have nothing behind them, so this file is one
+	 * *** The non-vacuity test. *** Thirteen of fourteen rows have nothing behind them, so this file is one
 	 * committed fixture away from being a sweep that asserts nothing and reports success — which is the
 	 * failure `undeclaredAuras.test.ts` already carries its own version of this against.
 	 */

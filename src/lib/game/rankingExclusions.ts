@@ -47,13 +47,17 @@
 // log of.
 //
 // **A name-only match is not safe here, and Garrosh proves it inside this very table.** The ruleset
-// names `Desecrated Weapon`; the log of the reference pull also carries a separate NPC called
-// `Empowered Desecrated Weapon` (gameID 72198), which the rule does not name. An exact match misses it
-// and a substring match sweeps it in, and the article gives no way to tell which WarcraftLogs meant.
-// Thok is the mirror image: the rule names `Starved Yeti`, and the reference pull's captive was a
-// `Captive Cave Bat` instead, so the rule as written excludes one of the three captives and not the
-// others. Matching by `gameID` where one is known avoids the first trap and cannot help with the
-// second — the second is a property of the ruleset, not of the matcher.
+// names `Desecrated Weapon`. The log of the reference pull carries two units: that one (gameID 72154)
+// and `Empowered Desecrated Weapon` (gameID 72198), which is the empowered form of the same weapon and
+// is therefore covered by the same rule. Nothing about the two *names* says so — an exact match takes
+// one and leaves the other, a substring match takes both and would take an unrelated unit that happened
+// to share a word — so the pair is carried as two rows keyed on the ids, and the fact that binds them
+// is knowledge of the encounter rather than anything a matcher could derive.
+//
+// Thok is the mirror image, and the one this file cannot fix: the rule names `Starved Yeti`, and the
+// reference pull's captive was a `Captive Cave Bat` instead, so the rule as written excludes one of the
+// three captives and not the others. Matching by `gameID` where one is known avoids the first trap and
+// cannot help with the second — the second is a property of the ruleset, not of the matcher.
 //
 // The encounter is keyed on the **base** id. Classic re-registers every boss for every re-release with
 // an offset that is a multiple of 50000, and Siege has three registrations: Garrosh is `1623` on retail
@@ -250,7 +254,17 @@ export const SIEGE_RANKING_EXCLUSIONS: readonly RankingExclusion[] = [
 		heroicOnly: true,
 		reach: 'damage',
 		evidence:
-			'36 hits across 2 spawns and no aimed press — but the two spawns were held for 15.3s and 7.3s, three and one and a half target windows, and the Desecrated Weapon is a unit the raid is required to destroy. Sustained contact and encounter structure agree, so this is a body. Note the log also carries a separate `Empowered Desecrated Weapon` (gameID 72198, 3 hits) that the ruleset does not name.',
+			'36 hits across 2 spawns and no aimed press — but the two spawns were held for 15.3s and 7.3s, three and one and a half target windows, and the Desecrated Weapon is a unit the raid is required to destroy. Sustained contact and encounter structure agree, so this is a body. The log carries the empowered form of the same weapon beside it, which has a row of its own.',
+	},
+	{
+		encounterID: 1623,
+		encounter: 'Garrosh Hellscream',
+		npc: 'Empowered Desecrated Weapon',
+		gameID: 72_198,
+		heroicOnly: true,
+		reach: 'damage',
+		evidence:
+			"The empowered form of `Desecrated Weapon`, so the ruleset's rule for that weapon covers it — the two are one unit in the encounter, and the article names the type rather than each spawn state. Reach follows its own row for the same reason it was chosen there: this is a body the raid is required to destroy, not splash. Only 3 hits on the reference pull, which on its own would argue the other way; the encounter structure is what decides it, and the same argument was already accepted for the unempowered form on 36.",
 	},
 	{
 		encounterID: 1623,
@@ -342,6 +356,36 @@ export function uncountedActorIDs(
 	return new Set(
 		(enemyNPCs ?? [])
 			.filter((npc) => rankingExclusionFor(encounterID, difficulty, npc)?.reach === 'both')
+			.map((npc) => npc.id),
+	);
+}
+
+/**
+ * The actors whose **damage** the ruleset strikes — every decided row, not just the counted ones.
+ *
+ * The companion to `uncountedActorIDs` above, and the two answer different questions on purpose. That one
+ * asks "did this body raise the enemy count", which only `reach: 'both'` does. This one asks "does this
+ * damage count", which is the condition **every** decided row begins life as: the header says so — *"every
+ * entry here begins life as a damage-ranking exclusion"* — so `'damage'` and `'both'` are both in, and
+ * `null` is out for the reason it is out everywhere, that an undecided row has no evidence either way.
+ *
+ * **This is the reader `reach: 'damage'` was written for and did not have.** For as long as
+ * `uncountedActorIDs` was the only consumer, the seven `'damage'` rows were inert: the field said
+ * WarcraftLogs strikes the damage and nothing in this codebase struck anything. The evidence written into
+ * those rows was an argument about the *count*, and it still stands — a body held in contact for 39.6s was
+ * a body the rotation had to answer. What it never argued is that the damage should pad a reading.
+ */
+export function excludedDamageActorIDs(
+	encounterID: number | undefined,
+	difficulty: number | undefined,
+	enemyNPCs: readonly { id: number; gameID?: number | null; name?: string | null }[] | undefined,
+): Set<number> {
+	return new Set(
+		(enemyNPCs ?? [])
+			.filter((npc) => {
+				const reach = rankingExclusionFor(encounterID, difficulty, npc)?.reach;
+				return reach === 'damage' || reach === 'both';
+			})
 			.map((npc) => npc.id),
 	);
 }

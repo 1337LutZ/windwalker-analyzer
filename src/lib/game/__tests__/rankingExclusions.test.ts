@@ -55,6 +55,7 @@ const TRANSCRIBED: readonly [encounter: number, npc: string, heroicOnly: boolean
 	[1593, 'Amber Parasites', true],
 	[1593, 'Blood', true],
 	[1623, 'Desecrated Weapon', true],
+	[1623, 'Empowered Desecrated Weapon', true],
 	[1623, 'Manifestation of Rage', true],
 	[1623, "Minion of Y'Shaarj", true],
 ];
@@ -149,15 +150,21 @@ describe('matching prefers the id that is stable', () => {
 	/**
 	 * `gameID` is the NPC's own id and travels between reports; the report-local actor `id` does not, and
 	 * the name is what the article happens to have typed. Where a caller has a `gameID` and the row has
-	 * one, that is the match — which is what keeps `Empowered Desecrated Weapon` (72198), a unit the
-	 * ruleset does not name, out of `Desecrated Weapon`'s row however the two names are compared.
+	 * one, that is the match, and the name is not consulted at all.
+	 *
+	 * Garrosh is where that matters most. Both forms of the weapon are rows — the ruleset names the type
+	 * and the empowered spawn is that type — and they are told apart by id rather than by a name one is a
+	 * prefix of. An id no row carries answers nothing, whatever name rides with it.
 	 */
 	it('matches on gameID when both sides have one, and ignores the name then', () => {
 		expect(rankingExclusionFor(51_623, HEROIC_DIFFICULTY, { name: 'whatever', gameID: 72_154 })?.npc).toBe(
 			'Desecrated Weapon',
 		);
+		expect(rankingExclusionFor(51_623, HEROIC_DIFFICULTY, { name: 'whatever', gameID: 72_198 })?.npc).toBe(
+			'Empowered Desecrated Weapon',
+		);
 		expect(
-			rankingExclusionFor(51_623, HEROIC_DIFFICULTY, { name: 'Desecrated Weapon', gameID: 72_198 }),
+			rankingExclusionFor(51_623, HEROIC_DIFFICULTY, { name: 'Desecrated Weapon', gameID: 72_999 }),
 		).toBeUndefined();
 	});
 
@@ -228,17 +235,17 @@ describe('the counted series drops the rows that leave the count, and only those
 	/**
 	 * All three reaches on one encounter and in one call, because Garrosh happens to carry one of each.
 	 *
-	 * `Desecrated Weapon` is `'damage'` — struck from the rankings and still a body the rotation had to
-	 * react to. `Manifestation of Rage` is `null` — nobody has measured it. `Minion of Y'Shaarj` is
+	 * Both forms of the weapon are `'damage'` — struck from the rankings and still bodies the rotation had
+	 * to react to. `Manifestation of Rage` is `null` — nobody has measured it. `Minion of Y'Shaarj` is
 	 * `'both'`. A predicate that read "excluded from rankings" as "excluded from the count" returns all
-	 * three here, and that is the whole mistake this module was written to avoid.
+	 * four here, and that is the whole mistake this module was written to avoid.
 	 */
 	it("returns only Garrosh's `both` row from a list holding all three reaches", () => {
 		const garrosh = SIEGE_RANKING_EXCLUSIONS.filter((rule) => rule.encounter === 'Garrosh Hellscream');
-		expect(garrosh.map((rule) => rule.reach)).toEqual(['damage', null, 'both']);
+		expect(garrosh.map((rule) => rule.reach)).toEqual(['damage', 'damage', null, 'both']);
 
 		const enemies = garrosh.map((rule, index) => ({ id: 500 + index, gameID: rule.gameID, name: rule.npc }));
-		expect([...uncountedActorIDs(51_623, HEROIC_DIFFICULTY, enemies)]).toEqual([502]);
+		expect([...uncountedActorIDs(51_623, HEROIC_DIFFICULTY, enemies)]).toEqual([503]);
 	});
 
 	it('answers nothing when the caller has no encounter, and nothing for an empty roster', () => {
@@ -252,9 +259,9 @@ describe('the counted series drops the rows that leave the count, and only those
 	 * The fallback, asked of the consumer rather than of the matcher — and the caveat that comes with it.
 	 *
 	 * The module's header argues that a name-only match is not safe and that `gameID` wins wherever both
-	 * sides have one. Garrosh is where that argument was made, so it is where it is checked: the log's
-	 * `Empowered Desecrated Weapon` must stay out of the set however its name is spelled, and a unit the
-	 * caller can only name still reaches its row.
+	 * sides have one. Garrosh is where that argument was made, so it is where it is checked: an id the
+	 * table does not carry stays out of the set however its name is spelled, and a unit the caller can
+	 * only name still reaches its row.
 	 */
 	it('prefers the gameID, falls back to an exact name, and answers nothing with neither', () => {
 		// A unit whose name is a row's and whose id is not: the id decides, and the row is not reached.
