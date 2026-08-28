@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { SegmentMode } from '~/lib/analysis/segments';
+import type { FightSegment, SegmentMode } from '~/lib/analysis/segments';
 import type { Analysis } from '~/lib/types';
 
 import ChartKey from '../charts/ChartKey';
@@ -75,7 +75,20 @@ const KEY_ORDER: readonly SegmentMode[] = ['single', 'cleave', 'aoe', 'mixed', '
  * `segments` is optional because every captured fixture predates it, so the absent case is the ordinary
  * one rather than a defensive check.
  */
-export default function SegmentStrip({ analysis }: { analysis: Analysis }) {
+export default function SegmentStrip({
+	analysis,
+	detailOf,
+}: {
+	analysis: Analysis;
+	/**
+	 * A third tooltip line per segment, when a caller has one.
+	 *
+	 * Optional so the report page is untouched — see `LaneSpan.detail`. The strip cannot compute this
+	 * itself: which enemies a stretch was spent on is not on `Analysis`, and the caller that knows is the
+	 * one still holding the dataset the analysis came from.
+	 */
+	detailOf?: (segment: FightSegment) => string | null | undefined;
+}) {
 	const { t } = useTranslation('report');
 	const segments = analysis.segments?.segments;
 
@@ -103,8 +116,9 @@ export default function SegmentStrip({ analysis }: { analysis: Analysis }) {
 						: t('summary.shape.row', { context: segment.mode }),
 				lengthLabel: t('summary.shape.length', { seconds: Math.round((segment.endMs - segment.startMs) / 1000) }),
 				short: shortOf(segment),
+				...(detailOf?.(segment) ? { detail: detailOf(segment) as string } : {}),
 			})),
-		[segments, t],
+		[segments, t, detailOf],
 	);
 
 	if (segments === undefined || segments.length < 2) return null;

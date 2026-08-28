@@ -1,0 +1,23 @@
+---
+// The segment derivation across whole reports, for checking the engine rather than reading a parse.
+//
+// **Unlisted deliberately.** Nothing links here and no route builds a link to it: it walks every kill in
+// every report it is given, which costs real API budget, and what it shows is the machinery behind the
+// bands rather than anything a visitor came to read about their own pull. Knowing the address is the
+// whole of the access control, which is the right amount for a tool that reads only public logs through
+// the visitor's own token.
+import '~/styles/global.css';
+
+import FightSegments from '~/components/FightSegments';
+import { pageShellClass } from '~/components/primitives/pageShell';
+import Base from '~/layouts/Base.astro';
+---
+
+<Base
+	title="Fight segments"
+	description="Segment breakdown for whole reports, kill by kill — the derivation behind every banded metric."
+>
+	<main class={pageShellClass}>
+		<FightSegments client:load />
+	</main>
+</Base>

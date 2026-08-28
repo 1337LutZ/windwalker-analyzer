@@ -11,6 +11,14 @@ export interface LaneSpan {
 	lengthLabel: string;
 	/** What goes inside the bar when it is wide enough: "1", "2", "3+". Never the only thing said. */
 	short: string;
+	/**
+	 * A third tooltip line, when the caller has something to add — the enemies a stretch was spent on.
+	 *
+	 * Optional, and absent on the report page: the strip there answers "what shape was this pull", and a
+	 * roster of enemy names is a different question that would make every bar's tooltip longer to no end.
+	 * The segment tool asks that question directly, so it fills this in.
+	 */
+	detail?: string;
 }
 
 /**
@@ -52,7 +60,7 @@ export default function SegmentLane({
 					<div
 						key={span.startMs}
 						style={{ width: `${width}%` }}
-						title={`${span.label}\n${span.lengthLabel}`}
+						title={[span.label, span.lengthLabel, span.detail].filter(Boolean).join('\n')}
 						className={`relative flex min-w-px items-center justify-center overflow-hidden first:rounded-l-sm last:rounded-r-sm ${fill}`}
 					>
 						{/* The one mode that is not a step on the ramp gets a texture rather than a step, so it cannot
