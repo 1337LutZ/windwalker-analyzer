@@ -64,3 +64,6 @@ probe*.config.mjs
 # Fetched WarcraftLogs datasets and the per-pull detail behind src/generated/reference.json.
 # The derived table is committed; the hundreds of megabytes it was computed from are not.
 .reference-cache/
+
+# Written by `scripts/segment-report.mjs`. Names a player and their reports, so it stays out of the tree.
+segment-breakdown.md
