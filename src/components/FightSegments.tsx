@@ -16,6 +16,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Tooltip } from '@base-ui/react/tooltip';
 
+import ApiCredits from './ApiCredits';
 import SessionProvider from './auth/SessionProvider';
 import SignInPanel from './auth/SignInPanel';
 import { useSession } from '~/lib/auth';
@@ -360,7 +361,9 @@ function Fight({ code, fight }: { code: string; fight: FightRow }) {
 	if (fight.error !== null) {
 		return (
 			<div id={anchorOf(code, fight.id)} className="flex scroll-mt-16 flex-col gap-2">
-				<h3 className="font-mono text-sm text-ink">{`${fight.id} · ${fight.name}`}</h3>
+				<h3 className="m-0 flex flex-wrap items-baseline gap-x-3 border-b border-line pb-2 font-mono text-base font-semibold tracking-[0.02em] text-ink">
+					{`${fight.id} · ${fight.name}`}
+				</h3>
 				<Note>{fight.error}</Note>
 			</div>
 		);
@@ -368,9 +371,9 @@ function Fight({ code, fight }: { code: string; fight: FightRow }) {
 	if (isPending(fight)) {
 		return (
 			<div id={anchorOf(code, fight.id)} className="flex scroll-mt-16 flex-col gap-3.5">
-				<h3 className="font-mono text-sm text-ink">
+				<h3 className="m-0 flex flex-wrap items-baseline gap-x-3 border-b border-line pb-2 font-mono text-base font-semibold tracking-[0.02em] text-ink">
 					{`${fight.id} · ${fight.name}`}
-					<span className="ml-2 animate-pulse text-ink-3">reading…</span>
+					<span className="animate-pulse text-xs font-normal text-ink-3">reading…</span>
 				</h3>
 				{/* Shaped like what is coming — a strip, then a table — so the page does not resize under the
 				    reader when it lands. The heights are the drawn ones: `SegmentLane` is `h-9`. */}
@@ -385,9 +388,18 @@ function Fight({ code, fight }: { code: string; fight: FightRow }) {
 
 	return (
 		<div id={anchorOf(code, fight.id)} className="flex scroll-mt-16 flex-col gap-3.5">
-			<h3 className="font-mono text-sm text-ink">
+			{/*
+			 * **Heavier than the rows under it, and ruled off.** Every pull renders the same four blocks —
+			 * tiles, strip, key, table — so a page of them is a wall of near-identical shapes, and a heading
+			 * set at the same size and weight as the copy beside it disappears into the wall. The rule is
+			 * what gives each pull an edge to find when scrolling; the size and weight are what make the
+			 * boss name the thing the eye lands on.
+			 *
+			 * The trailing detail stays small and unweighted: it is the heading's caption, not part of it.
+			 */}
+			<h3 className="m-0 flex flex-wrap items-baseline gap-x-3 border-b border-line pb-2 font-mono text-base font-semibold tracking-[0.02em] text-ink">
 				{`${fight.id} · ${fight.name}`}
-				<span className="ml-2 text-ink-3">
+				<span className="text-xs font-normal text-ink-3">
 					{`${formatClock(fight.durationMs)} · ${fight.specName ?? 'unread'} · ${segments.length} segment${segments.length === 1 ? '' : 's'}`}
 				</span>
 			</h3>
@@ -676,13 +688,24 @@ function Runner() {
 							</button>
 							{progress !== null ? <span className="font-mono text-xs text-ink-3">{progress}</span> : null}
 						</div>
+						{/*
+						 * The hour's budget, and how many pulls are left in it.
+						 *
+						 * **Beside the button rather than under the results, because this is the page that can
+						 * spend the lot.** A report page reads one pull; this one reads every kill in every report
+						 * it is given, so a list of five raid nights is a hundred-odd pulls — and the reader
+						 * should see what that costs before pressing, not after. `ApiCredits` already answers it,
+						 * and is the same component the sign-in panel uses reading the same `useApiCredits`, so
+						 * the two cannot disagree about a number the reader may have seen a moment ago.
+						 */}
+						<ApiCredits />
 					</div>
 				</Section>
 
 				{reports.map((report) => (
 					<Section key={report.code} id={`report-${report.code}`} title={report.code}>
 						{report.error !== null ? <Note>{report.error}</Note> : null}
-						<div className="mt-4.5 flex flex-col gap-8">
+						<div className="mt-4.5 flex flex-col gap-12">
 							{report.fights.map((fight) => (
 								<Fight key={fight.id} code={report.code} fight={fight} />
 							))}
