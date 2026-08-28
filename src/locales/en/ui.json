@@ -1,285 +1,285 @@
 {
-	"app": {
-		"eyebrow": "Mists of Pandaria · {{spec}}",
-		"title": "{{spec}} analyzer",
-		"reportField": "Report code or URL",
-		"reportRefusal": "Paste the whole WarcraftLogs report URL, or just its code — the run of letters and digits after /reports/.",
-		"fightList": "Boss pulls in this report",
-		"stage": "Alpha",
-		"stageNote": "Alpha: the measurements are real, but the thresholds and the wording are still moving.",
-		"intro_windwalker": "Analyse a single Mists of Pandaria pull: how full your Tigereye Brew bank was when you spent it, whether your brews lined up with Re-Origination procs, where your rotation lost damage, and a list of every mistake with a link back to the replay. Everything runs in this tab.",
-		"intro_elemental": "Analyse a single Mists of Pandaria pull: how much of it your Flame Shock dot was up for, whether Earth Shock spent a full Lightning Shield, which Lava Surge procs went to waste, where your rotation lost damage, and a list of every mistake with a link back to the replay. Everything runs in this tab.",
-		"intro_protection": "Analyse a single Mists of Pandaria pull: every press in the order you made them, then what the encounter itself took away — stuns, phases that move you off the boss, and mechanics that replace your bar, worked out boss by boss from real pulls of each one — and only then how many globals the fight had room for and how many you pressed. After that, the attack power being hit paid you and the ceiling your own health put on it, the haste your kit was running at, the holy power behind your spenders, and what dealt the damage. Everything runs in this tab.",
-		"pickTitle": "Pick your spec",
-		"pickIntro": "Every spec is read against its own rotation and its own thresholds, so this page has to know which one you played. Pick it below and the analyzer opens on that spec's own page.",
-		"pickCarried": "The report in the link you followed is carried through. Pick a spec and it opens there.",
-		"pickUnknown": "There is no page at that address. Pick a spec below to get to one.",
-		"privacy": "There is no server, no cookies and no analytics. Nothing is stored except your token, and only until this tab closes. If you open DevTools → Network while it runs, you will see this page's own assets, POSTs to warcraftlogs.com, and spell icons from Wowhead's image host — the icon requests carry no token, no report code and nothing else.",
-		"moved": {
-			"title": "This analyser has moved",
-			"body": "It used to live at one address per spec, and now serves both from here. Your WarcraftLogs API client still points at the old address, so sign-in will fail until you add the one below to it. Adding it is enough — nothing has to be removed, and one entry covers every spec.",
-			"uri": "Redirect URI to add",
-			"dismiss": "Got it"
-		},
-		"toCompare": "Compare two pulls",
-		"toReport": "Read a single pull"
-	},
-	"steps": {
-		"signIn": "Sign in to WarcraftLogs",
-		"report": "Point it at a pull",
-		"fight": "Pick the fight",
-		"player": "Pick the player",
-		"thisTabOnly": "this tab only",
-		"fightsHere": "Load a report above and its boss pulls appear here.",
-		"checkingRoster": "Checking who was in that pull…",
-		"analyse": "Analyse this pull",
-		"firstLog": "First log",
-		"secondLog": "Second log",
-		"compare": "Compare the two",
-		"compareAction": "Compare these pulls",
-		"compareCost": "This reads two pulls, so it costs about twice what one report costs against your hourly WarcraftLogs budget. Two players from the same pull is the cheap case: the report and its roster are fetched once and the second player reuses both.",
-		"compareRefused": "One of these two pulls is not this spec, so there is nothing to compare. Pick a different player.",
-		"signInFirst": "Sign in above, then paste a report URL or code.",
-		"encounter": "The encounter",
-		"encounterIntent": "Both pulls are read at the same boss. Only encounters that appear in both logs are offered.",
-		"noSharedEncounter": "These two logs have no boss in common, so there is nothing to compare. Point one of them at a different night.",
-		"reports": "The two logs",
-		"players": "The players",
-		"encounterHere": "Load both logs above and the bosses they share appear here.",
-		"playersHere": "Pick the boss above, then choose who to read from each log."
-	},
-	"auth": {
-		"signIn": {
-			"intro": "Sign in with your WarcraftLogs account to read your logs, including private and archived ones. You sign in on WarcraftLogs' own page — this one never sees your password, and there is nothing to paste.",
-			"button": "Sign in with WarcraftLogs",
-			"opening": "Opening WarcraftLogs…"
-		},
-		"session": {
-			"oauth": "Signed in",
-			"manual": "Using your token",
-			"tabOnly": "— in this tab only. Closing the tab forgets it, and it goes nowhere but warcraftlogs.com.",
-			"signOut": "Sign out",
-			"forgetToken": "Forget this token"
-		},
-		"failure": {
-			"expiredTitle": "Your session had expired",
-			"unfinishedTitle": "That sign-in did not finish",
-			"signIn": "Signing in to WarcraftLogs failed.",
-			"expired": "Your WarcraftLogs session had expired, so it was not restored. Sign in again for a fresh one — WarcraftLogs issues no refresh token, so there is nothing this page can renew on your behalf.",
-			"expiredManual": "The token you pasted has expired, so it was not restored. Generate a new one and paste it in, or sign in with your WarcraftLogs account instead."
-		},
-		"public": {
-			"title": "This token reads public logs only",
-			"body": "It carries no account with it — a client-credentials token — so WarcraftLogs will not show it anything private. Public logs analyse perfectly well.",
-			"catchBefore": "A private report does not come back refused. It comes back as",
-			"catchEmphasis": "not found",
-			"catchAfter": ", exactly as a mistyped code does. If a report code you know is right is rejected below, that is why: sign in with your account instead, or make the log public."
-		},
-		"client": {
-			"using": "Signing in with your own API client,",
-			"forget": "Forget this client",
-			"titleFirst": "First, register your own API client",
-			"titleAnother": "Use a different API client",
-			"intro": "WarcraftLogs meters its API per client, so this app cannot sign you in with one of its own — everyone using it would share a single hourly budget and run each other out of it. Registering your own takes about a minute and gives you a budget nobody else spends.",
-			"field": "Client ID",
-			"save": "Save client ID",
-			"redirectLabel": "Redirect URL",
-			"kept": "The client ID is kept in this browser so you do not have to paste it again, and unlike your access token it survives closing the tab. It is not a secret — PKCE publishes it with every sign-in — and it goes nowhere but warcraftlogs.com.",
-			"step": {
-				"open": "Open",
-				"link": "warcraftlogs.com/api/clients",
-				"choose": "and choose",
-				"create": "Create Client",
-				"name": "Give it any name. You will see it on the consent screen when you sign in.",
-				"redirect": "Paste this as the redirect URL, exactly as it appears — a URL that differs by so much as a trailing slash is refused, and the refusal blames the client id rather than the URL.",
-				"tick": "Tick",
-				"publicClient": "Public Client",
-				"pkce": "so the client can use PKCE, then save.",
-				"copy": "Copy the",
-				"clientId": "client ID",
-				"paste": "it gives you back and paste it below. Not the client secret — this app has no use for one and should never be given it."
-			},
-			"empty": "Paste the client ID from your WarcraftLogs API client.",
-			"notAnId": "That does not look like a client ID. It should be a UUID, like 01234567-89ab-7cde-8f01-23456789abcd. A long unbroken string of letters and digits is the client secret instead: this app never uses one, so leave it where it is."
-		},
-		"token": {
-			"advanced": "Advanced: use your own access token",
-			"intro": "If you already generate your own WarcraftLogs tokens, paste one here instead. It is kept in this tab exactly like a signed-in one: never written to disk, never logged, sent only to warcraftlogs.com, and gone when the tab closes. A token from the client-credentials flow works too — it reads public logs only, and you will be told so.",
-			"field": "Access token",
-			"placeholder": "Paste the token",
-			"submit": "Use this token",
-			"empty": "Paste the access token WarcraftLogs generated for you.",
-			"expired": "That token expired {{ago}}, on {{date}} at {{time}}. Generate a fresh one and paste that."
-		},
-		"help": {
-			"trigger": "What happens when you sign in?",
-			"title": "Signing in to WarcraftLogs",
-			"description": "You sign in on WarcraftLogs' own page, not this one. You type your password there and this app never sees it. WarcraftLogs asks whether to let the analyser read your logs, and only your answer comes back.",
-			"tokenBefore": "What comes back is an access token. It is held in this browser tab, sent to",
-			"tokenBetween": "as an",
-			"tokenAfter": "header, and sent nowhere else. This page has no server to send it to: it is a folder of static files, and the content-security policy it ships makes your browser enforce that whatever the JavaScript intends.",
-			"tab": "Closing this tab discards it. Nothing is written to a cookie, and nothing survives that outlives the tab — on a shared machine there is nothing to remember to clean up. Signing out clears it immediately, and you can revoke the app’s access from your WarcraftLogs account whenever you like.",
-			"docs": "The underlying API, and what the analyser reads with that token, is documented at",
-			"close": "Close"
-		}
-	},
-	"progress": {
-		"report": "Loading the report…",
-		"table": "Loading the damage table…",
-		"fight": "Reading the fight…"
-	},
-	"errors": {
-		"auth": "WarcraftLogs would not accept that sign-in",
-		"missing": "Could not find that",
-		"rateLimit": "WarcraftLogs is rate-limiting this account",
-		"network": "Could not reach WarcraftLogs",
-		"server": "WarcraftLogs had a problem",
-		"graphql": "WarcraftLogs rejected the query",
-		"unknownTitle": "That failure did not come from WarcraftLogs",
-		"unknownDetail": "Nothing came back that could be read as a WarcraftLogs answer, so there is nothing more to say about it. Reload the page and try the same pull again.",
-		"signOutAction": "Sign out and try again",
-		"wcl": {
-			"auth": {
-				"noToken": "No WarcraftLogs API token was given.",
-				"rejected": "WarcraftLogs rejected the token (401). Tokens expire, so the most likely fix is a fresh one: sign in again, or paste a newly generated token.",
-				"refused": "WarcraftLogs refused the request (403). The token is valid but is not allowed to read this: a client-credentials token reads public logs only, and a report private to another account is off limits to any token but that account's own.",
-				"rejectedDetail": "WarcraftLogs rejected the token: {{detail}}. An expired token is the usual cause — generate a new one and paste it again."
-			},
-			"rateLimit": {
-				"spent": "WarcraftLogs rate-limited the request (429). The hourly point budget is spent, or too many queries went out at once. Wait a minute and try again."
-			},
-			"network": {
-				"timeout": "WarcraftLogs did not answer within {{seconds}} seconds. Check your connection and try again.",
-				"unreachable": "Could not reach WarcraftLogs. Check your connection, and whether a content blocker is stopping the request."
-			},
-			"server": {
-				"http": "WarcraftLogs returned HTTP {{status}}. Try again shortly.",
-				"notJson": "WarcraftLogs returned a response that was not JSON."
-			},
-			"graphql": {
-				"rejected": "WarcraftLogs rejected the query: {{detail}}.",
-				"noReason": "no reason given",
-				"empty": "WarcraftLogs returned an empty response."
-			},
-			"missing": {
-				"credits": "WarcraftLogs did not report the hourly point budget for this token.",
-				"report": "No report \"{{code}}\" on {{host}}. Check the code — this analyser only reads Mists of Pandaria Classic logs, and a code from another WarcraftLogs site does not exist here.",
-				"reportPublicOnly": "This token also reads public logs only, and a private report answers \"not found\" rather than saying it is private. If the code is right, the log may not be public.",
-				"actors": "Report \"{{code}}\" has no actor list, so nothing in it can be named.",
-				"players": "WarcraftLogs returned no player list for fight {{fightID}} of report \"{{code}}\", so nothing in it can be matched to a spec.",
-				"events": "Report \"{{code}}\" returned no event stream for fight {{fightID}}. It may have been made private or archived while it was being read."
-			}
-		},
-		"signIn": {
-			"noClientId": "No WarcraftLogs client id has been set in this browser. Register one at {{url}} and paste its id in, or paste your own access token instead.",
-			"wrongTab": "That sign-in did not start in this tab, so it was refused. Start it again from this page.",
-			"cancelled": "You cancelled the sign-in at WarcraftLogs. Nothing was shared.",
-			"notAuthorized": "WarcraftLogs would not authorize this app ({{refusal}}).",
-			"noCode": "WarcraftLogs sent this page back without an authorization code, so there is nothing to exchange.",
-			"timeout": "WarcraftLogs did not answer within {{seconds}} seconds. Try signing in again.",
-			"unreachable": "Could not reach WarcraftLogs to finish signing in. Check your connection, and whether a content blocker is stopping the request.",
-			"notJson": "WarcraftLogs answered the sign-in with something that was not JSON (HTTP {{status}}).",
-			"refused": "WarcraftLogs refused the sign-in ({{error}}).",
-			"refusedStatus": "WarcraftLogs refused the sign-in (HTTP {{status}}).",
-			"noAccessToken": "WarcraftLogs completed the sign-in but returned no access token."
-		}
-	},
-	"chart": {
-		"drawing": "Drawing chart",
-		"length": {
-			"held": "held for",
-			"elsewhere": "up elsewhere for",
-			"without": "without it for",
-			"unmeasured": "up but unmeasured for",
-			"ticking": "ticking for",
-			"tickingUnmeasured": "ticking but unmeasured for",
-			"out": "out for",
-			"totem": "totem up for",
-			"twoTotems": "two totems up for",
-			"plain": "for"
-		}
-	},
-	"common": {
-		"change": "Change",
-		"kill": "Kill",
-		"wipe": "Wipe",
-		"wipeAt": "Wipe at {{pct, percent}}"
-	},
-	"settings": {
-		"open": "Analysis settings",
-		"short": "Settings",
-		"title": "Analysis settings",
-		"intent": "Most of what this report checks is fixed by the spec and not something you can change. These settings are the exceptions — thresholds that depend on you, or that the log does not record.",
-		"storage": "Kept in this browser only, and used by the analysis running in this tab. Changing it re-reads the pull that is already loaded — nothing is fetched from WarcraftLogs again.",
-		"save": "Save",
-		"reset": "Back to defaults",
-		"ww": {
-			"leeway": {
-				"label": "Snapshot leeway",
-				"unit": "ms",
-				"hint": "How much of a Re-Origination proc can be left over for a brew to still count as catching it on the last global. The default of {{default}}ms is one global, which is what the rotation asks for. Raise it if your latency means the log records you later than you acted, or if you deliberately brew with a safety cushion. Between {{min}} and {{max}}ms."
-			},
-			"weave": {
-				"label": "Elixir weave leeway",
-				"unit": "ms",
-				"hint": "How close to a Tigereye Brew running out your elixir has to come back for the weave to count as played out in full. The default of {{default}}ms is the brew’s last second, which is as long as the crit or haste you swapped for can stay useful. Raise it if you would rather swap back with a cushion than cut it fine. Between {{min}} and {{max}}ms."
-			},
-			"tigerPalm": {
-				"label": "Tiger Palm refresh window",
-				"unit": "ms",
-				"hint": "How much Tiger Power can be left before a Tiger Palm counts as refreshing the buff instead of overwriting a buff that was still fine. The rotation refreshes it at {{min}}ms; the default of {{default}}ms is one global wider, because a person has to finish the global they are in before they can press. Between {{min}} and {{max}}ms."
-			},
-			"cooldown": {
-				"label": "Cooldown leeway",
-				"unit": "ms",
-				"hint": "How late a press can land after a cooldown comes back before the wait is counted as a cooldown held. A wait shorter than this is forgiven whole; a longer one is still charged whole. The default of {{default}}ms is the global you were already committed to when the button came up, plus half a global to see it and press it. Lower it to {{min}}ms for the strictest reading. Between {{min}} and {{max}}ms, and it applies to every button with a cooldown — Rising Sun Kick, Chi Wave, Xuen and the potion."
-			}
-		},
-		"ele": {
-			"cooldown": {
-				"label": "Cooldown leeway",
-				"unit": "ms",
-				"hint": "How late a press can land after a cooldown comes back before the wait is counted as a cooldown held. A wait shorter than this is forgiven whole; a longer one is still charged whole. The default of {{default}}ms is the global you were already committed to when the button came up, plus half a global to see it and press it. Lower it to {{min}}ms for the strictest reading. Between {{min}} and {{max}}ms, and it applies to every button with a cooldown — Unleash Elements, Elemental Blast, Ascendance, Elemental Mastery and the Fire Elemental."
-			},
-			"lightningShieldOvercap": {
-				"label": "Lightning Shield overcap grace",
-				"unit": "ms",
-				"hint": "How long the shield may sit at seven before the time past that is called overcapping. One press’s worth of grace is forgiven, like the cooldown leeway, because the shock that should spend the shield has to be finished and the reaction has to land. Between {{min}} and {{max}}ms."
-			},
-			"searingTotemRefresh": {
-				"label": "Searing Totem refresh leeway",
-				"unit": "ms",
-				"hint": "How much of the totem’s minute can be left before a re-press counts as clipping a healthy totem rather than placing the next one early. The default of {{default}}ms is one press’s worth of grace, like the cooldown leeway. Between {{min}} and {{max}}ms."
-			}
-		},
-		"prot": {
-			"cooldown": {
-				"label": "Cooldown leeway",
-				"unit": "ms",
-				"hint": "How late a press can land after a cooldown comes back before the wait is counted as a cooldown held. A wait shorter than this is forgiven whole; a longer one is still charged whole. The default of {{default}}ms is one global at this spec’s own floor — Sanctity of Battle takes it to a second from 50% haste upwards, which is every geared pull. Between {{min}} and {{max}}ms, and it applies to every button with a cooldown."
-			}
-		}
-	},
-	"selection": {
-		"label": "Selected pull",
-		"compareLabel": "Compared pulls"
-	},
-	"credits": {
-		"label": "API credits",
-		"signedOut": "WarcraftLogs gives every API client its own hourly budget, so the one you register is yours alone to spend. What is left of it shows here once you are signed in.",
-		"unit_one": "pull",
-		"unit_other": "pulls",
-		"summary_one": "{{percent, percent}} of this hour's WarcraftLogs budget left, which is about {{count, compact}} more pull.",
-		"summary_other": "{{percent, percent}} of this hour's WarcraftLogs budget left, which is about {{count, compact}} more pulls.",
-		"used": "{{spent, integer}} of {{limit, integer}} points spent this hour.",
-		"resets": "The budget resets in {{when}}."
-	},
-	"analysisMode": {
-		"label": "Analysis mode",
-		"parsing": "Parsing",
-		"progression": "Progression",
-		"hintBefore": "Toggle between",
-		"hintAfter": "and Progression analysis.",
-		"hint": "Parsing applies the Warcraft Logs ranking exclusions. Progression grades every body you fought."
-	}
+  "app": {
+    "eyebrow": "Mists of Pandaria · {{spec}}",
+    "title": "{{spec}} analyzer",
+    "reportField": "Report code or URL",
+    "reportRefusal": "Paste the whole WarcraftLogs report URL, or just its code — the run of letters and digits after /reports/.",
+    "fightList": "Boss pulls in this report",
+    "stage": "Alpha",
+    "stageNote": "Alpha: the measurements are real, but the thresholds and the wording are still moving.",
+    "intro_windwalker": "Analyse a single Mists of Pandaria pull: how full your Tigereye Brew bank was when you spent it, whether your brews lined up with Re-Origination procs, where your rotation lost damage, and a list of every mistake with a link back to the replay. Everything runs in this tab.",
+    "intro_elemental": "Analyse a single Mists of Pandaria pull: how much of it your Flame Shock dot was up for, whether Earth Shock spent a full Lightning Shield, which Lava Surge procs went to waste, where your rotation lost damage, and a list of every mistake with a link back to the replay. Everything runs in this tab.",
+    "intro_protection": "Analyse a single Mists of Pandaria pull: every press in the order you made them, then what the encounter itself took away — stuns, phases that move you off the boss, and mechanics that replace your bar, worked out boss by boss from real pulls of each one — and only then how many globals the fight had room for and how many you pressed. After that, the attack power being hit paid you and the ceiling your own health put on it, the haste your kit was running at, the holy power behind your spenders, and what dealt the damage. Everything runs in this tab.",
+    "pickTitle": "Pick your spec",
+    "pickIntro": "Every spec is read against its own rotation and its own thresholds, so this page has to know which one you played. Pick it below and the analyzer opens on that spec's own page.",
+    "pickCarried": "The report in the link you followed is carried through. Pick a spec and it opens there.",
+    "pickUnknown": "There is no page at that address. Pick a spec below to get to one.",
+    "privacy": "There is no server, no cookies and no analytics. Nothing is stored except your token, and only until this tab closes. If you open DevTools → Network while it runs, you will see this page's own assets, POSTs to warcraftlogs.com, and spell icons from Wowhead's image host — the icon requests carry no token, no report code and nothing else.",
+    "moved": {
+      "title": "This analyser has moved",
+      "body": "It used to live at one address per spec, and now serves both from here. Your WarcraftLogs API client still points at the old address, so sign-in will fail until you add the one below to it. Adding it is enough — nothing has to be removed, and one entry covers every spec.",
+      "uri": "Redirect URI to add",
+      "dismiss": "Got it"
+    },
+    "toCompare": "Compare two pulls",
+    "toReport": "Read a single pull"
+  },
+  "steps": {
+    "signIn": "Sign in to WarcraftLogs",
+    "report": "Point it at a pull",
+    "fight": "Pick the fight",
+    "player": "Pick the player",
+    "thisTabOnly": "this tab only",
+    "fightsHere": "Load a report above and its boss pulls appear here.",
+    "checkingRoster": "Checking who was in that pull…",
+    "analyse": "Analyse this pull",
+    "firstLog": "First log",
+    "secondLog": "Second log",
+    "compare": "Compare the two",
+    "compareAction": "Compare these pulls",
+    "compareCost": "This reads two pulls, so it costs about twice what one report costs against your hourly WarcraftLogs budget. Two players from the same pull is the cheap case: the report and its roster are fetched once and the second player reuses both.",
+    "compareRefused": "One of these two pulls is not this spec, so there is nothing to compare. Pick a different player.",
+    "signInFirst": "Sign in above, then paste a report URL or code.",
+    "encounter": "The encounter",
+    "encounterIntent": "Both pulls are read at the same boss. Only encounters that appear in both logs are offered.",
+    "noSharedEncounter": "These two logs have no boss in common, so there is nothing to compare. Point one of them at a different night.",
+    "reports": "The two logs",
+    "players": "The players",
+    "encounterHere": "Load both logs above and the bosses they share appear here.",
+    "playersHere": "Pick the boss above, then choose who to read from each log."
+  },
+  "auth": {
+    "signIn": {
+      "intro": "Sign in with your WarcraftLogs account to read your logs, including private and archived ones. You sign in on WarcraftLogs' own page — this one never sees your password, and there is nothing to paste.",
+      "button": "Sign in with WarcraftLogs",
+      "opening": "Opening WarcraftLogs…"
+    },
+    "session": {
+      "oauth": "Signed in",
+      "manual": "Using your token",
+      "tabOnly": "— in this tab only. Closing the tab forgets it, and it goes nowhere but warcraftlogs.com.",
+      "signOut": "Sign out",
+      "forgetToken": "Forget this token"
+    },
+    "failure": {
+      "expiredTitle": "Your session had expired",
+      "unfinishedTitle": "That sign-in did not finish",
+      "signIn": "Signing in to WarcraftLogs failed.",
+      "expired": "Your WarcraftLogs session had expired, so it was not restored. Sign in again for a fresh one — WarcraftLogs issues no refresh token, so there is nothing this page can renew on your behalf.",
+      "expiredManual": "The token you pasted has expired, so it was not restored. Generate a new one and paste it in, or sign in with your WarcraftLogs account instead."
+    },
+    "public": {
+      "title": "This token reads public logs only",
+      "body": "It carries no account with it — a client-credentials token — so WarcraftLogs will not show it anything private. Public logs analyse perfectly well.",
+      "catchBefore": "A private report does not come back refused. It comes back as",
+      "catchEmphasis": "not found",
+      "catchAfter": ", exactly as a mistyped code does. If a report code you know is right is rejected below, that is why: sign in with your account instead, or make the log public."
+    },
+    "client": {
+      "using": "Signing in with your own API client,",
+      "forget": "Forget this client",
+      "titleFirst": "First, register your own API client",
+      "titleAnother": "Use a different API client",
+      "intro": "WarcraftLogs meters its API per client, so this app cannot sign you in with one of its own — everyone using it would share a single hourly budget and run each other out of it. Registering your own takes about a minute and gives you a budget nobody else spends.",
+      "field": "Client ID",
+      "save": "Save client ID",
+      "redirectLabel": "Redirect URL",
+      "kept": "The client ID is kept in this browser so you do not have to paste it again, and unlike your access token it survives closing the tab. It is not a secret — PKCE publishes it with every sign-in — and it goes nowhere but warcraftlogs.com.",
+      "step": {
+        "open": "Open",
+        "link": "warcraftlogs.com/api/clients",
+        "choose": "and choose",
+        "create": "Create Client",
+        "name": "Give it any name. You will see it on the consent screen when you sign in.",
+        "redirect": "Paste this as the redirect URL, exactly as it appears — a URL that differs by so much as a trailing slash is refused, and the refusal blames the client id rather than the URL.",
+        "tick": "Tick",
+        "publicClient": "Public Client",
+        "pkce": "so the client can use PKCE, then save.",
+        "copy": "Copy the",
+        "clientId": "client ID",
+        "paste": "it gives you back and paste it below. Not the client secret — this app has no use for one and should never be given it."
+      },
+      "empty": "Paste the client ID from your WarcraftLogs API client.",
+      "notAnId": "That does not look like a client ID. It should be a UUID, like 01234567-89ab-7cde-8f01-23456789abcd. A long unbroken string of letters and digits is the client secret instead: this app never uses one, so leave it where it is."
+    },
+    "token": {
+      "advanced": "Advanced: use your own access token",
+      "intro": "If you already generate your own WarcraftLogs tokens, paste one here instead. It is kept in this tab exactly like a signed-in one: never written to disk, never logged, sent only to warcraftlogs.com, and gone when the tab closes. A token from the client-credentials flow works too — it reads public logs only, and you will be told so.",
+      "field": "Access token",
+      "placeholder": "Paste the token",
+      "submit": "Use this token",
+      "empty": "Paste the access token WarcraftLogs generated for you.",
+      "expired": "That token expired {{ago}}, on {{date}} at {{time}}. Generate a fresh one and paste that."
+    },
+    "help": {
+      "trigger": "What happens when you sign in?",
+      "title": "Signing in to WarcraftLogs",
+      "description": "You sign in on WarcraftLogs' own page, not this one. You type your password there and this app never sees it. WarcraftLogs asks whether to let the analyser read your logs, and only your answer comes back.",
+      "tokenBefore": "What comes back is an access token. It is held in this browser tab, sent to",
+      "tokenBetween": "as an",
+      "tokenAfter": "header, and sent nowhere else. This page has no server to send it to: it is a folder of static files, and the content-security policy it ships makes your browser enforce that whatever the JavaScript intends.",
+      "tab": "Closing this tab discards it. Nothing is written to a cookie, and nothing survives that outlives the tab — on a shared machine there is nothing to remember to clean up. Signing out clears it immediately, and you can revoke the app’s access from your WarcraftLogs account whenever you like.",
+      "docs": "The underlying API, and what the analyser reads with that token, is documented at",
+      "close": "Close"
+    }
+  },
+  "progress": {
+    "report": "Loading the report…",
+    "table": "Loading the damage table…",
+    "fight": "Reading the fight…"
+  },
+  "errors": {
+    "auth": "WarcraftLogs would not accept that sign-in",
+    "missing": "Could not find that",
+    "rateLimit": "WarcraftLogs is rate-limiting this account",
+    "network": "Could not reach WarcraftLogs",
+    "server": "WarcraftLogs had a problem",
+    "graphql": "WarcraftLogs rejected the query",
+    "unknownTitle": "That failure did not come from WarcraftLogs",
+    "unknownDetail": "Nothing came back that could be read as a WarcraftLogs answer, so there is nothing more to say about it. Reload the page and try the same pull again.",
+    "signOutAction": "Sign out and try again",
+    "wcl": {
+      "auth": {
+        "noToken": "No WarcraftLogs API token was given.",
+        "rejected": "WarcraftLogs rejected the token (401). Tokens expire, so the most likely fix is a fresh one: sign in again, or paste a newly generated token.",
+        "refused": "WarcraftLogs refused the request (403). The token is valid but is not allowed to read this: a client-credentials token reads public logs only, and a report private to another account is off limits to any token but that account's own.",
+        "rejectedDetail": "WarcraftLogs rejected the token: {{detail}}. An expired token is the usual cause — generate a new one and paste it again."
+      },
+      "rateLimit": {
+        "spent": "WarcraftLogs rate-limited the request (429). The hourly point budget is spent, or too many queries went out at once. Wait a minute and try again."
+      },
+      "network": {
+        "timeout": "WarcraftLogs did not answer within {{seconds}} seconds. Check your connection and try again.",
+        "unreachable": "Could not reach WarcraftLogs. Check your connection, and whether a content blocker is stopping the request."
+      },
+      "server": {
+        "http": "WarcraftLogs returned HTTP {{status}}. Try again shortly.",
+        "notJson": "WarcraftLogs returned a response that was not JSON."
+      },
+      "graphql": {
+        "rejected": "WarcraftLogs rejected the query: {{detail}}.",
+        "noReason": "no reason given",
+        "empty": "WarcraftLogs returned an empty response."
+      },
+      "missing": {
+        "credits": "WarcraftLogs did not report the hourly point budget for this token.",
+        "report": "No report \"{{code}}\" on {{host}}. Check the code — this analyser only reads Mists of Pandaria Classic logs, and a code from another WarcraftLogs site does not exist here.",
+        "reportPublicOnly": "This token also reads public logs only, and a private report answers \"not found\" rather than saying it is private. If the code is right, the log may not be public.",
+        "actors": "Report \"{{code}}\" has no actor list, so nothing in it can be named.",
+        "players": "WarcraftLogs returned no player list for fight {{fightID}} of report \"{{code}}\", so nothing in it can be matched to a spec.",
+        "events": "Report \"{{code}}\" returned no event stream for fight {{fightID}}. It may have been made private or archived while it was being read."
+      }
+    },
+    "signIn": {
+      "noClientId": "No WarcraftLogs client id has been set in this browser. Register one at {{url}} and paste its id in, or paste your own access token instead.",
+      "wrongTab": "That sign-in did not start in this tab, so it was refused. Start it again from this page.",
+      "cancelled": "You cancelled the sign-in at WarcraftLogs. Nothing was shared.",
+      "notAuthorized": "WarcraftLogs would not authorize this app ({{refusal}}).",
+      "noCode": "WarcraftLogs sent this page back without an authorization code, so there is nothing to exchange.",
+      "timeout": "WarcraftLogs did not answer within {{seconds}} seconds. Try signing in again.",
+      "unreachable": "Could not reach WarcraftLogs to finish signing in. Check your connection, and whether a content blocker is stopping the request.",
+      "notJson": "WarcraftLogs answered the sign-in with something that was not JSON (HTTP {{status}}).",
+      "refused": "WarcraftLogs refused the sign-in ({{error}}).",
+      "refusedStatus": "WarcraftLogs refused the sign-in (HTTP {{status}}).",
+      "noAccessToken": "WarcraftLogs completed the sign-in but returned no access token."
+    }
+  },
+  "chart": {
+    "drawing": "Drawing chart",
+    "length": {
+      "held": "held for",
+      "elsewhere": "up elsewhere for",
+      "without": "without it for",
+      "unmeasured": "up but unmeasured for",
+      "ticking": "ticking for",
+      "tickingUnmeasured": "ticking but unmeasured for",
+      "out": "out for",
+      "totem": "totem up for",
+      "twoTotems": "two totems up for",
+      "plain": "for"
+    }
+  },
+  "common": {
+    "change": "Change",
+    "kill": "Kill",
+    "wipe": "Wipe",
+    "wipeAt": "Wipe at {{pct, percent}}"
+  },
+  "settings": {
+    "open": "Analysis settings",
+    "short": "Settings",
+    "title": "Analysis settings",
+    "intent": "Most of what this report checks is fixed by the spec and not something you can change. These settings are the exceptions — thresholds that depend on you, or that the log does not record.",
+    "storage": "Kept in this browser only, and used by the analysis running in this tab. Changing it re-reads the pull that is already loaded — nothing is fetched from WarcraftLogs again.",
+    "save": "Save",
+    "reset": "Back to defaults",
+    "ww": {
+      "leeway": {
+        "label": "Snapshot leeway",
+        "unit": "ms",
+        "hint": "How much of a Re-Origination proc can be left over for a brew to still count as catching it on the last global. The default of {{default}}ms is one global, which is what the rotation asks for. Raise it if your latency means the log records you later than you acted, or if you deliberately brew with a safety cushion. Between {{min}} and {{max}}ms."
+      },
+      "weave": {
+        "label": "Elixir weave leeway",
+        "unit": "ms",
+        "hint": "How close to a Tigereye Brew running out your elixir has to come back for the weave to count as played out in full. The default of {{default}}ms is the brew’s last second, which is as long as the crit or haste you swapped for can stay useful. Raise it if you would rather swap back with a cushion than cut it fine. Between {{min}} and {{max}}ms."
+      },
+      "tigerPalm": {
+        "label": "Tiger Palm refresh window",
+        "unit": "ms",
+        "hint": "How much Tiger Power can be left before a Tiger Palm counts as refreshing the buff instead of overwriting a buff that was still fine. The rotation refreshes it at {{min}}ms; the default of {{default}}ms is one global wider, because a person has to finish the global they are in before they can press. Between {{min}} and {{max}}ms."
+      },
+      "cooldown": {
+        "label": "Cooldown leeway",
+        "unit": "ms",
+        "hint": "How late a press can land after a cooldown comes back before the wait is counted as a cooldown held. A wait shorter than this is forgiven whole; a longer one is still charged whole. The default of {{default}}ms is the global you were already committed to when the button came up, plus half a global to see it and press it. Lower it to {{min}}ms for the strictest reading. Between {{min}} and {{max}}ms, and it applies to every button with a cooldown — Rising Sun Kick, Chi Wave, Xuen and the potion."
+      }
+    },
+    "ele": {
+      "cooldown": {
+        "label": "Cooldown leeway",
+        "unit": "ms",
+        "hint": "How late a press can land after a cooldown comes back before the wait is counted as a cooldown held. A wait shorter than this is forgiven whole; a longer one is still charged whole. The default of {{default}}ms is the global you were already committed to when the button came up, plus half a global to see it and press it. Lower it to {{min}}ms for the strictest reading. Between {{min}} and {{max}}ms, and it applies to every button with a cooldown — Unleash Elements, Elemental Blast, Ascendance, Elemental Mastery and the Fire Elemental."
+      },
+      "lightningShieldOvercap": {
+        "label": "Lightning Shield overcap grace",
+        "unit": "ms",
+        "hint": "How long the shield may sit at seven before the time past that is called overcapping. One press’s worth of grace is forgiven, like the cooldown leeway, because the shock that should spend the shield has to be finished and the reaction has to land. Between {{min}} and {{max}}ms."
+      },
+      "searingTotemRefresh": {
+        "label": "Searing Totem refresh leeway",
+        "unit": "ms",
+        "hint": "How much of the totem’s minute can be left before a re-press counts as clipping a healthy totem rather than placing the next one early. The default of {{default}}ms is one press’s worth of grace, like the cooldown leeway. Between {{min}} and {{max}}ms."
+      }
+    },
+    "prot": {
+      "cooldown": {
+        "label": "Cooldown leeway",
+        "unit": "ms",
+        "hint": "How late a press can land after a cooldown comes back before the wait is counted as a cooldown held. A wait shorter than this is forgiven whole; a longer one is still charged whole. The default of {{default}}ms is one global at this spec’s own floor — Sanctity of Battle takes it to a second from 50% haste upwards, which is every geared pull. Between {{min}} and {{max}}ms, and it applies to every button with a cooldown."
+      }
+    }
+  },
+  "selection": {
+    "label": "Selected pull",
+    "compareLabel": "Compared pulls"
+  },
+  "credits": {
+    "label": "API credits",
+    "signedOut": "WarcraftLogs gives every API client its own hourly budget, so the one you register is yours alone to spend. What is left of it shows here once you are signed in.",
+    "unit_one": "pull",
+    "unit_other": "pulls",
+    "summary_one": "{{percent, percent}} of this hour's WarcraftLogs budget left, which is about {{count, compact}} more pull.",
+    "summary_other": "{{percent, percent}} of this hour's WarcraftLogs budget left, which is about {{count, compact}} more pulls.",
+    "used": "{{spent, integer}} of {{limit, integer}} points spent this hour.",
+    "resets": "The budget resets in {{when}}."
+  },
+  "analysisMode": {
+    "label": "Analysis mode",
+    "parsing": "Parsing",
+    "progression": "Progression",
+    "hintBefore": "Toggle between",
+    "hintAfter": "and Progression analysis.",
+    "hint": "Parsing applies the Warcraft Logs ranking exclusions. Progression grades every body you fought."
+  }
 }
