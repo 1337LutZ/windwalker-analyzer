@@ -1,4 +1,18 @@
+import { useEffect, useRef } from 'react';
+
+import { readTheme, tip } from './apex';
 import { COUNT, type CountTone } from './tones';
+import type { Tone } from './tones';
+
+/**
+ * Which of the chart theme's colours tints the tooltip's title line.
+ *
+ * The count ramp is three steps of one violet and the theme has no entry for it, so the ramp reads as
+ * `rune` — the violet the rest of the report already spends on procs — and `idle` reads as `track`, the
+ * grey every chart uses for time it left out of its figures. The tint is never the only thing saying
+ * which mode a bar is: the title line above it names it in words.
+ */
+const tipTone = (tone: CountTone): Tone => (tone === 'idle' ? 'track' : 'rune');
 
 /** One stretch of the pull: where it sat, what it was, and what to call it. */
 export interface LaneSpan {
@@ -50,37 +64,115 @@ export default function SegmentLane({
 	label: string;
 }) {
 	const total = Math.max(1, durationMs);
+	const laneRef = useRef<HTMLDivElement>(null);
+	const tipRef = useRef<HTMLDivElement>(null);
+
+	/**
+	 * The styled tooltip, hit-tested off the pointer — the same mechanism `TrackLane` uses, and now for
+	 * the same reason.
+	 *
+	 * **A `title` attribute was not enough.** The browser's own tooltip waits about a second, cannot be
+	 * styled, never opens on keyboard focus and does not exist on a touch screen — and on a bar a few
+	 * pixels wide it is easy to cross without ever triggering. Every other chart in this report raises its
+	 * own; this one was the outlier, which is why its tooltip read as broken next to theirs.
+	 *
+	 * The `title` stays as the fallback and is lifted off the bar while the styled tip is up, or the
+	 * browser raises its own on top — the two-tooltip problem `TrackLane`'s comment names.
+	 */
+	useEffect(() => {
+		const lane = laneRef.current;
+		const node = tipRef.current;
+		if (lane === null || node === null) return;
+		const theme = readTheme();
+		let over: { bar: Element; title: string } | null = null;
+		const hide = () => {
+			if (over !== null) over.bar.setAttribute('title', over.title);
+			over = null;
+			node.style.display = 'none';
+		};
+		const move = (event: PointerEvent) => {
+			const bar = document
+				.elementsFromPoint(event.clientX, event.clientY)
+				.find((el): el is Element => el.hasAttribute('data-tip'));
+			if (bar === undefined) {
+				hide();
+				return;
+			}
+			if (over?.bar !== bar) {
+				if (over !== null) over.bar.setAttribute('title', over.title);
+				const detail = bar.getAttribute('data-detail');
+				node.innerHTML = tip(theme, {
+					title: bar.getAttribute('data-tip') ?? '',
+					tone: (bar.getAttribute('data-tip-tone') ?? 'track') as Tone,
+					rows: [
+						[bar.getAttribute('data-len-label') ?? '', bar.getAttribute('data-len') ?? ''],
+						...(detail ? ([[bar.getAttribute('data-detail-label') ?? '', detail]] as Array<[string, string]>) : []),
+					],
+				});
+				over = { bar, title: bar.getAttribute('title') ?? '' };
+				bar.removeAttribute('title');
+				node.style.display = 'block';
+			}
+			// Below and right of the cursor, folded back inside the viewport at either edge. Measured after
+			// the content is written, so this is the size the tip will actually have.
+			const x = Math.min(event.clientX + 14, window.innerWidth - node.offsetWidth - 14);
+			const y = Math.min(event.clientY + 14, window.innerHeight - node.offsetHeight - 14);
+			node.style.left = `${Math.max(14, x)}px`;
+			node.style.top = `${Math.max(14, y)}px`;
+		};
+		hide();
+		lane.addEventListener('pointermove', move);
+		lane.addEventListener('pointerleave', hide);
+		return () => {
+			lane.removeEventListener('pointermove', move);
+			lane.removeEventListener('pointerleave', hide);
+			hide();
+		};
+	}, [spans]);
 
 	return (
-		<div className="flex h-9 w-full gap-px" role="img" aria-label={label}>
-			{spans.map((span) => {
-				const width = ((span.endMs - span.startMs) / total) * 100;
-				const { fill, ink } = COUNT[span.tone];
-				return (
-					<div
-						key={span.startMs}
-						style={{ width: `${width}%` }}
-						title={[span.label, span.lengthLabel, span.detail].filter(Boolean).join('\n')}
-						className={`relative flex min-w-px items-center justify-center overflow-hidden first:rounded-l-sm last:rounded-r-sm ${fill}`}
-					>
-						{/* The one mode that is not a step on the ramp gets a texture rather than a step, so it cannot
+		<>
+			<div ref={laneRef} className="flex h-9 w-full gap-px" role="img" aria-label={label}>
+				{spans.map((span) => {
+					const width = ((span.endMs - span.startMs) / total) * 100;
+					const { fill, ink } = COUNT[span.tone];
+					return (
+						<div
+							key={span.startMs}
+							style={{ width: `${width}%` }}
+							// The fallback tooltip, and what the styled one is built from. Both are written rather than
+							// one derived from the other, so a reader who never sees the styled tip is told the same
+							// thing rather than a shorter version of it.
+							title={[span.label, span.lengthLabel, span.detail].filter(Boolean).join('\n')}
+							data-tip={span.label}
+							data-tip-tone={tipTone(span.tone)}
+							data-len-label="for"
+							data-len={span.lengthLabel}
+							data-detail-label="targets"
+							{...(span.detail === undefined ? {} : { 'data-detail': span.detail })}
+							className={`relative flex min-w-px items-center justify-center overflow-hidden first:rounded-l-sm last:rounded-r-sm ${fill}`}
+						>
+							{/* The one mode that is not a step on the ramp gets a texture rather than a step, so it cannot
 						    be read as a count sitting between two others — see `COUNT`. Its own element rather than a
 						    second background class on the bar: `background-image` and `background-color` set through
 						    two utilities resolve by stylesheet order, not by the order they were concatenated in, so
 						    a hatch written that way is one Tailwind release away from replacing the colour it was
 						    meant to sit on. `styles/global.css` owns the pattern for the same reason the tones do. */}
-						{span.tone !== 'mixed' ? null : <span className="hatch-mixed absolute inset-0" aria-hidden="true" />}
-						{/* Roughly the width two characters need before they start clipping. Below it the bar says
+							{span.tone !== 'mixed' ? null : <span className="hatch-mixed absolute inset-0" aria-hidden="true" />}
+							{/* Roughly the width two characters need before they start clipping. Below it the bar says
 						    nothing and the tooltip says everything, which is the same trade every other track in
 						    this report makes for a span too short to letter. */}
-						{width < 4 ? null : (
-							// `relative`, so it stacks above the hatch: an absolutely-positioned sibling paints over
-							// static content whatever the source order.
-							<span className={`relative font-mono text-sm font-semibold tabular ${ink}`}>{span.short}</span>
-						)}
-					</div>
-				);
-			})}
-		</div>
+							{width < 4 ? null : (
+								// `relative`, so it stacks above the hatch: an absolutely-positioned sibling paints over
+								// static content whatever the source order.
+								<span className={`relative font-mono text-sm font-semibold tabular ${ink}`}>{span.short}</span>
+							)}
+						</div>
+					);
+				})}
+			</div>
+			{/* Fixed, above the chart's own stacking, and hidden until a pointer finds a bar. */}
+			<div ref={tipRef} className="pointer-events-none fixed z-50 hidden" role="presentation" />
+		</>
 	);
 }
