@@ -187,7 +187,22 @@ function TargetModeMenu({
 				aria-label={`${t('targets.label')}: ${t(LABEL[value])}`}
 				className={toolbarMenuClass(overridden)}
 			>
-				<span aria-hidden="true">{t('targets.mode')}</span>
+				{/* The full name where the row can afford it and the bare `Mode` where it cannot. The label
+				    was `Mode` at every width and read as the only mode on the bar; it is not, now that the
+				    analysis mode sits beside it, and two controls in one place have to say which is which —
+				    the same argument this control's block sibling already makes for carrying a label at all.
+				    `targets.label` rather than a new string: it is that sentence's own name for this control,
+				    so the bar cannot come to disagree with the block about what the thing is called.
+
+				    Below `sm` the short word stays, and the analysis mode is not on the bar at all — the 390px
+				    row measured in `StickySelectionBar` has 82px left for the encounter name and `Target mode`
+				    would take most of it. */}
+				<span aria-hidden="true" className="hidden sm:inline">
+					{t('targets.label')}
+				</span>
+				<span aria-hidden="true" className="sm:hidden">
+					{t('targets.mode')}
+				</span>
 				{/* The chosen mode on the trigger, not only inside the popup. A control that hid the state
 				    it sets would be worse than the switches it replaces — and teal is the same "this one
 				    is active" the switches use, dropped when amber is already saying something louder. */}

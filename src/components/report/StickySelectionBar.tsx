@@ -5,6 +5,7 @@ import '~/lib/i18n';
 
 import type { SettingsState } from '~/hooks/useSettings';
 import type { TargetSummary } from '~/lib/types';
+import type { AnalysisMode } from '~/lib/analysis/analysisMode';
 import type { SegmentTimeline } from '~/lib/analysis/segments';
 import type { OfferedChoice } from '~/lib/view/targetMode';
 
@@ -12,6 +13,7 @@ import { ApiCreditsToolbar } from '../ApiCredits';
 import { buttonClass } from '../primitives/controls';
 import { pageWidthClass } from '../primitives/pageShell';
 import SettingsDialog from './SettingsDialog';
+import { AnalysisModeToolbar } from './AnalysisModeControl';
 import { TargetModeToolbar } from './TargetModeControl';
 
 interface Props {
@@ -45,6 +47,19 @@ interface Props {
 		value: OfferedChoice;
 		onChange: (choice: OfferedChoice) => void;
 	};
+	/**
+	 * Which question the report is answering — see `lib/analysis/analysisMode`.
+	 *
+	 * Withheld on the same pulls as `targetMode` and for the same reason: a bar on screen over a skeleton
+	 * or over a refused player has no analysis to re-read. It is a *separate* prop rather than a field on
+	 * that one because the two are withheld together by coincidence and not by rule — this one reaches
+	 * the engine and that one is view state, and a single prop would make a caller that has one but not
+	 * the other unrepresentable.
+	 */
+	analysisMode?: {
+		value: AnalysisMode;
+		onChange: (mode: AnalysisMode) => void;
+	};
 }
 
 /**
@@ -77,6 +92,7 @@ export default function StickySelectionBar({
 	onChange,
 	settings,
 	targetMode,
+	analysisMode,
 }: Props) {
 	// `ui`, not `report`: this is the shell around the analysis rather than part of it. The four
 	// strings below already existed under `common.*` and were being spelled out in English here
@@ -159,6 +175,17 @@ export default function StickySelectionBar({
 					<>
 						<Toolbar.Separator className="hidden h-6 w-px shrink-0 bg-line sm:block" />
 						<TargetModeToolbar {...targetMode} />
+					</>
+				)}
+
+				{/* After the target mode, because the two are read as a pair and this is the wider question:
+				    that one picks which stretch of the pull to look at, this one picks what counts while
+				    looking. Its separator carries the same `max-sm:hidden` the trigger does, or a signed-out
+				    reader on a phone gets a rule with nothing after it. */}
+				{analysisMode === undefined ? null : (
+					<>
+						<Toolbar.Separator className="hidden h-6 w-px shrink-0 bg-line sm:block" />
+						<AnalysisModeToolbar {...analysisMode} />
 					</>
 				)}
 

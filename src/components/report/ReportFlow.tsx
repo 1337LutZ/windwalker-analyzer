@@ -446,6 +446,11 @@ export default function ReportFlow({ spec }: { spec: SpecDefinition }) {
 								}
 							: undefined
 					}
+					// Gated on the same pair as the target mode above: a bar over a skeleton or over a refused
+					// player has nothing to re-read, and offering the switch there would re-run an analysis
+					// that does not exist. The state itself lives here either way — the block control above
+					// the report is the same `analysisMode`/`setAnalysisMode`, so the two cannot disagree.
+					analysisMode={gradeable && analysis !== null ? { value: analysisMode, onChange: setAnalysisMode } : undefined}
 				/>
 			) : null}
 
