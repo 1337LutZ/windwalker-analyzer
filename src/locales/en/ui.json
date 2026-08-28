@@ -276,7 +276,7 @@
     "label": "Analysis mode",
     "parsing": "Parsing",
     "progression": "Progression",
-    "parsingHint": "Warcraft Logs strikes some adds from its rankings, so nothing you did to them counts toward a parse. This report does the same: those bodies leave the target count and the globals spent on them are not scored.",
-    "progressionHint": "Every body you fought counts, including the adds Warcraft Logs strikes. This is the pull as it happened rather than as the ladder scores it, so the numbers here will not match your parse."
+    "hintBefore": "Toggle between",
+    "hintAfter": "and Progression analysis."
   }
 }

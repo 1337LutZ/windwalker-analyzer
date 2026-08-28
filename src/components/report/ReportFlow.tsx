@@ -149,9 +149,21 @@ export default function ReportFlow({ spec }: { spec: SpecDefinition }) {
 		});
 	}, [slot]);
 
-	// The report lands below four steps of form, which on a phone is well past the fold.
+	/**
+	 * The report lands below four steps of form, which on a phone is well past the fold.
+	 *
+	 * **Once per pull, not once per analysis.** `analysis` is a fresh object every time the pull is read
+	 * again, and it is read again whenever the analysis mode or a setting changes — so keying the scroll on
+	 * the object dragged the page back to the top of the report each time a reader flicked a switch, which
+	 * is the one moment they are certainly already looking at the part they care about. The pull is what
+	 * this is about: arriving at one is worth a scroll, re-reading the same one is not.
+	 */
+	const scrolledForPull = useRef<string | null>(null);
 	useEffect(() => {
 		if (analysis === null) return;
+		const pull = `${analysis.code}|${String(analysis.fightID)}|${String(analysis.actorID)}`;
+		if (scrolledForPull.current === pull) return;
+		scrolledForPull.current = pull;
 		const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 		resultRef.current?.scrollIntoView({
 			behavior: reduced ? 'auto' : 'smooth',

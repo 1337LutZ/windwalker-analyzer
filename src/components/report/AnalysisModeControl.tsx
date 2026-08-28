@@ -5,6 +5,19 @@ import type { AnalysisMode } from '~/lib/analysis/analysisMode';
 import { compactChoiceClass, labelClass } from '../primitives/controls';
 
 /**
+ * The article the exemption table is transcribed from.
+ *
+ * The same source `lib/game/rankingExclusions.ts` cites at the top of its own header — a reader who wants
+ * to know which adds are struck and why should land on the ruleset rather than on this report's reading
+ * of it. Linked from the word `Parsing` because that is the mode the article describes; `Progression` is
+ * this report's own idea and has nothing to link to.
+ */
+const PARSING_RULES_URL = 'https://www.archon.gg/classic-mop/articles/news/siege-of-orgrimmar-on-warcraft-logs';
+
+/** The same declaration `auth/TokenHelp` makes, and the only other place a link sits inside copy. */
+const linkClass = 'text-kick underline underline-offset-2';
+
+/**
  * Which question the report is answering, and the reader's right to pick.
  *
  * WarcraftLogs strikes a list of NPCs from its rankings so nobody can pad a parse on adds that respawn
@@ -21,7 +34,9 @@ import { compactChoiceClass, labelClass } from '../primitives/controls';
  * **What it does not share with the target mode is the question.** That control picks which stretch of a
  * pull to read — single target, cleave, the whole fight — and changes nothing about what was measured.
  * This one changes the measurement. Two controls in one place have to say which is which, so both carry a
- * label and a sentence, and neither is offered as a variant of the other.
+ * label and a sentence, and neither is offered as a variant of the other. The sentence links out to the
+ * article the exemptions are transcribed from, so a reader can check the rule rather than take this
+ * report's word for which adds it strikes.
  *
  * State lives with `ReportFlow`, and unlike the target mode it is not view state: it reaches the engine.
  *
@@ -67,10 +82,16 @@ export default function AnalysisModeControl({
 					{t('analysisMode.progression')}
 				</button>
 			</div>
-			{/* The consequence, not the setting — a reader who has switched wants to know what moved, and a
-			    reader who has not wants to know why the default is the safe one. */}
+			{/* Split around the link the way `TokenHelp` splits its copy, which is this tree's idiom for a
+			    sentence with something inline in it — there is no `Trans` anywhere here and one sentence is
+			    not worth introducing it for. The link's text is the same key the button uses, so the linked
+			    word can never drift from the switch it names. */}
 			<span className="max-w-[62ch] text-sm text-muted">
-				{value === 'parsing' ? t('analysisMode.parsingHint') : t('analysisMode.progressionHint')}
+				{t('analysisMode.hintBefore')}{' '}
+				<a className={linkClass} href={PARSING_RULES_URL} target="_blank" rel="noopener noreferrer">
+					{t('analysisMode.parsing')}
+				</a>{' '}
+				{t('analysisMode.hintAfter')}
 			</span>
 		</div>
 	);

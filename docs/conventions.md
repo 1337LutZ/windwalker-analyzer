@@ -486,7 +486,7 @@ copy itself follows — say it once, outside the arms.
      src/lib/i18n/__tests__/conventionsCensus.test.ts. Re-run the block above and paste the whole set
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
-As of the analysis mode, it prints 1745 leaves, 832 prose, 27,589
+As of the analysis mode, it prints 1745 leaves, 830 prose, 27,517
 words; median 27, p75 45, p90 65, p95 78, p99 110, max 204; longest 9% carry 24%; report.json 753 prose
 leaves, 1,341 sentences, median 17, 286 past 25 (21.3%), 293 em-dashes in 252 sentences (18.8%);
 71 / 30 / 1 / 2 on the quote lines.
@@ -497,10 +497,12 @@ grew a give-or-take beside each fight. Headings are one or two words, so they li
 touching the median string length or any of the percentiles — which is what a table of labels should do
 to a corpus, and a useful contrast with the rotation pass above it.
 
-Five leaves and 72 words went the other way in the pass after it: the analysis mode's two buttons, its
-label and the two sentences that say what each reading does to the report. Every one of the five is copy a
-reader needs _before_ they can trust a number, which is the kind this corpus should grow — the two hints
-are the only place the report says out loud that its figures answer one of two questions.
+Five leaves and no net words in the pass after it: the analysis mode's two buttons, its label, and a
+sentence split in two around a link. The first draft of that sentence was two hints of about forty words
+each, one per mode, spelling out what each reading does to the report. They were replaced by one line that
+names the choice and links the word `Parsing` to the article the exemptions are transcribed from. The five
+leaves are what a control costs; the word count came back to where it started, because a reader who can
+follow a rule to its source does not also need it paraphrased.
 
 The word count fell by 29 in the same pass, and the reason is worth keeping. The dialog's opening
 paragraph had grown to four sentences describing its own picture — what the bars were cut at, what a wide
