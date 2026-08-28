@@ -87,6 +87,29 @@ function segmentAt(segments: readonly FightSegment[], ms: number): FightSegment 
 }
 
 /**
+ * How far past the arena the grid is drawn, as a multiple of the arena's own span in that axis.
+ *
+ * One in each direction, so a line list runs from `-span` to `2 × span`. That covers an element whose
+ * aspect ratio is up to three times the arena's in either direction — a 3:1 box around a 1:1 pull, or
+ * the same shape on its side — and a dialog on a real screen does not reach it. Larger costs lines
+ * nobody sees; smaller ends the grid in mid-air on a wide screen, which is the thing it exists to stop.
+ */
+const GRID_OVERDRAW = 1;
+
+/**
+ * Where the grid's lines fall along one axis, from `-span` to `2 × span` at `step` apart.
+ *
+ * Anchored on zero rather than on the overdrawn start, so the arena's own corner is on a line whatever
+ * the overdraw is: the scale bar under the map measures one cell, and a grid whose origin moved with
+ * the padding would put that bar across a cell rather than along one.
+ */
+function gridLines(span: number, step: number): number[] {
+	const first = -Math.ceil((span * GRID_OVERDRAW) / step);
+	const last = Math.ceil((span * (1 + GRID_OVERDRAW)) / step);
+	return Array.from({ length: last - first + 1 }, (_, i) => (first + i) * step);
+}
+
+/**
  * The replay itself — drawn only when the analysis carried a track.
  *
  * Split from the trigger below so the dialog's content mounts with the dialog: a pull is up to seven
@@ -243,19 +266,59 @@ function ReplayStage({ analysis }: { analysis: Analysis }) {
 		<div className="flex flex-col gap-3">
 			<svg
 				viewBox={`0 0 ${projected.w} ${projected.h}`}
-				style={{
-					maxWidth: `min(100%, calc((100dvh - 16.5rem) * ${(projected.w / projected.h).toFixed(3)}))`,
-				}}
-				className="mx-auto block h-auto w-full rounded-sm bg-track"
+				// **The element fills the dialog; the combat area does not stretch to fill the element.**
+				// The box used to be sized *from* the pull — width capped at the height budget times the
+				// arena's own aspect — so a wide screen showing a squarish arena drew a narrow card with the
+				// dialog's ground down either side of it. The height budget is the same number it always
+				// was; what changed is that the width is now simply the room there is.
+				//
+				// Nothing about the drawing moves: `viewBox` is unchanged and `preserveAspectRatio` keeps its
+				// default `xMidYMid meet`, so the arena is centred in the box at its own proportions, and a
+				// yard is the same length in either direction. Only the ground and the grid grow into the
+				// space, which is what `GRID_OVERDRAW` below is for.
+				style={{ height: `calc(100dvh - 16.5rem)` }}
+				// `raised` and no longer `track`. The exempt grey is a *mark* colour — light enough to sit
+				// among bars on a chart and read as one of them — and a whole map painted in it was a pale
+				// slab across the darkest section of the page. `raised` is the ladder's own answer for a
+				// panel that should sit a step above the page without leaving it, which is what this is; the
+				// grid then reads as `line` on `raised`, the same rule-on-surface pairing every card here
+				// already uses, and every mark on the map gains contrast rather than losing it.
+				className="block w-full rounded-sm bg-raised"
 				role="img"
 				aria-label={t('summary.shape.replay.chartLabel')}
 			>
-				{/* A 20-yard grid, so a reader can measure a gap without a ruler. */}
-				{Array.from({ length: Math.ceil(projected.w / grid) + 1 }, (_, i) => i * grid).map((at) => (
-					<line key={`v${at}`} x1={at} y1={0} x2={at} y2={projected.h} className="stroke-line" strokeWidth={1} />
+				{/* A 20-yard grid, so a reader can measure a gap without a ruler — drawn past the arena's own
+				    bounds so it reaches the edges of whatever box the element ended up with.
+
+				    **Outside the `viewBox` is still inside the picture.** An SVG root clips to its *viewport*,
+				    which is the element's box, and not to the `viewBox` — so with `meet` letterboxing the
+				    arena, everything the extra room exposes is drawn rather than blank. One arena's width and
+				    height of overdraw on each side covers an element up to three times the arena's own aspect
+				    ratio in either direction, which is past anything a dialog on a real screen produces.
+
+				    The lines run the full overdrawn span in both axes rather than stopping at the arena, or
+				    the grid would end in a visible rectangle and claim a boundary the pull does not have. */}
+				{gridLines(projected.w, grid).map((at) => (
+					<line
+						key={`v${at}`}
+						x1={at}
+						y1={-projected.h}
+						x2={at}
+						y2={projected.h * 2}
+						className="stroke-line"
+						strokeWidth={1}
+					/>
 				))}
-				{Array.from({ length: Math.ceil(projected.h / grid) + 1 }, (_, i) => i * grid).map((at) => (
-					<line key={`h${at}`} x1={0} y1={at} x2={projected.w} y2={at} className="stroke-line" strokeWidth={1} />
+				{gridLines(projected.h, grid).map((at) => (
+					<line
+						key={`h${at}`}
+						x1={-projected.w}
+						y1={at}
+						x2={projected.w * 2}
+						y2={at}
+						className="stroke-line"
+						strokeWidth={1}
+					/>
 				))}
 				{/* An invisible disc catches the pointer for each mark: a 7px diamond is a hard target on a
 				    trackpad, and growing the mark itself would make a room full of adds read as a room full of
@@ -337,7 +400,9 @@ function ReplayStage({ analysis }: { analysis: Analysis }) {
 							cx={projected.px(selfAt[0])}
 							cy={projected.py(selfAt[1])}
 							r={6}
-							className="pointer-events-none fill-kick stroke-track"
+							// The ring is the ground showing through, which is what separates the dot from a body
+							// standing on top of it — so it follows the ground rather than naming a colour of its own.
+							className="pointer-events-none fill-kick stroke-raised"
 							strokeWidth={2}
 						/>
 					</g>
