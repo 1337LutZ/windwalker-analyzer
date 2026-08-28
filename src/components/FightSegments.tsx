@@ -601,9 +601,21 @@ export default function FightSegments() {
 	return (
 		<QueryClientProvider client={queryClient}>
 			<SessionProvider>
-				{/* One provider for the page: it is what lets a second tooltip open instantly once the first
-				    has, rather than each waiting out its own delay. */}
-				<Tooltip.Provider>
+				{/*
+				 * One provider for the page, opening on contact.
+				 *
+				 * **`delay={0}` because the strip's tooltip has none.** The two now say the same thing about
+				 * the same segment, so a reader moving between the bar and the row under it should not find
+				 * one instant and the other hesitant. Base UI's default groups its delays — the first tooltip
+				 * waits it out and the next few open at once — which is why the pause showed up *sometimes*
+				 * and not every time, the hardest kind of lag to trust.
+				 *
+				 * The pause is what a tooltip normally buys: it stops labels flashing at a pointer merely
+				 * crossing the page. These are cells in a table a reader is already scanning deliberately,
+				 * and the trigger is a button rather than the whole row, so there is nothing to cross by
+				 * accident.
+				 */}
+				<Tooltip.Provider delay={0}>
 					<Gate />
 				</Tooltip.Provider>
 			</SessionProvider>
