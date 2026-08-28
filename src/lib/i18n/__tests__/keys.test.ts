@@ -729,7 +729,17 @@ describe('report copy with no reader', () => {
 		earthShockReason: {
 			where: 'lib/types.ts → EarthShockReason',
 			keys: () => declaredArms('lib/types.ts', /export type EarthShockReason =/),
-			pinned: ['ascReady', 'belowFull', 'cleaveDot', 'cleaveStacks', 'fsLow', 'fsTail', 'twoPiece', 'twoPieceEarly'],
+			pinned: [
+				'ascActive',
+				'ascReady',
+				'belowFull',
+				'cleaveDot',
+				'cleaveStacks',
+				'fsLow',
+				'fsTail',
+				'twoPiece',
+				'twoPieceEarly',
+			],
 		},
 		elementalMasteryReason: {
 			where: 'lib/types.ts → ElementalMasteryPress.reason',
@@ -1107,7 +1117,7 @@ describe('report copy with no reader', () => {
 		'earthElemental.state.*': 3,
 		'fight.basis.*': 2,
 		'fight.note.*': 14,
-		'earthShock.state.*': 8,
+		'earthShock.state.*': 9,
 		'elementalMastery.state.*': 5,
 		'fireElemental.state.*': 4,
 		// Nine against seven press kinds: `snapshot` stores two narrowings, and the peel counts both.

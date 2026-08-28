@@ -1632,6 +1632,7 @@
       "state": "what it was"
     },
     "state": {
+      "ascActive": "Pressed inside Ascendance — hold the shock, every global in there is a Lava Burst",
       "belowFull": "Shield below 7 charges",
       "fsLow": "Flame Shock had under 6s left",
       "ascReady": "Ascendance was up within 6s — hold the shock for it",
@@ -1854,11 +1855,13 @@
       "shield": "Charges",
       "fault": "Fell off, overcapped, or spent early",
       "aoe": "AoE — left out",
-      "away": "Nothing to hit — left out"
+      "away": "Nothing to hit — left out",
+      "ascendance": "Ascendance — left out"
     },
     "noBadSpends": "No Earth Shock was spent below the ceiling in this pull.",
     "aoeNote": "The stretches greyed as AoE \u2014 three or more enemies up, and the stretches where the count moved too fast for any one rotation to hold \u2014 are left out of the overcap figure. The AoE priority list has no Earth Shock in it at all, so those seconds are not counted against you. At two enemies the figure still holds you to it, because that list does spend the shield, just at six stacks instead of seven. Dropping the shield counts throughout either way: Rolling Thunder returns 2% of your maximum mana per charge and only while the buff is up, so keeping it up is right at every target count.",
-    "awayNote": "The stretches greyed as nothing to hit are the ones you had no enemy in range for. Earth Shock needs a target, so a full shield there is not a spend you missed, and those seconds leave the overcap figure the same way."
+    "awayNote": "The stretches greyed as nothing to hit are the ones you had no enemy in range for. Earth Shock needs a target, so a full shield there is not a spend you missed, and those seconds leave the overcap figure the same way.",
+    "ascendanceNote": "The stretches greyed as Ascendance are the ones you were inside the cooldown for. Ascendance takes the cooldown off Lava Burst, so every global in that window is a Lava Burst you would not otherwise have had — the shock is not worth one of them. Sitting at seven charges through it is the shape holding the shock makes, so those seconds leave the overcap figure too."
   },
   "stormlash": {
     "title": "Stormlash Totem",

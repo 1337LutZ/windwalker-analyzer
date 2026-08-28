@@ -3599,6 +3599,20 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		if (!judged) {
 			// Nothing to test. Left with no reasons, which is what keeps it out of `badSpends` as well: a
 			// shock the aoe list never asked to be held cannot be Fulmination thrown away.
+		} else if (inWindow(t, ascActiveWindows)) {
+			// **The user's rule, and it stands alone**: inside Ascendance the shock is not to be pressed at
+			// all, so none of the branch's questions is asked of it. A press that is also below seven charges
+			// is not two mistakes — the charges are what the window wanted kept, and telling a reader to
+			// hold the shock *and* to have had more stacks for it is telling them to fix the smaller thing.
+			//
+			// Ahead of the band split for the same reason `judged` is: Ascendance takes the cooldown off
+			// Lava Burst whatever is in front of the player, so the global the shock spends is a Lava Burst
+			// at one enemy and at two alike. `EarthShockReason` carries the provenance — this is not one of
+			// `p5.apl.json`'s conditions, and `ascReady` below is the one the sim does state.
+			//
+			// It also keeps such a press out of `badSpends`, which is right: `ES_STACK_REASONS` is "spent
+			// under the stacks this band's list asks for", and the list did not ask for this press at all.
+			reasons.push('ascActive');
 		} else if (band === 2) {
 			// The Cleave list, and its two terms are the whole rule — see `ES_CLEAVE_STACKS`. No branch on
 			// the set, because rung 13 does not mention it.
@@ -3692,7 +3706,22 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * its own press's worth — exactly the argument the aoe boundary already makes two paragraphs up.
 	 */
 	const shieldSpans = intersect(contact, gradedSpans);
-	const overcapWindows = atCapWindowsIn(lsLevels, shieldSpans, lightningShieldCap, lightningShieldOvercapMs);
+	/**
+	 * The overcap clock, which is `shieldSpans` less Ascendance's own windows — and the two are two
+	 * arrays now rather than one.
+	 *
+	 * The corollary of the Earth Shock rule at `EarthShockReason`'s `'ascActive'`: the shock is not to be
+	 * pressed inside Ascendance, so the charges that pile up while it is not pressed are the rule working
+	 * rather than a fault. Fifteen seconds at the ceiling is what holding the shock through the window
+	 * looks like from the counter's side.
+	 *
+	 * **`shieldSpans` itself is untouched, because Elemental Discharge still reads it.** That is a
+	 * maintenance uptime of a debuff which keeps running whether or not a shock lands, so a stretch nobody
+	 * was expected to shock in is still one the debuff was expected to cover. The overcap is the only
+	 * clock this rule reaches.
+	 */
+	const overcapSpans = intersect(shieldSpans, complementOf(toIntervals(ascActiveWindows), duration));
+	const overcapWindows = atCapWindowsIn(lsLevels, overcapSpans, lightningShieldCap, lightningShieldOvercapMs);
 	const overcapMs = unionMs(toIntervals(overcapWindows));
 	/**
 	 * The length of the clock above — the number that keeps this exemption from becoming a free pass.
@@ -3712,6 +3741,15 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * this name for this exact purpose, so the name is this audit's own rather than invented here.
 	 */
 	const shieldGradedMs = unionMs(shieldSpans);
+	/**
+	 * And the overcap's own length, which is no longer `shieldGradedMs`.
+	 *
+	 * Same argument as the field above, applied to the clock that actually measures the fault: a pull with
+	 * no gradable stretch left after the Ascendance cut has `0ms` of overcap over `0ms`, and zero against
+	 * a `good: 0` threshold is the best mark on the card. `score.ts` reads this one for
+	 * `lightningShieldOvercap`; `shieldGradedMs` above stays Elemental Discharge's denominator.
+	 */
+	const overcapGradedMs = unionMs(overcapSpans);
 	/**
 	 * Elemental Discharge — the tier-16 two-piece debuff, read as an uptime the player maintains.
 	 *
@@ -5373,7 +5411,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 			points: lsPoints,
 			maxStacks: lightningShieldCap,
 			overcapMs,
-			gradedMs: shieldGradedMs,
+			gradedMs: overcapGradedMs,
 			leewayMs: lightningShieldOvercapMs,
 			// The stretches `overcapMs` above dropped, so the chart can grey exactly what the denominator
 			// refused rather than a second guess at it — the rule `exemptTrack.test.ts` exists to enforce.
@@ -5382,6 +5420,10 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 			// causes now, so the chart greys both rather than greying one and quietly under-drawing the
 			// clock it claims to picture — the identity `exemptTrack.test.ts` enforces.
 			awayWindows: complementOf(contact, duration).map(([start, end]): Window => ({ start, end })),
+			// The third cause, and the newest: Ascendance's own windows. Published rather than left for the
+			// chart to re-read off the timeline lane, which is the rule `exemptTrack.test.ts` enforces about
+			// every other exempt stretch on this section.
+			ascendanceWindows: toIntervals(ascActiveWindows).map(([start, end]): Window => ({ start, end })),
 			overcapWindows,
 			fellOff,
 			downWindows,

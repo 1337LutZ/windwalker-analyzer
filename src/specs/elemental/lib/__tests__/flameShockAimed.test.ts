@@ -618,9 +618,11 @@ describe('the dot’s own timeline, off the spawn the press was aimed at', () =>
 			sections: {
 				...sections,
 				flameShock: 'ok',
-				earthShock: 'good',
+				// `earthShock` and `lightningShield` were `good` and `bad` here and are both the base `ok` now,
+				// on the Ascendance rule: the shock at 204 259 is a fault, taking the waste past the 15% `good`
+				// line, and the overcap clock stops running through the cooldown, taking 17 568ms to 12 352ms —
+				// between the two lines rather than over the top one. One rule, one letter in each direction.
 				fireElemental: 'good',
-				lightningShield: 'bad',
 				casts: 'good',
 				ascendance: 'bad',
 			},

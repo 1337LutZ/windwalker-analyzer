@@ -80,10 +80,23 @@ export default function LightningShield({ analysis }: { analysis: Analysis }) {
 						label: t('lightningShield.key.aoe'),
 						windows: el.lightningShield.exemptWindows.map((w): [number, number] => [w.start, w.end]),
 					},
+					// Last of the three, because it is the weakest claim of the three and precedence is argument
+					// order: "nothing to hit" and "a different list was in force" both say the shock could not
+					// have been the right press, where this one says only that it was not worth the global.
+					{
+						label: t('lightningShield.key.ascendance'),
+						windows: el.lightningShield.ascendanceWindows.map((w): [number, number] => [w.start, w.end]),
+					},
 				],
 				analysis.durationMs,
 			),
-		[el.lightningShield.awayWindows, el.lightningShield.exemptWindows, analysis.durationMs, t],
+		[
+			el.lightningShield.awayWindows,
+			el.lightningShield.exemptWindows,
+			el.lightningShield.ascendanceWindows,
+			analysis.durationMs,
+			t,
+		],
 	);
 
 	const badRows = useMemo<GridRow[]>(
@@ -283,12 +296,14 @@ export default function LightningShield({ analysis }: { analysis: Analysis }) {
 				    pull. Still said per section rather than left to the control: by the time a reader is here the
 				    toggle is off screen, which is the argument `PriorityLadder` and `Rotation` both make. */}
 				{narrowed ? <Note>{t('targets.switchReading')}</Note> : null}
-				{/* One note per cause, each on exactly the pulls that have that band. Two causes now share the
+				{/* One note per cause, each on exactly the pulls that have that band. Three causes now share the
 				    grey, and a single sentence claiming the grey is "three or more enemies" is false on a pull
 				    whose only exempt stretches are ones with nothing in range — which is both of the two
-				    committed fixtures that never leave one enemy. */}
+				    committed fixtures that never leave one enemy — and false again on the Ascendance stretch
+				    every pull that presses the button has. */}
 				{exemptBands[0]?.windows.length ? <Note>{t('lightningShield.awayNote')}</Note> : null}
 				{exemptBands[1]?.windows.length ? <Note>{t('lightningShield.aoeNote')}</Note> : null}
+				{exemptBands[2]?.windows.length ? <Note>{t('lightningShield.ascendanceNote')}</Note> : null}
 				<Note>{t('lightningShield.leeway', { leeway: formatSeconds(lightningShield.leewayMs) })}</Note>
 			</div>
 		</Section>

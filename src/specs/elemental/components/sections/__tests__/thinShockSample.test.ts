@@ -248,11 +248,12 @@ describe('a pull whose shocks are too few to read', () => {
 	 */
 	it('leaves every committed pull alone', () => {
 		const expected: Record<string, string> = {
-			addsThenBoss: 'Only 10 of 20 shocks were spent',
+			addsThenBoss: 'Only 9 of 20 shocks were spent',
 			cleave: '5 of 7 shocks were spent',
 			// No "Only" on these two any more: dropping the false tier-16 charges takes `phased` to `good` and
-			// `unbroken` to `ok`, and that prefix belongs to `verdict_bad` alone.
-			phased: '11 of 12 shocks were spent',
+			// `unbroken` to `ok`, and that prefix belongs to `verdict_bad` alone. `phased` has since gone to
+			// `ok` on the Ascendance rule and keeps the prefix-free arm; its count is the one that moved.
+			phased: '10 of 12 shocks were spent',
 			unbroken: '10 of 13 shocks were spent',
 		};
 		// Every discovered pull has a sentence written down for it, so a fifth fixture has to be read and

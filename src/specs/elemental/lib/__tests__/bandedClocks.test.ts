@@ -100,6 +100,18 @@ const gradedContact = (a: Analysis & ElementalAuditResult): Interval[] =>
 		complementOf(toIntervals(a.lightningShield.exemptWindows), a.durationMs),
 	);
 
+/**
+ * The overcap's own clock, which is `gradedContact` narrowed once more — and the fourth cut is the
+ * reason this exists as a second helper rather than a third caller of the one above.
+ *
+ * Ascendance takes the cooldown off Lava Burst, so the shock is not to be pressed inside its fifteen
+ * seconds and the charges that stack up while it is not pressed are the rule working. Only the overcap
+ * takes this cut: `dischargeScoredMs` beside it is a maintenance uptime of a debuff that keeps running
+ * whether or not a shock lands, so it still reads `gradedContact`.
+ */
+const overcapClock = (a: Analysis & ElementalAuditResult): Interval[] =>
+	intersect(gradedContact(a), complementOf(toIntervals(a.lightningShield.ascendanceWindows), a.durationMs));
+
 describe('the graded clocks drop the stretches three or more enemies were up', () => {
 	/**
 	 * Flame Shock's denominator, derived rather than pinned.
@@ -154,38 +166,53 @@ describe('the graded clocks drop the stretches three or more enemies were up', (
 	it('publishes the length of the clock the overcap was measured inside', () => {
 		for (const name of FIXTURES) {
 			const a = fx(name);
-			expect(a.lightningShield.gradedMs, name).toBe(unionMs(gradedContact(a)));
+			expect(a.lightningShield.gradedMs, name).toBe(unionMs(overcapClock(a)));
 		}
-		expect(fx('cleave').lightningShield.gradedMs).toBe(132_216);
+		expect(fx('cleave').lightningShield.gradedMs).toBe(117_205);
 		// Contact time rather than the whole pull on the two that never leave one enemy, which is the half
 		// of the change these two carry: their aoe array is empty, so every millisecond dropped here is a
-		// millisecond with nothing in range.
-		expect(fx('phased').lightningShield.gradedMs).toBe(206_557);
-		expect(fx('unbroken').lightningShield.gradedMs).toBe(181_775);
+		// millisecond with nothing in range or inside Ascendance.
+		expect(fx('phased').lightningShield.gradedMs).toBe(176_537);
+		expect(fx('unbroken').lightningShield.gradedMs).toBe(166_781);
 		expect(fx('phased').lightningShield.gradedMs).toBeLessThan(fx('phased').durationMs);
 		expect(fx('unbroken').lightningShield.gradedMs).toBeLessThan(fx('unbroken').durationMs);
+		// The Ascendance cut is real on every pull and never the whole of the difference — non-vacuity for
+		// the fourth cut, on the two pulls whose aoe array is empty and where it is therefore the only
+		// thing separating this clock from the dot's.
+		for (const name of ['phased', 'unbroken'] as const) {
+			const a = fx(name);
+			expect(unionMs(toIntervals(a.lightningShield.ascendanceWindows)), name).toBeGreaterThan(0);
+			expect(a.lightningShield.gradedMs, name).toBeLessThan(a.flameShock.scoredMs);
+		}
 	});
 
 	/**
-	 * **One array, not three.** The dot's clock, the totem's and the shield's are all cut by the same
+	 * **One array, not three.** The dot's clock, the totem's and the shield's all start from the same
 	 * derivation, and the shield's exempt array is the one the chart greys — so a reader shown a grey
 	 * stretch on one section is looking at time all three denominators refused. Three copies of
-	 * `complementOf(aoeWindows, duration)` would be three chances for one to drift, which is the identity
-	 * `exemptTrack.test.ts` enforces a level out from here, among the charts.
+	 * `complementOf(exemptWindows, duration)` would be three chances for one to drift, which is the
+	 * identity `exemptTrack.test.ts` enforces a level out from here, among the charts.
+	 *
+	 * **The three are nested rather than two-equal-and-one-shorter now**, and both narrowings are a
+	 * section's own rule rather than a second reading of the band: the totem's takes out the Fire
+	 * Elemental's hold on the slot, and the shield's takes out Ascendance, where the shock is not to be
+	 * pressed at all. The claim that survives is the one this test is for — every one of them is the same
+	 * array, cut further, and none of them keeps a millisecond of exempt time.
 	 */
 	it('cuts all three clocks with the same stretches', () => {
 		const a = fx('cleave');
 		const exempt = toIntervals(a.lightningShield.exemptWindows);
-		// The shield's clock and the dot's are now the same derivation — contact less the add waves — so
-		// they are equal rather than nested, and the totem's is that narrowed once more by the elemental's
-		// window. Equality is the stronger statement and the one that would break first if either grew a
-		// cut of its own.
-		expect(a.lightningShield.gradedMs).toBe(a.flameShock.scoredMs);
+		expect(a.lightningShield.gradedMs).toBeLessThan(a.flameShock.scoredMs);
 		expect(a.searingTotem.scoredMs).toBeLessThan(a.flameShock.scoredMs);
+		// And each shorter clock is a *subset* of the dot's rather than merely shorter than it, which is
+		// what "the same array cut further" means and what a second derivation would break.
+		const dot = gradedContact(a);
+		expect(unionMs(intersect(overcapClock(a), dot))).toBe(a.lightningShield.gradedMs);
 		// Both are strictly inside the aoe complement, which is what the contact cut buys over it.
 		expect(a.lightningShield.gradedMs).toBeLessThan(a.durationMs - unionMs(exempt));
 		// And no clock retains a single millisecond of exempt time.
 		expect(unionMs(intersect(gradedContact(a), exempt))).toBe(0);
+		expect(unionMs(intersect(overcapClock(a), exempt))).toBe(0);
 	});
 });
 

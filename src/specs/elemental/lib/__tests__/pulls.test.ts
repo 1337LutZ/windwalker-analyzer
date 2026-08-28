@@ -216,8 +216,10 @@ describe('a phased pull', () => {
 	 */
 	it('charges the shield for the time it sat at seven charges', () => {
 		expect(el.lightningShield.leewayMs).toBe(5000);
-		expect(el.lightningShield.overcapMs).toBe(17_568);
-		expect(el.lightningShield.overcapWindows).toHaveLength(6);
+		// 12 352 and five windows since the clock stopped running through Ascendance: the shock is not to be
+		// pressed inside it, so the charges that pile up while it is not pressed are the rule working.
+		expect(el.lightningShield.overcapMs).toBe(12_352);
+		expect(el.lightningShield.overcapWindows).toHaveLength(5);
 	});
 
 	/**

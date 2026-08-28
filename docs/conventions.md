@@ -486,9 +486,9 @@ copy itself follows — say it once, outside the arms.
      src/lib/i18n/__tests__/conventionsCensus.test.ts. Re-run the block above and paste the whole set
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
-As of the Ascendance AoE exemption, it prints 1771 leaves, 837 prose, 27,788
-words; median 27, p75 45, p90 65, p95 79, p99 117, max 204; longest 9% carry 24%; report.json 759 prose
-leaves, 1,352 sentences, median 17, 291 past 25 (21.5%), 301 em-dashes in 257 sentences (19.0%);
+As of the Earth Shock Ascendance rule, it prints 1774 leaves, 839 prose, 27,870
+words; median 27, p75 45, p90 65, p95 79, p99 117, max 204; longest 9% carry 24%; report.json 761 prose
+leaves, 1,356 sentences, median 17, 292 past 25 (21.5%), 304 em-dashes in 259 sentences (19.1%);
 71 / 30 / 1 / 2 on the quote lines.
 
 Eight leaves and three sentences, the smallest block to move this census in some time: six column

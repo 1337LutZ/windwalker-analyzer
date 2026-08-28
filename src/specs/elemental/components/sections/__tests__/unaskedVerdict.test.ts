@@ -128,8 +128,10 @@ describe('a section whose only graded metric was never asked', () => {
 		const html = render(LightningShield, phased, 'multi');
 		expect(verdictOf(html)).toContain('nothing in the multi-target order spends the shield');
 		expect(verdictOf(html)).toContain('Rolling Thunder returns 2% of your maximum mana per charge');
-		// 17.6s of it, still printed and still named — an unmeasured figure is not a deleted one.
-		expect(verdictOf(html)).toContain('17.6s');
+		// 12.4s of it, still printed and still named — an unmeasured figure is not a deleted one. It was
+		// 17.6s until the overcap clock stopped running through Ascendance, where the shock is not to be
+		// pressed and the charges the hold produces are not a fault.
+		expect(verdictOf(html)).toContain('12.4s');
 		expect(html).toContain(`Time at max stacks — ${t('metric.notAsked')}`);
 		expect(verdictOf(html)).not.toContain('The shield never sat at seven past the leeway');
 	});
@@ -139,7 +141,7 @@ describe('a section whose only graded metric was never asked', () => {
 	 * every one of these rules is asked and the sentences are the ones they always were.
 	 */
 	it('leaves both sections alone on the reading nobody forced', () => {
-		// `phased` grades `ok` on the totem and `bad` on the shield under its own reading, so the guards are
+		// `phased` grades `ok` on the totem and on the shield under its own reading, so the guards are
 		// against those two sentences rather than against the `good` ones the forced reading produced above.
 		// `phased` clips nothing, so its own reading takes the totem's `ok` sentence at a count of nought —
 		// the arm that stopped saying "0 presses clipped a healthy totem, throwing away 0s of its dot". The
@@ -150,7 +152,7 @@ describe('a section whose only graded metric was never asked', () => {
 		); // no-change guard, reworded with the string itself
 		expect(verdictOf(render(SearingTotem, phased, 'auto'))).not.toContain('put the totem back the moment it drops');
 		expect(verdictOf(render(LightningShield, phased, 'auto'))).toContain(
-			'The shield sat at seven for 17.6s past the leeway',
+			'The shield sat at seven for 12.4s past the leeway',
 		); // no-change guard
 		for (const html of [render(SearingTotem, phased, 'auto'), render(LightningShield, phased, 'auto')]) {
 			expect(html).not.toContain(t('metric.notAsked')); // no-change guard

@@ -150,7 +150,8 @@ describe('the branch on the committed pulls', () => {
 		// committed pull at all, the same place `ascReady` has always been.
 		expect(wastePct(unbroken)).toBeCloseTo(19.2308, 3);
 		expect(wastePct(analysed('cleave'))).toBeCloseTo(21.4286, 3);
-		expect(wastePct(analysed('phased'))).toBeCloseTo(8.3333, 3);
+		// 16.6667 since the Ascendance rule: `phased` presses one shock inside the cooldown, at 204 259.
+		expect(wastePct(analysed('phased'))).toBeCloseTo(16.6667, 3);
 	});
 
 	/**

@@ -240,11 +240,15 @@ const UNREACHED: string[] = [
 	'casts.verdict_none',
 	'debuff.verdict_noContact',
 	'debuff.verdict_none',
-	// `earthShock.verdict_good` and `verdict_ok` have left this list, and the reason is a defect rather
-	// than a threshold: the tier-16 remaining check measured to the end of a *merged* Elemental Discharge
-	// window — `auraWindows` does not split on a refresh — so shocks a player had held correctly were
-	// charged as if the whole window were still ahead of them, and every committed pull read `bad`. Two
-	// sentences that had never been rendered by a real log are rendered by three of the four now.
+	// `verdict_ok` left this list when the tier-16 remaining check stopped measuring to the end of a
+	// *merged* Elemental Discharge window — `auraWindows` does not split on a refresh — which had been
+	// charging shocks a player held correctly as if the whole window were still ahead of them.
+	//
+	// **`verdict_good` came back, and the Ascendance rule is why.** A shock pressed inside the cooldown is
+	// a fault now, and `phased` and `addsThenBoss` each have one — enough to take `phased` from `good` to
+	// `ok` and to leave no committed pull rendering the `good` arm. It is a sentence a clean pull would
+	// still reach; none of these four is clean any more.
+	'earthShock.verdict_good',
 	'earthShock.verdict_none',
 	'earthShock.verdict_tooFew',
 	'flameShock.verdict_good',
@@ -258,13 +262,16 @@ const UNREACHED: string[] = [
 	// segmentation.** `cleave` is the one committed pull that drops its shield, and its overcap fell from
 	// 21 864ms to 14 275ms once the clock stopped running through the stretches the pull was fought as
 	// AoE — under the 15 000ms `ok` line, so the sentence it renders is the `ok` arm of the same pair.
-	// `verdict_ok_zero` went the other way for the same reason: the pulls that never drop the shield now
-	// read `good` on the overcap rather than `ok`, so nothing renders the zero-drop `ok` arm.
+	//
+	// **And `verdict_ok_zero` has since left and `verdict_bad_zero` joined**, on the Ascendance cut: with
+	// the fifteen seconds at the ceiling out of the clock, `phased`'s overcap falls from 17 568ms to
+	// 12 352ms — between the two lines — so a pull that never drops the shield renders the zero-drop `ok`
+	// arm for the first time, and nothing is left rendering the zero-drop `bad` one.
 	'lightningShield.verdict_bad_one',
 	'lightningShield.verdict_bad_other',
+	'lightningShield.verdict_bad_zero',
 	'lightningShield.verdict_none',
 	'lightningShield.verdict_ok_other',
-	'lightningShield.verdict_ok_zero',
 	'mana.verdict_bad_noRage',
 	'mana.verdict_bad_noThunderstorm',
 	'mana.verdict_bad_one',

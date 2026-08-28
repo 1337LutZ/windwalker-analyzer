@@ -125,11 +125,11 @@ describe('how long the shield sat at seven', () => {
 	it('reports the tail of each stretch past the grace', () => {
 		const tight = fx('phased', 1000).lightningShield;
 		expect(tight.overcapWindows).toHaveLength(12);
-		expect(tight.overcapMs).toBe(45_865);
+		expect(tight.overcapMs).toBe(37_803);
 
 		const loose = fx('phased', 5000).lightningShield;
-		expect(loose.overcapWindows).toHaveLength(6);
-		expect(loose.overcapMs).toBe(17_568);
+		expect(loose.overcapWindows).toHaveLength(5);
+		expect(loose.overcapMs).toBe(12_352);
 	});
 
 	it('sums to the windows it drew, on both pulls and at both graces', () => {

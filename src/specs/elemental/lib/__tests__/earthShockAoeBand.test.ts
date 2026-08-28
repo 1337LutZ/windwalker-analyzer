@@ -175,12 +175,15 @@ describe('what it costs, measured on the fixtures that can show it', () => {
 		expect(fx('cleave').earthShock.presses).toHaveLength(12);
 		// The pull the three-name grid never asked: 43 presses, 23 of them outside the bands, so the metric
 		// is over 20 rather than over 43 and this is by far the largest separation the exemption makes.
-		expect(wastePct('addsThenBoss')).toBeCloseTo(50, 4);
-		expect(fx('addsThenBoss').earthShock.good).toBe(10);
+		// 55% and eleven wasted, not 50% and ten: the press at 545 726 lands inside Ascendance, where the
+		// shock is not to be pressed at all.
+		expect(wastePct('addsThenBoss')).toBeCloseTo(55, 4);
+		expect(fx('addsThenBoss').earthShock.good).toBe(9);
 		expect(fx('addsThenBoss').earthShock.presses).toHaveLength(43);
 
 		expect(wastePct('unbroken')).toBeCloseTo(19.230_77, 4);
-		expect(wastePct('phased')).toBeCloseTo(8.333_33, 4);
+		// 16.67% and not 8.33%: `phased` has one Ascendance press too, at 204 259.
+		expect(wastePct('phased')).toBeCloseTo(16.666_67, 4);
 
 		// The metric is the *un*good count over the *judged* count on every pull, not over the presses — the
 		// identity the four figures above are four instances of, so a fifth pull is measured and not listed.
@@ -226,7 +229,11 @@ describe('what it costs, measured on the fixtures that can show it', () => {
 		// charges now; `dischargeExpiry` carries the argument and the log it was measured against.
 		expect(
 			Object.fromEntries(FIXTURES.map((name) => [name, scoreAnalysis(fx(name)).sections['earthShock']?.grade])),
-		).toEqual({ addsThenBoss: 'bad', cleave: 'ok', phased: 'good', unbroken: 'ok' });
+			//
+			// **`phased` has since moved to `ok`, and not under anything this file changes either.** The
+			// Ascendance rule faults its shock at 204 259 — pressed inside the cooldown, where every global is a
+			// Lava Burst — so its waste goes 8.33% to 16.67%, past the 15% `good` line. One press, one letter.
+		).toEqual({ addsThenBoss: 'bad', cleave: 'ok', phased: 'ok', unbroken: 'ok' });
 		// Keyed off the discovered set, so a fifth pull has to have its headline written down here.
 		expect(Object.fromEntries(FIXTURES.map((name) => [name, scoreAnalysis(fx(name)).overall]))).toEqual({
 			// The four moved once under `gcdUtilisation`'s 95/90 lines, and again when those lines became

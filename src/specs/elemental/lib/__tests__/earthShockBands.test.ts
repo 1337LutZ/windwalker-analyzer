@@ -228,7 +228,8 @@ describe('the two-target list judges the two-target presses', () => {
 		expect(cleave.earthShock.good).toBe(5);
 		expect(cleave.earthShock.ok).toBe(1);
 		expect(cleave.earthShock.judged).toBe(7);
-		expect(wastePct(fx('phased'))).toBeCloseTo(8.3333, 3);
+		// 16.6667 since the Ascendance rule: `phased` presses one shock inside the cooldown, at 204 259.
+		expect(wastePct(fx('phased'))).toBeCloseTo(16.6667, 3);
 		expect(wastePct(fx('unbroken'))).toBeCloseTo(19.2308, 3);
 		expect(scoreAnalysis(cleave).sections['earthShock']?.grade).toBe('ok');
 	});

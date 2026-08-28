@@ -26,9 +26,14 @@ const ms = (windows: ReadonlyArray<{ start: number; end: number }>) =>
 	windows.reduce((total, w) => total + (w.end - w.start), 0);
 
 describe('the shield overcap clock', () => {
-	it('is untouched on the two pulls that never reach three enemies', () => {
-		// Not vacuous: both have real overcap to lose, and they keep all of it.
-		expect(load('phased').lightningShield.overcapMs).toBe(17_568);
+	it('keeps its AoE cut off the two pulls that never reach three enemies', () => {
+		// Not vacuous: both have real overcap to lose, and the AoE cut takes none of it.
+		//
+		// **These figures moved once, on the Ascendance cut and not on this one.** `phased` fell from
+		// 17 568ms to 12 352ms because the shock is not to be pressed inside Ascendance, so the fifteen
+		// seconds at the ceiling that the hold produces left the clock. `unbroken`'s 4 514 is unmoved: its
+		// only Ascendance window is the opener, where the shield has not reached the ceiling yet.
+		expect(load('phased').lightningShield.overcapMs).toBe(12_352);
 		expect(load('unbroken').lightningShield.overcapMs).toBe(4514);
 		for (const name of ['phased', 'unbroken'] as const) {
 			expect(load(name).lightningShield.exemptWindows).toEqual([]);

@@ -3071,6 +3071,25 @@ export interface FlameShockAudit {
  *                    than the single-target one, not lower.
  */
 export type EarthShockReason =
+	/**
+	 * Ascendance was running at the press, and nothing else about it is asked.
+	 *
+	 * **The user's rule, and not one of the sim's** — `p5.apl.json`'s `Earth Shock Rules` mentions 114049
+	 * exactly once, as `spellTimeToReady >= 6s`, which is `ascReady` below and is a hold *before* the
+	 * cooldown rather than a refusal during it. Recorded as the user's because the provenance of every
+	 * other rule in this audit is recorded, and a rule whose source is not written down is one nobody can
+	 * check later.
+	 *
+	 * What it is for: Ascendance takes the cooldown off Lava Burst for fifteen seconds, so every global
+	 * inside the window is a Lava Burst the player would not otherwise have had. A shock spends one of
+	 * them for a shield the window does not want emptied, which is why the corollary — sitting at seven
+	 * charges through Ascendance — is not overcap either, and `lightningShield.ascendanceWindows` drops
+	 * exactly that stretch from the overcap clock.
+	 *
+	 * **It stands alone on the press**: a shock that should not have been pressed at all is not also
+	 * "below seven charges", and a reader told both has been told to fix the smaller thing.
+	 */
+	| 'ascActive'
 	| 'belowFull'
 	| 'fsLow'
 	| 'ascReady'
@@ -3570,7 +3589,8 @@ export interface LightningShieldAudit {
 	/** Time spent at the ceiling past the reader's leeway, summed across `gradedMs`. */
 	overcapMs: number;
 	/**
-	 * The length of the clock `overcapMs` was measured inside — the pull less `exemptWindows` and `awayWindows`.
+	 * The length of the clock `overcapMs` was measured inside — the pull less `exemptWindows`,
+	 * `awayWindows` and `ascendanceWindows`.
 	 *
 	 * **The field that keeps this exemption from becoming a free pass**, and the reason it is a published
 	 * number rather than something the score infers. `overcapMs` is a fault counted only inside the
@@ -3615,6 +3635,22 @@ export interface LightningShieldAudit {
 	 * dropped, rather than a second guess at the same idea.
 	 */
 	awayWindows: Window[];
+	/**
+	 * Ascendance's own windows, which `overcapMs` also drops.
+	 *
+	 * The corollary of the Earth Shock rule at `EarthShockReason`'s `'ascActive'`: a player told not to
+	 * shock inside Ascendance and then charged for the charges that stack up while they do not is being
+	 * marked down for following the instruction. Fifteen seconds at the ceiling is what holding the shock
+	 * through the window *looks* like, and it is the correct shape.
+	 *
+	 * **Only the overcap clock, and not `dischargeScoredMs` beside it.** Elemental Discharge's uptime is a
+	 * maintenance reading of a debuff that keeps running whether or not a shock lands, so a stretch nobody
+	 * was expected to shock in is still a stretch the debuff was expected to be up for. The two clocks
+	 * were one array until this rule; they are two now, and the split is the whole of the difference.
+	 *
+	 * Published for the reason the other two are: the chart greys exactly what the denominator dropped.
+	 */
+	ascendanceWindows: Window[];
 	/** The overcap stretches, for drawing red. */
 	overcapWindows: Window[];
 	/** How many times the shield came all the way off. */
