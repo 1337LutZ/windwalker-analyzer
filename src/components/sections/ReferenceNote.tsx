@@ -120,19 +120,25 @@ export default function ReferenceNote({ analysis }: { analysis: Analysis }) {
 type Copy = ReturnType<typeof useReportCopy>['t'];
 
 /**
- * The scorecard's three grade colours, at the weight this bar needs.
+ * The three grade colours, at the weight this bar needs and on the ground they are meant to sit on.
  *
- * `ZONE` in `score/bandScale` is the same three hues mixed 26% into the surface, and it is right there:
- * those zones sit *behind* a mark, so they have to stay recessive or they compete with the thing a reader
- * is meant to look at. Here the painted stretch is the content — there is no mark on top of it — and at
- * 26% the three read as one faint smear.
+ * **Mixed into `--color-tint-base`, never `--color-surface`.** Every surface in `global.css` is
+ * `color-mix(… var(--spec-primary) N%, <base>)`, so it carries the spec's own hue — and a grade tint
+ * mixed into that lands somewhere different for every reader. The Windwalker's surface is green, so a
+ * rose `bad` mixed into it came out orange; the token's own docstring names that exact case. `tint-base`
+ * is that same ground with no spec in it, which is what makes a verdict colour look the same to everyone.
  *
- * Same tokens, so a reader who has learnt the colours upstairs reads these without being taught again.
+ * It is also why this is a mix rather than an opacity. A translucent fill takes the colour of whatever is
+ * behind it, which is the spec-tinted surface again, so `bg-miss/60` would have reintroduced the problem
+ * by a different route — and stacked against a second translucent layer it compounds.
+ *
+ * Heavier than `ZONE` in `score/bandScale`, which is the same three hues at 26%: those zones sit *behind*
+ * a mark and have to stay recessive, while here the painted stretch is the content with nothing on top.
  */
 const GRADE_ZONE = {
-	bad: 'bg-[color-mix(in_oklch,var(--color-miss)_62%,var(--color-surface))]',
-	ok: 'bg-[color-mix(in_oklch,var(--color-brew)_62%,var(--color-surface))]',
-	good: 'bg-[color-mix(in_oklch,var(--color-good)_62%,var(--color-surface))]',
+	bad: 'bg-[color-mix(in_oklch,var(--color-miss)_62%,var(--color-tint-base))]',
+	ok: 'bg-[color-mix(in_oklch,var(--color-brew)_62%,var(--color-tint-base))]',
+	good: 'bg-[color-mix(in_oklch,var(--color-good)_62%,var(--color-tint-base))]',
 };
 
 function ReferenceTable({ rows, t }: { rows: ReturnType<typeof rowsFor>; t: Copy }) {
