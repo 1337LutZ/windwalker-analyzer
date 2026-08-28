@@ -62,6 +62,22 @@ describe('the enemies a segment was spent on', () => {
 		}
 	});
 
+	/**
+	 * One name per line, and therefore no separators between them.
+	 *
+	 * Both surfaces that show this — the strip's tooltip and the table's — split on the newline and give
+	 * each name its own row, so a comma would be punctuation with nothing left to separate.
+	 */
+	it('separates names by line rather than by comma', () => {
+		const roster = targetsInSegments(dataset, segments);
+		const many = [...roster.values()].filter((text) => text.includes('\n'));
+		expect(many.length, 'no segment in this pull names more than one enemy').toBeGreaterThan(0);
+		for (const text of roster.values()) {
+			expect(text).not.toContain(', ');
+			for (const line of text.split('\n')) expect(line).toMatch(/^.+ \(\d+\)$/);
+		}
+	});
+
 	/** A segment nobody hit anything in has no entry, rather than an empty string. */
 	it('says nothing about a segment with no damage in it', () => {
 		const idle = segments.filter((segment) => segment.mode === 'idle');

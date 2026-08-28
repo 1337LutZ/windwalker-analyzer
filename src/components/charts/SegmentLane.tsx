@@ -100,13 +100,17 @@ export default function SegmentLane({
 			}
 			if (over?.bar !== bar) {
 				if (over !== null) over.bar.setAttribute('title', over.title);
-				const detail = bar.getAttribute('data-detail');
+				// One row per target rather than one row of targets. A dozen names run together wrap into a
+				// paragraph the eye has to parse; a column of them is a list, which is what it is. The label
+				// rides the first row only, so the rest read as continuations of it rather than as new facts.
+				const detail = (bar.getAttribute('data-detail') ?? '').split('\n').filter(Boolean);
+				const detailLabel = bar.getAttribute('data-detail-label') ?? '';
 				node.innerHTML = tip(theme, {
 					title: bar.getAttribute('data-tip') ?? '',
 					tone: (bar.getAttribute('data-tip-tone') ?? 'track') as Tone,
 					rows: [
 						[bar.getAttribute('data-len-label') ?? '', bar.getAttribute('data-len') ?? ''],
-						...(detail ? ([[bar.getAttribute('data-detail-label') ?? '', detail]] as Array<[string, string]>) : []),
+						...detail.map((name, i): [string, string] => [i === 0 ? detailLabel : '', name]),
 					],
 				});
 				over = { bar, title: bar.getAttribute('title') ?? '' };
@@ -128,7 +132,17 @@ export default function SegmentLane({
 			lane.removeEventListener('pointerleave', hide);
 			hide();
 		};
-	}, [spans]);
+		/**
+		 * **Mounted once, and depending on the spans would be a bug rather than a nicety.**
+		 *
+		 * Everything the handler needs it reads off the DOM at pointer time — `elementsFromPoint` finds the
+		 * bar, and the bar carries its own `data-*`. So new spans need no new listener. Keying this on
+		 * `spans` instead tore the listener down and called `hide()` on every render, and this component
+		 * re-renders on every published pull while a report is being read: the tooltip was being killed
+		 * under the cursor a dozen times a run. That is why it read as not working at all.
+		 */
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
 
 	return (
 		<>

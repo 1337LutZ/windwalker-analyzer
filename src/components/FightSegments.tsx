@@ -19,7 +19,9 @@ import { Tooltip } from '@base-ui/react/tooltip';
 import SessionProvider from './auth/SessionProvider';
 import SignInPanel from './auth/SignInPanel';
 import { useSession } from '~/lib/auth';
-import SegmentStrip from './sections/SegmentStrip';
+import SegmentStrip, { segmentLabel, segmentLength } from './sections/SegmentStrip';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { DataGrid, NavLink, Note, Prose, Section, Skeleton, type GridColumn, type GridRow } from './primitives';
 import { useCurrentAnchor } from '~/hooks/useCurrentAnchor';
 import { formatClock } from '~/lib/format';
@@ -69,10 +71,12 @@ export function targetsInSegments(dataset: FightDataset, segments: readonly Figh
 	return new Map(
 		[...tally].map(([index, bucket]) => [
 			index,
+			// Newline separated, and therefore comma-free: every surface that shows this puts one name per
+			// line, so a separator between them would be punctuation with nothing to separate.
 			[...bucket]
 				.sort((a, b) => b[1] - a[1])
 				.map(([id, hits]) => `${names.get(id) ?? `#${id}`} (${hits})`)
-				.join(', '),
+				.join('\n'),
 		]),
 	);
 }
@@ -164,39 +168,63 @@ const COLUMNS: GridColumn[] = [
 ];
 
 /**
- * The enemies cell: a button that opens the roster on hover or focus.
+ * The enemies cell: a button that opens the same tooltip its bar does.
  *
  * A button rather than the names inline, because a busy segment names a dozen enemies and a cell that
  * wide pushes every other column off the screen. The count on the face means the row still says
  * something without hovering — a reader scanning for "which stretch had four things in it" never has to.
  *
- * **A real tooltip rather than a `title` attribute.** `title` is the browser's own: it waits about a
- * second, cannot be styled, never opens on keyboard focus, and on a touch screen does not open at all.
- * Base UI's is the same primitive this codebase already uses for its dialogs, menus and toolbars, and it
- * answers a pointer and a focus ring alike.
+ * **The content matches the strip's, deliberately.** Hovering a bar and then hovering the row under it is
+ * one question asked twice, and two answers to it — a bare list here, a titled block there — is the page
+ * disagreeing with itself. Same name for the mode, same length, same one-name-per-line roster, built from
+ * the same `segmentLabel` and `segmentLength` the strip uses.
+ *
+ * **A real tooltip rather than a `title` attribute.** `title` waits about a second, cannot be styled,
+ * never opens on keyboard focus, and on a touch screen does not open at all. Base UI's is the same
+ * primitive this codebase already uses for its dialogs, menus and toolbars.
  */
-function TargetsCell({ roster }: { roster: string | undefined }) {
+function TargetsCell({
+	segment,
+	roster,
+	t,
+}: {
+	segment: FightSegment;
+	roster: string | undefined;
+	t: TFunction<'report'>;
+}) {
 	if (!roster) return <span className="text-ink-3">—</span>;
-	const count = roster.split(', ').length;
+	const names = roster.split('\n').filter(Boolean);
 	return (
 		<Tooltip.Root>
 			<Tooltip.Trigger
 				render={
 					<button
 						type="button"
-						// Still announced to a screen reader from the button itself: the popup is only rendered
-						// while open, so a label that lived solely in there would be nothing to announce.
-						aria-label={`Enemies in this segment: ${roster}`}
+						// Still announced from the button itself: the popup is only rendered while open, so a
+						// label that lived solely in there would be nothing to announce.
+						aria-label={`Enemies in this segment: ${names.join(', ')}`}
 						className="cursor-help rounded-sm border border-line px-2 py-0.5 font-mono text-xs text-ink-2 hover:border-muted hover:text-ink"
 					/>
 				}
 			>
-				{`${count} enem${count === 1 ? 'y' : 'ies'}`}
+				{`${names.length} enem${names.length === 1 ? 'y' : 'ies'}`}
 			</Tooltip.Trigger>
 			<Tooltip.Portal>
 				<Tooltip.Positioner sideOffset={6}>
-					<Tooltip.Popup className="max-w-80 rounded-sm border border-line bg-surface px-3 py-2 font-mono text-xs leading-relaxed text-ink shadow-lg">
-						{roster}
+					<Tooltip.Popup className="min-w-52 max-w-80 rounded-sm border border-line bg-surface px-3 py-2.5 font-mono text-xs leading-relaxed text-ink shadow-lg">
+						<div className="mb-1.5 font-semibold text-rune">{segmentLabel(segment, t)}</div>
+						<div className="flex justify-between gap-3.5">
+							<span className="text-muted">for</span>
+							<span className="font-semibold">{segmentLength(segment, t)}</span>
+						</div>
+						{/* The label rides the first line only, so the rest read as continuations of it rather
+						    than as new facts — the same shape the strip's tooltip takes. */}
+						{names.map((name, i) => (
+							<div key={name} className="flex justify-between gap-3.5">
+								<span className="text-muted">{i === 0 ? 'targets' : ''}</span>
+								<span className="text-right font-semibold">{name}</span>
+							</div>
+						))}
 					</Tooltip.Popup>
 				</Tooltip.Positioner>
 			</Tooltip.Portal>
@@ -204,7 +232,7 @@ function TargetsCell({ roster }: { roster: string | undefined }) {
 	);
 }
 
-function rowsOf(analysis: Analysis, targets: Map<number, string>): GridRow[] {
+function rowsOf(analysis: Analysis, targets: Map<number, string>, t: TFunction<'report'>): GridRow[] {
 	return (analysis.segments?.segments ?? []).map((segment) => ({
 		key: `${segment.index}`,
 		// The one mode that is not a count gets the warn band, because it is the row a reader scanning for
@@ -217,7 +245,7 @@ function rowsOf(analysis: Analysis, targets: Map<number, string>): GridRow[] {
 			length: `${((segment.endMs - segment.startMs) / 1000).toFixed(1)}s`,
 			mode: segment.mode,
 			dominance: `${Math.round(segment.dominance * 100)}%`,
-			targets: <TargetsCell roster={targets.get(segment.index)} />,
+			targets: <TargetsCell segment={segment} roster={targets.get(segment.index)} t={t} />,
 		},
 	}));
 }
@@ -226,6 +254,7 @@ function rowsOf(analysis: Analysis, targets: Map<number, string>): GridRow[] {
 const anchorOf = (code: string, fightID: number): string => `fight-${code}-${fightID}`;
 
 function Fight({ code, fight }: { code: string; fight: FightRow }) {
+	const { t } = useTranslation('report');
 	if (fight.error !== null) {
 		return (
 			<div id={anchorOf(code, fight.id)} className="flex scroll-mt-16 flex-col gap-2">
@@ -269,7 +298,7 @@ function Fight({ code, fight }: { code: string; fight: FightRow }) {
 			<DataGrid
 				caption={`Segments of ${fight.name}`}
 				columns={COLUMNS}
-				rows={rowsOf(analysis, fight.targets)}
+				rows={rowsOf(analysis, fight.targets, t)}
 				empty="This pull produced no contact the derivation could divide."
 			/>
 		</div>
