@@ -5,7 +5,18 @@ import { formatClock, formatSeconds } from '~/lib/format';
 import type { Analysis } from '~/lib/types';
 
 import { EnergizingBrewTrack } from '../charts';
-import { Callout, DataGrid, Note, Prose, Section, StatTile, StatTiles, type GridRow } from '~/components/primitives';
+import {
+	Callout,
+	CauseLegend,
+	CauseTag,
+	DataGrid,
+	Note,
+	Prose,
+	Section,
+	StatTile,
+	StatTiles,
+	type GridRow,
+} from '~/components/primitives';
 import LogLink from '~/components/sections/LogLink';
 
 /**
@@ -62,7 +73,10 @@ export default function EnergizingBrew({ analysis }: { analysis: Analysis }) {
 							// The fault text is the engine's, not the locale's: it names the haste cooldown that was
 							// running and which half of the condition failed, so it is data about this pull.
 							verdict: (
-								<span className={bad ? 'text-miss' : 'text-ink-2'}>
+								<span className={`inline-flex items-baseline ${bad ? 'text-miss' : 'text-ink-2'}`}>
+									{/* Same pair as the channel table: a use the condition allowed is the list's, and one it
+									    refused is the player spending the brew where the list would not. */}
+									<CauseTag cause={bad ? 'player' : 'rotation'} />
 									{bad ? use.faults.join('; ') : t('energizingBrew.cells.ok')}
 								</span>
 							),
@@ -168,6 +182,10 @@ export default function EnergizingBrew({ analysis }: { analysis: Analysis }) {
 							rows={rows}
 							empty={t('energizingBrew.none', { available: energizing.available })}
 						/>
+					</div>
+
+					<div className="mt-3.5">
+						<CauseLegend causes={['rotation', 'player']} />
 					</div>
 					<div className="mt-4">
 						<Note>{t('energizingBrew.energyCaveat')}</Note>

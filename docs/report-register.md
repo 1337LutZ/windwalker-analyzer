@@ -361,6 +361,20 @@ table so the list is the whole set a reader can meet:
 | `AoE` | area of effect       | **yes**, 17 uses |
 | `NPC` | non-player character | **yes**, 1 use   |
 
+And the tier-set pair, adopted on 2026-08-29 with the cause-tag pass. Reader-facing copy writes the set
+and the bonus together and never spells either out:
+
+| Short | Expansion               | In shipped copy  |
+| ----- | ----------------------- | ---------------- |
+| `T15` | tier 15, the Throne set | **yes**, 1 use   |
+| `T16` | tier 16, the Siege set  | **yes**, 11 uses |
+| `2P`  | two-piece set bonus     | **yes**, 8 uses  |
+| `4P`  | four-piece set bonus    | **yes**, 2 uses  |
+
+Written as `T16 2P` and `T15 4P`, never `tier-16 two-piece` and never a bare `two-piece`. The decision
+is the user's, taken while the judgment labels were being cut to a tag and a phrase: the old spelling
+cost eight words of a ten-word label, and a raider reads the short form everywhere else they meet it.
+
 Two more were supplied by the author rather than found in the corpus. They are recorded because the
 pair is a **disambiguation convention** and losing one half of it makes both ambiguous:
 

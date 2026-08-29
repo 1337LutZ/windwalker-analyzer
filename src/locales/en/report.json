@@ -472,7 +472,7 @@
       "rune": "A proc snapshotted early, a proc weaved past on purpose, or a clean channel",
       "miss": "A drop, a proc left unsnapshotted, or a misplaced channel"
     },
-    "eleIntent": "The pull at a glance: the Lightning Shield counter, the two cooldowns, the Flame Shock dot, the Searing Totem and the two-piece on one timeline, so the lining-up reads off the shape before the numbers.",
+    "eleIntent": "The pull at a glance: the Lightning Shield counter, the two cooldowns, the Flame Shock dot, the Searing Totem and the T16 2P on one timeline, so the lining-up reads off the shape before the numbers.",
     "protIntent": "The pull at a glance: every press on one timeline, with Avenging Wrath, Holy Avenger, Sacred Shield, Shield of the Righteous and Bastion of Glory drawn over them as the windows they held, so what was up when reads off the shape before the numbers. Auto-attacks, taunts and the Grand Crusader procs are left out here; the cast log above draws all of them.",
     "lanes": {
       "key": {
@@ -1037,7 +1037,7 @@
       },
       "ascendance": {
         "name": "Ascendance",
-        "test": "Off the global. The opener (dot up, first five seconds) or the two-piece window (the debuff with 10s left)."
+        "test": "Off the global. The opener (dot up, first five seconds) or the T16 2P window (the debuff with 10s left)."
       },
       "flame-shock-multidot": {
         "name": "Flame Shock",
@@ -1049,7 +1049,7 @@
       },
       "earth-shock": {
         "name": "Earth Shock",
-        "test": "At one target: the shield full, the dot 6s or more, Ascendance 6s or more away and no two-piece proc up. At two: six stacks and 8s of dot, and nothing else."
+        "test": "At one target: the shield full, the dot 6s or more, Ascendance 6s or more away and no T16 2P proc up. At two: six stacks and 8s of dot, and nothing else."
       },
       "fire-elemental": {
         "name": "Fire Elemental",
@@ -1547,7 +1547,7 @@
     "forced_aoe": "You are reading this pull as three targets, where the dump asks for 105 energy banked by the kick's return and Spinning Crane Kick wants those globals instead. Far fewer presses count as correct.",
     "starveUnbanded": "These waits do not move with that reading. They are a fact about the chi bar, not about how many enemies were in front of you, only the figure above follows the count you picked.",
     "reconstructed": "Chi is reconstructed: WarcraftLogs only reports it when you spend it. On this pull the walk was exact {{accuracy, percent}} of the time. A bar that is off by one point can make a press you could not afford look like one you chose not to make.",
-    "tierCaveat": "This report does not read set bonuses, and the tier-16 four-piece takes a chi off both kicks. Rows above showing 1 chi may still have been affordable with the bonus; rows showing 0 are unaffected.",
+    "tierCaveat": "This report does not read set bonuses, and the T16 4P takes a chi off both kicks. Rows above showing 1 chi may still have been affordable with the bonus; rows showing 0 are unaffected.",
     "notGraded": "Nothing here is graded, and that is measured rather than asserted. Read the pull as one target or three and the same presses score 23 points apart. The chi bar underneath is right about four times in five. And the list's own dump rule does not reach zero: a quarter of the presses charged above had no higher-priority ability ready."
   },
   "flameShock": {
@@ -1621,11 +1621,11 @@
   },
   "earthShock": {
     "title": "Earth Shock",
-    "intent": "Earth Shock spends the Lightning Shield. What makes a press good depends on how many enemies were up, and on whether a tier-16 two-piece proc was running.",
+    "intent": "Earth Shock spends the Lightning Shield. What makes a press good depends on how many enemies were up, and on whether a T16 2P proc was running.",
     "rule": {
-      "single": "Against one enemy, with no tier-16 proc running: press it with the shield at seven charges, over six seconds left on the Flame Shock dot, and Ascendance more than six seconds away, because Ascendance wants the same shock timer.",
-      "tier": "While a tier-16 proc is running, hold the shock instead. Wait until the proc's debuff is inside its last four seconds, then spend it with the shield full and the dot still good for two more ticks. A shock pressed inside those last four seconds is not early at all; one pressed four to eight seconds out is early but nearly held, and counts half; one pressed with more than eight seconds left is charged in full.",
-      "multi": "Against two enemies the numbers change: six charges instead of seven, eight seconds of dot instead of six, no waiting on Ascendance, and nothing the tier-16 set can change.",
+      "single": "Against one enemy, with no T16 2P proc running: press it with the shield at seven charges, over six seconds left on the Flame Shock dot, and Ascendance more than six seconds away, because Ascendance wants the same shock timer.",
+      "tier": "While a T16 2P proc is running, hold the shock instead. Wait until the proc's debuff is inside its last four seconds, then spend it with the shield full and the dot still good for two more ticks. A shock pressed inside those last four seconds is not early at all; one pressed four to eight seconds out is early but nearly held, and counts half; one pressed with more than eight seconds left is charged in full.",
+      "multi": "Against two enemies the numbers change: six charges instead of seven, eight seconds of dot instead of six, no waiting on Ascendance, and nothing T16 can change.",
       "discharge": "Every Earth Shock that spends the shield leaves Elemental Discharge on that target, two seconds per charge consumed, and +4% to your Fire and Nature damage while it lasts. A shock at seven charges buys twelve seconds of it, which is why the shock is worth holding for: the window you are waiting out is the one your last shock paid for."
     },
     "verdict_good": "{{good, integer}} of {{casts, integer}} shocks were spent with the shield charged up and the Flame Shock dot still long.",
@@ -1715,7 +1715,7 @@
   },
   "ascendance": {
     "title": "Ascendance",
-    "intent": "Fifteen seconds in which Lava Burst has no cooldown. Every Elemental shaman has it, so what matters is what you press it with: open with it, or spend it on a tier-16 two-piece proc. Lava Burst is your filler throughout, so keep Flame Shock up for all fifteen seconds.",
+    "intent": "Fifteen seconds in which Lava Burst has no cooldown. Every Elemental shaman has it, so what matters is what you press it with: open with it, or spend it on a T16 2P proc. Lava Burst is your filler throughout, so keep Flame Shock up for all fifteen seconds.",
     "kpi": {
       "presses": "Ascendance presses"
     },
@@ -1758,7 +1758,7 @@
   },
   "elementalMastery": {
     "title": "Elemental Mastery",
-    "intent": "Thirty percent haste for twenty seconds, on a ninety-second cooldown, and a talent taken over Ancestral Swiftness or Echo of the Elements, so it appears only if your log shows you took it. Press it with Ascendance, in the opener or with Ascendance a second or two out and Flame Shock under sixteen seconds, so the haste lands on the Lava Bursts that spend it. A tier-15 four-piece spends it on the set's proc instead.",
+    "intent": "Thirty percent haste for twenty seconds, on a ninety-second cooldown, and a talent taken over Ancestral Swiftness or Echo of the Elements, so it appears only if your log shows you took it. Press it with Ascendance, in the opener or with Ascendance a second or two out and Flame Shock under sixteen seconds, so the haste lands on the Lava Bursts that spend it. A T15 4P spends it on the set's proc instead.",
     "columns": {
       "at": "at",
       "state": "what it was"

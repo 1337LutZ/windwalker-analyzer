@@ -317,6 +317,11 @@ with reality.
 
 ## Copy, and how a report says anything
 
+**Tier sets are abbreviated.** `T15 2P`, `T16 2P`, `T16 4P`, never `tier-16 two-piece` and never a bare
+`two-piece`. Adopted 2026-08-29 with the cause tags; `docs/report-register.md` carries the table and the
+argument, which is that the old spelling cost most of a ten-word label to say what a raider reads as four
+characters everywhere else.
+
 **No English sentence belongs in a component.** Copy lives in `src/locales/en/`, split into two
 namespaces: `report` for the analysis, `ui` for the shell. A section asks for its own wording by
 name and passes the numbers.
@@ -571,19 +576,20 @@ copy itself follows — say it once, outside the arms.
      src/lib/i18n/__tests__/conventionsCensus.test.ts. Re-run the block above and paste the whole set
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
-As of the split-group callout, it prints 1807 leaves, 821 prose, 25,972
+As of the split-group callout, it prints 1807 leaves, 821 prose, 25,975
 words; median 27, p75 42, p90 61, p95 71, p99 102, max 158; longest 9% carry 23%; report.json 743 prose
 leaves, 1,335 sentences, median 16, 239 past 25 (17.9%), 1 em-dash in 0 sentences (0.0%);
 72 / 28 / 1 / 2 on the quote lines.
 
-Three leaves in and three prose leaves out, the shared half of the same pass. Rushing Jade Wind, the raid
-buff table, the externals table and the four scorecard states all say whose a row is now, so the rows
-stop saying it in prose: "This fight puts you out of reach by design, so the time this figure is measured
-over is the fight's doing rather than yours" becomes a Fight tag over "Out of reach by design". The three
-arriving leaves are the two notes that name what the Raid tag asks for, one per table, and the plural arm
-one of them needs. The sentence count is unmoved because the sentences left are the ones that were
-already short, and a curly apostrophe leaves with the copy that held it. The block before it was the
-Elemental sweep: no leaves either way, twenty-four sentences gone.
+Three leaves in, three prose leaves out, and three words back with the tier sweep. The shared half of
+the cause pass tags Rushing Jade Wind, the raid buff table, the externals table and the four scorecard
+states, so those rows stop explaining themselves in prose: "This fight puts you out of reach by design,
+so the time this figure is measured over is the fight's doing rather than yours" becomes a Fight tag over
+"Out of reach by design". The three arriving leaves are the two notes naming what the Raid tag asks for,
+one per table, and the plural arm one of them needs. The word total then ticks back up three because
+`T16 2P` is two words where `tier-16 two-piece` was one hyphenated token, which is the one place this
+pass makes the corpus longer. The block before it was the Elemental sweep: no leaves either way,
+twenty-four sentences gone.
 
 Two leaves and no prose at all in the pass after that: `app.toCompare` and `app.toReport`, the header
 link each of a spec's two pages carries to the other. Both are three-word button labels, so they lift the

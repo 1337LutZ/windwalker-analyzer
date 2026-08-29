@@ -4,7 +4,7 @@ import { useReportCopy } from '~/hooks/useReportCopy';
 import { formatClock, formatSeconds } from '~/lib/format';
 import type { Analysis } from '~/lib/types';
 
-import { DataGrid, Note, Prose, Section, type GridRow } from '~/components/primitives';
+import { CauseLegend, CauseTag, DataGrid, Note, Prose, Section, type GridRow } from '~/components/primitives';
 import LogLink from '~/components/sections/LogLink';
 
 /**
@@ -49,7 +49,10 @@ export default function FistsOfFury({ analysis }: { analysis: Analysis }) {
 							// The fault text is the engine's, not the locale's: it names the spell and the number
 							// that tripped the check, so it is data about this pull rather than copy about the spec.
 							verdict: (
-								<span className={bad ? 'text-miss' : 'text-ink-2'}>
+								<span className={`inline-flex items-baseline ${bad ? 'text-miss' : 'text-ink-2'}`}>
+									{/* A channel the checks passed is the list being followed; one that failed them is the
+									    player's placement, since every fault here is about when the channel was started. */}
+									<CauseTag cause={bad ? 'player' : 'rotation'} />
 									{bad ? c.faults.join('; ') : t('fistsOfFury.cells.ok')}
 								</span>
 							),
@@ -133,6 +136,10 @@ export default function FistsOfFury({ analysis }: { analysis: Analysis }) {
 							rows={rows}
 							empty={t('fistsOfFury.none')}
 						/>
+					</div>
+
+					<div className="mt-3.5">
+						<CauseLegend causes={['rotation', 'player']} />
 					</div>
 					<div className="mt-4">
 						<Note>{t('fistsOfFury.energyCaveat')}</Note>
