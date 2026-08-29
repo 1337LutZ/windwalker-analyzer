@@ -2,11 +2,11 @@
 //
 // `lib/game/__tests__/splitGroups.test.ts` holds the detection — which pull is a split and on what
 // evidence — and this holds the half a detection cannot assert about itself: that each of the three
-// findings reaches a page as English, with its numbers in it and the right arm of its plural chosen.
+// findings reaches a page as English, under its own title, saying the one thing it is there to say.
 //
-// Rendered rather than inspected, because both failures here are visible only in the output. A key
-// with no copy behind it renders as its own key, and an interpolation the copy does not name renders
-// as nothing at all — a callout that says "You went up the towers times" is a green test away.
+// Rendered rather than inspected, because the failure is visible only in the output: a key with no
+// copy behind it renders as its own key, and `t('splitGroup.belt')` on a page is not a green test
+// away from `t(COPY[split.kind])` on a page.
 
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -29,104 +29,62 @@ const text = (split: SplitGroup | null): string =>
 		.trim();
 
 describe('the callout', () => {
-	/**
-	 * The one sentence all three share, asserted once rather than three times over.
-	 *
-	 * The three findings are different facts about a pull and their opening sentences say so, but every
-	 * one of them ends on the same offer: the findings are still worth reading, and here is the limit.
-	 * A drift in one arm is the failure this catches — the family reads as one voice or it reads as three.
-	 */
-	it('closes every arm on the same offer to the reader', () => {
-		const arms: SplitGroup[] = [
-			{ kind: 'towerRuns', share: 0.03, windows: [[0, 20_000]], awayMs: 20_000, partedYards: null, name: null },
-			{ kind: 'belt', share: 1, windows: [[0, 20_000]], awayMs: 20_000, partedYards: null, name: null },
-			{ kind: 'splitPair', share: 0.99, windows: [], awayMs: 0, partedYards: null, name: 'Earthbreaker Haromm' },
-			{ kind: 'splitPair', share: 0.59, windows: [], awayMs: 0, partedYards: 170, name: 'Earthbreaker Haromm' },
-		];
-		for (const arm of arms) expect(text(arm)).toContain('You can use these findings');
-	});
-
 	it('draws nothing at all on a pull the raid fought together', () => {
 		expect(renderToStaticMarkup(createElement(SplitGroupCallout, { split: null }))).toBe('');
 		expect(renderToStaticMarkup(createElement(SplitGroupCallout, { split: undefined }))).toBe('');
 	});
 
-	// The Windwalker of `a:6MhZgjyAknFWrYfK` fight 10, to the numbers the engine reports for that pull.
-	it('counts the tower runs and clocks them', () => {
-		const said = text({
+	/**
+	 * One title and one sentence per kind, and no figure in either.
+	 *
+	 * The three findings carry run counts, seconds away, damage shares and the yards between two bosses;
+	 * none of it reaches the reader. `SplitGroupCallout`'s own docblock argues why. What this pins is the
+	 * consequence: the rendering depends on `kind` and on nothing else, so a finding whose measurements
+	 * differ wildly still says the same thing.
+	 */
+	it('says one thing per kind, whatever the finding measured', () => {
+		const heavy: SplitGroup = {
 			kind: 'towerRuns',
-			share: 0.013,
+			share: 0.13,
 			windows: [
-				[160_315, 178_648],
-				[310_535, 335_950],
+				[160_000, 178_000],
+				[310_000, 335_000],
 			],
 			awayMs: 43_748,
 			partedYards: null,
 			name: null,
-		});
-		expect(said).toContain('Tower duty');
-		expect(said).toContain('You were assigned tower duty and went up 2 times');
-		expect(said).toContain('43.7s');
-		// The sentence points at a word the reader can see on their own timeline, which is the whole
-		// job of it: the tower stretch is the pull's least coherent segment and is not a fumbled one.
-		expect(said).toContain('stretches that read as mixed');
+		};
+		const light: SplitGroup = { ...heavy, share: 0.003, windows: [[0, 8000]], awayMs: 8000 };
+		expect(text(heavy)).toContain('Tower duty');
+		expect(text(heavy)).toContain('You were assigned tower duty');
+		expect(text(heavy)).toBe(text(light));
+		// And nothing the finding measured leaks into the sentence.
+		expect(text(heavy)).not.toMatch(/\d/);
 	});
 
-	// One run reads as one run, which is the arm the Protection Paladin of `protection/galakras.json`
-	// gets. A count of 1 through the plural arm above would render "the towers 1 times".
-	it('speaks of one tower in the singular', () => {
-		const said = text({
-			kind: 'towerRuns',
-			share: 0.044,
-			windows: [[280_000, 291_400]],
-			awayMs: 11_400,
-			partedYards: null,
-			name: null,
-		});
-		expect(said).toContain('You were assigned tower duty and went up once, 11.4s');
-		expect(said).toContain('stretch that reads as mixed');
-		expect(said).not.toContain('times');
-	});
-
-	it('names belt duty and says the report is the wrong tool for it', () => {
+	it('names belt duty and says the analyzer is the wrong tool for it', () => {
 		const said = text({
 			kind: 'belt',
 			share: 1,
-			windows: [
-				[13_000, 23_000],
-				[54_000, 74_000],
-			],
-			awayMs: 30_000,
+			windows: [[13_000, 23_000]],
+			awayMs: 10_000,
 			partedYards: null,
 			name: null,
 		});
 		expect(said).toContain('Belt duty');
-		expect(said).toContain('nothing below is a fair read of how you played');
+		expect(said).toContain('improve your belt play');
 		expect(said).toContain('the analyzer is not optimised for this');
 	});
 
 	/**
-	 * The measured arm, which is the one the damage share cannot reach.
+	 * Both arms of the pair reach the same sentence, which is the point of collapsing them.
 	 *
-	 * It leads with the distance and names no boss, so there is no `unnamed` twin of it to keep.
+	 * One was found by the damage share and one by measuring the two bosses a hundred and seventy yards
+	 * apart. They are different evidence about the same pull-shape, and a reader who cannot be graded
+	 * does not need to know which of the two caught them.
 	 */
-	it('leads with the yards when the pair was measured standing apart', () => {
-		const said = text({
-			kind: 'splitPair',
-			share: 0.593,
-			windows: [],
-			awayMs: 0,
-			partedYards: 170,
-			name: 'Earthbreaker Haromm',
-		});
-		expect(said).toContain('Split bosses');
-		expect(said).toContain('You were assigned one of the two bosses — Earthbreaker Haromm');
-		expect(said).toContain('tanked 170 yards away');
-		expect(said).not.toContain('59%');
-	});
-
-	it('names the boss a split group held, and holds the sentence up without one', () => {
-		const held: SplitGroup = {
+	it('says the same thing however the split was found', () => {
+		const byShare: SplitGroup = {
 			kind: 'splitPair',
 			share: 0.99,
 			windows: [],
@@ -134,12 +92,33 @@ describe('the callout', () => {
 			partedYards: null,
 			name: 'Earthbreaker Haromm',
 		};
-		expect(text(held)).toContain('Earthbreaker Haromm took 99% of your damage to the pair');
-		// The report's actor list names every enemy in its own stream, so the unnamed arm is a guard
-		// rather than an observed case — and a guard that rendered `{{name}}` empty would read as a
-		// sentence with a word missing.
-		const unnamed = text({ ...held, name: null });
-		expect(unnamed).toContain('one of the two bosses, which took 99%');
-		expect(unnamed).not.toContain('Earthbreaker');
+		const byDistance: SplitGroup = { ...byShare, share: 0.593, partedYards: 170 };
+		expect(text(byShare)).toContain('Split bosses');
+		expect(text(byShare)).toContain('You fought one of the two bosses');
+		expect(text(byShare)).toBe(text(byDistance));
+		// The boss it could name is not named: the sentence is about the pull, not the target.
+		expect(text(byShare)).not.toContain('Haromm');
+	});
+
+	/**
+	 * The one sentence all three share, asserted once rather than three times over.
+	 *
+	 * The three findings are different facts about a pull and their opening clauses say so, but every one
+	 * of them ends on the same offer: the findings are still worth reading, and here is the limit. A
+	 * drift in one arm is the failure this catches — the family reads as one voice or it reads as three.
+	 */
+	it('closes every arm on the same offer to the reader', () => {
+		const kinds: SplitGroup[] = (['towerRuns', 'belt', 'splitPair'] as const).map((kind) => ({
+			kind,
+			share: 1,
+			windows: [],
+			awayMs: 0,
+			partedYards: null,
+			name: null,
+		}));
+		for (const arm of kinds) {
+			expect(text(arm)).toContain('nothing below is a fair read of how you played');
+			expect(text(arm)).toContain('but the analyzer is not optimised for this');
+		}
 	});
 });

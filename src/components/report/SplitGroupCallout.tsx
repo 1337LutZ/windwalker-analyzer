@@ -45,6 +45,13 @@ const TITLE: Record<SplitGroupKind, string> = {
  *
  * Amber rather than rose. Going up the tower is not a mistake and neither is taking belt duty — these
  * are jobs somebody was given, and the callout exists so the grades are read with that in hand.
+ *
+ * **No figure reaches the sentence, and that is the decision rather than an omission.** The finding
+ * carries the run count, the seconds away, the damage share and the yards between two bosses, and every
+ * one of them was measured — but a reader who has just been told this report cannot judge their pull
+ * does not need it quantified, and a number invites them to argue with the size of the caveat instead
+ * of reading it. The evidence stays on `SplitGroup` for `scripts/split-report.mjs` and the suite, which
+ * are the two readers that have to check it.
  */
 export default function SplitGroupCallout({ split }: { split: SplitGroup | null | undefined }) {
 	const { t } = useTranslation('report');
@@ -52,28 +59,7 @@ export default function SplitGroupCallout({ split }: { split: SplitGroup | null 
 
 	return (
 		<Callout tone="brew" title={t(TITLE[split.kind])}>
-			<p className="m-0">
-				{t(COPY[split.kind], {
-					// The excursion count, and i18next's plural selector in the same value: one tower run and
-					// four belt trips are different sentences rather than one sentence with a bracketed `(s)`.
-					count: split.windows.length,
-					// `percent` divides by a hundred, so the share arrives as 0-100 like every other one.
-					share: split.share * 100,
-					away: split.awayMs,
-					yards: split.partedYards ?? 0,
-					// Two readings, each with a fallback for the enemy the actor list could not name. `parted` is
-					// the measured one — the pair was seen standing apart — and it leads with the boss the
-					// player stood on; the other leads with the share. Every arm falls back to a context rather
-					// than rendering an empty `{{name}}`, which reads as a sentence with a word missing.
-					...(split.partedYards !== null
-						? split.name === null
-							? { context: 'partedUnnamed' }
-							: { context: 'parted', name: split.name }
-						: split.name === null
-							? { context: 'unnamed' }
-							: { name: split.name }),
-				})}
-			</p>
+			<p className="m-0">{t(COPY[split.kind])}</p>
 		</Callout>
 	);
 }

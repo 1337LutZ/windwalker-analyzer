@@ -199,13 +199,9 @@
     "title_towerRuns": "Tower duty",
     "title_splitPair": "Split bosses",
     "title_belt": "Belt duty",
-    "towerRuns_one": "You were assigned tower duty and went up once, {{away, duration}} of this pull. You can use these findings as they stand, but the stretch that reads as mixed on your timeline is the tower rather than a rotation that came apart.",
-    "towerRuns_other": "You were assigned tower duty and went up {{count}} times, {{away, duration}} of this pull. You can use these findings as they stand, but the stretches that read as mixed on your timeline are the tower runs rather than a rotation that came apart.",
-    "belt": "You were assigned belt duty, so nothing below is a fair read of how you played. You can use these findings to improve your belt play, but the analyzer is not optimised for this.",
-    "splitPair_parted": "You were assigned one of the two bosses — {{name}}, with the other tanked {{yards}} yards away. You can use these findings as they stand, but they describe a single-target pull rather than the cleave this fight usually is.",
-    "splitPair_partedUnnamed": "You were assigned one of the two bosses, tanked {{yards}} yards from the other. You can use these findings as they stand, but they describe a single-target pull rather than the cleave this fight usually is.",
-    "splitPair": "You spent this pull on one of the two bosses: {{name}} took {{share, percent}} of your damage to the pair. You can use these findings as they stand, but they describe a single-target pull rather than the cleave this fight usually is.",
-    "splitPair_unnamed": "You spent this pull on one of the two bosses, which took {{share, percent}} of your damage to the pair. You can use these findings as they stand, but they describe a single-target pull rather than the cleave this fight usually is."
+    "towerRuns": "You were assigned tower duty, so nothing below is a fair read of how you played. You can use these findings to improve your tower play, but the analyzer is not optimised for this.",
+    "splitPair": "You fought one of the two bosses, so nothing below is a fair read of how you played. You can use these findings to improve your play on the boss you held, but the analyzer is not optimised for this.",
+    "belt": "You were assigned belt duty, so nothing below is a fair read of how you played. You can use these findings to improve your belt play, but the analyzer is not optimised for this."
   },
   "tigerPalm": {
     "title": "Tiger Palm",
