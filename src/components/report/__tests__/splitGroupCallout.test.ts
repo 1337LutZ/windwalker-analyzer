@@ -50,6 +50,9 @@ describe('the callout', () => {
 		expect(said).toContain('Tower duty');
 		expect(said).toContain('You went up the towers 2 times');
 		expect(said).toContain('43.7s');
+		// The sentence points at a word the reader can see on their own timeline, which is the whole
+		// job of it: the tower stretch is the pull's least coherent segment and is not a fumbled one.
+		expect(said).toContain('stretches that read as mixed');
 	});
 
 	// One run reads as one run, which is the arm the Protection Paladin of `protection/galakras.json`
@@ -63,7 +66,8 @@ describe('the callout', () => {
 			partedYards: null,
 			name: null,
 		});
-		expect(said).toContain('You went up a tower');
+		expect(said).toContain('You went up a tower for 11.4s');
+		expect(said).toContain('stretch that reads as mixed');
 		expect(said).not.toContain('times');
 	});
 
