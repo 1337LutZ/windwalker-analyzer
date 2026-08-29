@@ -158,7 +158,7 @@ export default function ReportHeader({ analysis }: { analysis: Analysis }) {
 			</a>
 			{/* Directly under the way back to the log, and that is the placement argued for rather than a
 			    slot that happened to be free. The callout says the raid split up and this player went with
-			    the half that walked away — a claim about *which pull this is*, which belongs with the
+			    the half that walked away. It is a claim about *which pull this is*, and it belongs with the
 			    encounter, the difficulty and the parse rather than beside a control. A reader who doubts it
 			    has the log open one line above, at the same fight and the same source.
 

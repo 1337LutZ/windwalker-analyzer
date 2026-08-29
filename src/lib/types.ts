@@ -2185,8 +2185,8 @@ export interface AnalysisCore {
 	/**
 	 * The raid split up on this pull, and this player was not on the main group.
 	 *
-	 * Three Siege encounters can come apart — Galakras' tower squads, Kor'kron Dark Shaman pulled to two
-	 * corners, Siegecrafter Blackfuse's belt team — and on each of them the pull one player fought is not
+	 * Three Siege encounters can come apart: Galakras' tower squads, Kor'kron Dark Shaman pulled to two
+	 * corners, Siegecrafter Blackfuse's belt team. On each of them the pull one player fought is not
 	 * the pull the encounter is. `game/splitGroups.ts` carries the rules and the measurements.
 	 *
 	 * **Nothing downstream reads it and nothing may.** No clock is moved and no count is adjusted: the

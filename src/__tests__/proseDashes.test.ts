@@ -26,6 +26,20 @@ import { describe, expect, it } from 'vitest';
 
 const ROOT = resolve(import.meta.dirname, '../..');
 
+/**
+ * The repository-wide em-dash count, as a high-water mark that may only fall.
+ *
+ * **The ceiling below governs one sentence; this governs the habit.** A ceiling of two per sentence is
+ * satisfied by ten thousand sentences carrying two, which is roughly where this tree was when the rule
+ * said the dash "stays available" outside reader copy. `docs/conventions.md` withdrew that wording; this
+ * is what makes the withdrawal enforceable.
+ *
+ * **Never raise this to make a run green.** A failure here means new prose reached for the mark, and the
+ * fix is the prose. Lowering it is the only edit this constant should ever take, and it does not need a
+ * reason beyond the number having come down.
+ */
+const DASH_BUDGET = 10_775;
+
 /** The ceiling, as `docs/conventions.md` states it. Read from the document below, not trusted from here. */
 const CEILING = 2;
 
@@ -112,6 +126,25 @@ const sourceFiles = (dir = 'src'): string[] =>
 			entry.isDirectory()
 				? sourceFiles(`${dir}/${entry.name}`)
 				: /\.tsx?$/.test(entry.name)
+					? [`${dir}/${entry.name}`]
+					: [],
+		);
+
+/**
+ * Every text file under one root, for the budget rather than the ceiling.
+ *
+ * Wider than `sourceFiles` on purpose: the budget counts `.md` and `.mjs` too, because a dash written
+ * into a doc or a script is a dash written. `.history` and build output are skipped as everywhere else.
+ */
+const everyFile = (dir: string): string[] =>
+	readdirSync(resolve(ROOT, dir), { withFileTypes: true })
+		.sort((a, b) => (a.name < b.name ? -1 : 1))
+		.flatMap((entry) =>
+			entry.isDirectory()
+				? /^(node_modules|dist|\.astro|\.history)$/.test(entry.name)
+					? []
+					: everyFile(`${dir}/${entry.name}`)
+				: /\.(tsx?|mjs|md|astro|css)$/.test(entry.name)
 					? [`${dir}/${entry.name}`]
 					: [],
 		);
@@ -249,5 +282,32 @@ describe('the em-dash ceiling, over the tree’s own docblocks', () => {
 		// And a figure block is furniture, not a sentence.
 		const table = '/**\n * The reading:\n *\n *     one — 1   two — 2   three — 3\n */';
 		expect(sentences(commentBlocks(table)[0]!)).toEqual(['The reading:']);
+	});
+});
+
+describe('the em-dash budget, over the whole tree', () => {
+	/**
+	 * Counted raw rather than parsed into sentences, deliberately.
+	 *
+	 * The ceiling test below has to know what a sentence is and therefore what is prose and what is a
+	 * shell line; a budget does not, and a cheaper rule is a rule that cannot drift from itself. Every
+	 * dash in the tree counts, including the ones inside code, because a dash inside code is a dash
+	 * somebody typed.
+	 *
+	 * **This file is the one exclusion, and it excludes itself.** A guard that matches the character
+	 * has to contain it, in a regex and in the fixtures the parser is tested against, so counting those
+	 * would price the enforcement into the thing being enforced. Nothing else is exempt.
+	 */
+	it('holds at or below the high-water mark', () => {
+		const files = ['src', 'scripts', 'docs']
+			.flatMap((root) => everyFile(root))
+			.filter((file) => !file.endsWith('proseDashes.test.ts'));
+		const total = files.reduce(
+			(sum, file) => sum + (readFileSync(resolve(ROOT, file), 'utf8').match(/—/g)?.length ?? 0),
+			0,
+		);
+		expect(total).toBeLessThanOrEqual(DASH_BUDGET);
+		// Non-vacuity: a walker that returned nothing would pass the line above for ever.
+		expect(files.length).toBeGreaterThan(400);
 	});
 });

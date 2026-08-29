@@ -1,7 +1,7 @@
 // The sentence a split actually puts in front of a reader.
 //
-// `lib/game/__tests__/splitGroups.test.ts` holds the detection — which pull is a split and on what
-// evidence — and this holds the half a detection cannot assert about itself: that each of the three
+// `lib/game/__tests__/splitGroups.test.ts` holds the detection, which pull is a split and on what
+// evidence, and this holds the half a detection cannot assert about itself: that each of the three
 // findings reaches a page as English, under its own title, saying the one thing it is there to say.
 //
 // Rendered rather than inspected, because the failure is visible only in the output: a key with no
@@ -105,7 +105,7 @@ describe('the callout', () => {
 	 *
 	 * The three findings are different facts about a pull and their opening clauses say so, but every one
 	 * of them ends on the same offer: the findings are still worth reading, and here is the limit. A
-	 * drift in one arm is the failure this catches — the family reads as one voice or it reads as three.
+	 * drift in one arm is the failure this catches: the family reads as one voice or it reads as three.
 	 */
 	it('closes every arm on the same offer to the reader', () => {
 		const kinds: SplitGroup[] = (['towerRuns', 'belt', 'splitPair'] as const).map((kind) => ({

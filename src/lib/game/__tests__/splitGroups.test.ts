@@ -3,7 +3,7 @@
 //
 // **Only one of the six shapes has a committed raw fixture, and it is a negative one.** The Galakras
 // dataset is a monk who never left the courtyard, which is the case the tower rule most has to get
-// right — see the trap below. The positives are built by hand, because a fixture that carried one
+// right. See the trap below. The positives are built by hand, because a fixture that carried one
 // would be a second megabyte of somebody's log committed to prove a set of four game ids, and the
 // numbers those ids were chosen on are in `splitGroups.ts` beside them, measured through the app's
 // own fetch on the reports it names.
@@ -50,7 +50,7 @@ const hit = (targetID: number, timestamp: number, amount: number, sourceID = PLA
 /**
  * A hit that also says where the target stood, at 100 units to the yard.
  *
- * `resourceActor: 2` is the target's half of the resource block — the convention `analysis/replay.ts`
+ * `resourceActor: 2` is the target's half of the resource block, the convention `analysis/replay.ts`
  * owns and this suite writes rather than restates, so a change to that decoder fails here too.
  */
 const hitAt = (targetID: number, timestamp: number, yardsX: number, sourceID = PLAYER): WclEvent =>
@@ -68,7 +68,7 @@ const hitAt = (targetID: number, timestamp: number, yardsX: number, sourceID = P
 /**
  * `avbdQAfxzRD7q49Y` fight 22 in miniature: the player's body on one boss, their spirits on the other.
  *
- * The proportions are the measured ones — the monk's own hits are 97.2% Haromm and the spirits are 96%
+ * The proportions are the measured ones. The monk's own hits are 97.2% Haromm and the spirits are 96%
  * Kardris, so the **pair share is 59.3%**, well under `PAIR_SHARE`. That is the point of the shape: any
  * finding here has to come from the separation, because the damage gate is nowhere near firing. `paired`
  * is how many moments carry a position for both, which is the only thing the three cases vary.
@@ -98,7 +98,7 @@ function run(targetID: number, from: number, to: number, amount: number, sourceI
  * A hand-built pull, in game ids.
  *
  * The report's local actor numbers are the game ids themselves here, which no real log does and
- * nothing under test can tell — every rule resolves through `enemyNPCs` and then compares `targetID`s,
+ * nothing under test can tell, because every rule resolves through `enemyNPCs` and then compares `targetID`s,
  * so the identity mapping exercises the resolution without a second table to keep in step.
  */
 function pull(encounterID: number, gameIDs: readonly number[], events: readonly WclEvent[]) {
@@ -128,12 +128,12 @@ function onFixture(dataset: FightDataset) {
 	});
 }
 
-describe('Galakras — the tower squads', () => {
+describe('Galakras, the tower squads', () => {
 	/**
 	 * The trap, on the pull that would have sprung it.
 	 *
 	 * `sections.json` is a Windwalker who spent the whole pull in the courtyard, and 11.4% of their
-	 * damage went into **Korgra the Snake** (5.74%) and **High Enforcer Thranok** (5.65%) — two named
+	 * damage went into **Korgra the Snake** (5.74%) and **High Enforcer Thranok** (5.65%), two named
 	 * elites that read like tower bosses and are wave leaders. A rule built on the four named elites
 	 * rather than the two real captains fires here, on a player who never climbed anything. Their damage
 	 * to Lieutenant Krugruk and Master Cannoneer Dagryn on the same pull is exactly zero.
@@ -200,7 +200,7 @@ describe('Galakras — the tower squads', () => {
 	 *
 	 * `protection/galakras.json` is a Paladin who spent the pull tanking the gate and went up **one**
 	 * tower: 28 hits into Master Cannoneer Dagryn between 4:40 and 4:51, and nothing on the other captain
-	 * but a single stray at 2:16 — four minutes away from the run and in the wrong tower. That stray is
+	 * but a single stray at 2:16, four minutes away from the run and in the wrong tower. That stray is
 	 * what the zero-length filter is for, and this is the pull it was measured on: without it the report
 	 * would tell a player who climbed once that they climbed twice.
 	 */
@@ -212,7 +212,7 @@ describe('Galakras — the tower squads', () => {
 	});
 });
 
-describe('Kor’kron Dark Shaman — the two bosses pulled apart', () => {
+describe('Kor’kron Dark Shaman, the two bosses pulled apart', () => {
 	it('names the boss a split group held', () => {
 		const found = detectSplitGroup(
 			pull(DARK_SHAMAN, [HAROMM, KARDRIS], [...run(HAROMM, 0, 200_000, 1000), hit(KARDRIS, 1000, 900)]),
@@ -228,7 +228,7 @@ describe('Kor’kron Dark Shaman — the two bosses pulled apart', () => {
 	 * The pull the whole separation arm exists for, in miniature.
 	 *
 	 * On `avbdQAfxzRD7q49Y` fight 22 the monk's own hits are 97.2% Earthbreaker Haromm while their Storm,
-	 * Earth and Fire spirits put 96% of their damage into Wavebinder Kardris — a hundred and seventy
+	 * Earth and Fire spirits put 96% of their damage into Wavebinder Kardris, a hundred and seventy
 	 * yards away, measured. The pair share those two add up to is 59.3%, so the damage gate alone calls a
 	 * raid that plainly split the bosses "fought together". The two bosses standing apart is the fact the
 	 * gate cannot see, and the one the reader was asking about.
@@ -246,7 +246,7 @@ describe('Kor’kron Dark Shaman — the two bosses pulled apart', () => {
 	/**
 	 * The bias `MIN_PARTED_SAMPLES` is for, not merely a small sample.
 	 *
-	 * A player taken off the second boss early carries its position only for those first seconds — when
+	 * A player taken off the second boss early carries its position only for those first seconds, when
 	 * the two are still on the pull marker together. Three measured pulls stop at 23s, 34s and 43s of
 	 * fights lasting 294s, 418s and 295s. Under the floor this arm declines to answer, and the damage
 	 * share is what catches those pulls.
@@ -265,7 +265,7 @@ describe('Kor’kron Dark Shaman — the two bosses pulled apart', () => {
 	 * The regression this rule was rewritten for.
 	 *
 	 * Storm, Earth and Fire places two spirits that carry the monk's damage onto other targets, and on a
-	 * stacked pull that is exactly where they go — the second boss. Reading only the player's own hits
+	 * stacked pull that is exactly where they go: the second boss. Reading only the player's own hits
 	 * therefore makes every stacked pull look split: measured through the app's own fetch, the four
 	 * committed anonymous Dark Shaman kills put 75–93% of the *monk's own* damage on one boss, and this
 	 * rule fires at 90%. With the spirits counted the same four read 50.3–62.0%.
@@ -280,7 +280,7 @@ describe('Kor’kron Dark Shaman — the two bosses pulled apart', () => {
 	});
 });
 
-describe('Siegecrafter Blackfuse — the belt team', () => {
+describe('Siegecrafter Blackfuse, the belt team', () => {
 	it('reports the trips and the share the boss never saw', () => {
 		const found = detectSplitGroup(
 			pull(
@@ -315,7 +315,7 @@ describe('every other pull', () => {
 	/**
 	 * Eleven of the fourteen Siege encounters have no rule, and nothing else in the game does either.
 	 *
-	 * Swept rather than listed, so a fixture committed later is covered by the fact of being added — the
+	 * Swept rather than listed, so a fixture committed later is covered by the fact of being added. That is the
 	 * argument `analysis/fixtures.ts` makes for discovering its own input. The Galakras dataset is the
 	 * one raw fixture a rule even looks at, and the block above pins what it answers.
 	 */

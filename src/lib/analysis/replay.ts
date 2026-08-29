@@ -37,9 +37,9 @@ import { isCast, isDamage, type WclEvent } from '~/lib/events';
  * branch on one.
  *
  * **What that forbids is a range test, and `game/splitGroups.ts` is not one.** It asks whether the two
- * Kor'kron Dark Shaman bosses stood in the same place — measured, 2 to 4 yards apart when they were
- * tanked together and 170 when they were pulled apart — which is a fact about where the encounter was
- * fought and not a claim about what the player could reach. Nothing is graded off the answer either:
+ * Kor'kron Dark Shaman bosses stood in the same place. Measured, that is 2 to 4 yards apart when they
+ * were tanked together and 170 when they were pulled apart, which is a fact about where the encounter
+ * was fought and not a claim about what the player could reach. Nothing is graded off the answer either:
  * it decides which sentence the report prints above the grades, and moves no figure. A rule that used
  * this to decide whether an add was in range would still be wrong.
  */
@@ -143,7 +143,7 @@ interface Sample {
  * Whether an event carries a resource block with a position in it.
  *
  * Exported for `game/splitGroups.ts`, the one reader outside this module, so the `resourceActor`
- * convention is read here and nowhere else — a second decoder of index 1 vs index 2 is exactly the
+ * convention is read here and nowhere else. A second decoder of index 1 vs index 2 is exactly the
  * drift the module header warns about.
  */
 export function positionOf(e: WclEvent): { actor: number; x: number; y: number } | null {

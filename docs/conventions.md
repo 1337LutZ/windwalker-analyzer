@@ -462,8 +462,17 @@ on 2026-08-28 that record won: all 288 in `src/locales/en/report.json` and all 2
 two in component code that assembled copy (`StatTile`'s label/caption join and `FlameShockDepth`'s
 reason row, both now commas). The census above prints 1, which is the lone `—` in
 `energizingBrew.cells.noReadings`: a table's no-value glyph, not prose, exempt by the same rule that
-exempts labels in `docs/labels-and-figures.md`. The dash stays available in source comments and in
-this file, where no reader meets it, and there it is still bounded. **Ceiling of two in one sentence.** Nothing reaches three today, and a sentence that wants three is two sentences; `proseDashes.test.ts` reads that ceiling out of this paragraph and enforces it over every docblock in the tree.
+exempts labels in `docs/labels-and-figures.md`. **In source comments and in this file the standing instruction is to use as few as
+possible.** A comma, a colon, a full stop or a pair of parentheses will do the job in almost every
+sentence that reaches for one, and reaching for one is the habit rather than the need. The old wording
+here said the dash "stays available" outside reader copy. That read as a licence and was used as one:
+the tree carries **10,775** of them.
+
+Two things hold it. **Ceiling of two in one sentence.** A sentence that wants three is two sentences,
+and `proseDashes.test.ts` reads that ceiling out of this paragraph and enforces it over every docblock
+in the tree. Then a **ratchet** in the same file: the repository-wide count may fall and may not rise.
+New prose is written without the dash, and the number comes down as files are touched for other
+reasons. **`DASH_BUDGET` is a high-water mark, never a target.**
 
 **The ceiling reaches the docblocks too, and "nothing reaches three today" was only ever measured
 against the copy.** Most of this repository's prose is in comments rather than in `report.json`, written

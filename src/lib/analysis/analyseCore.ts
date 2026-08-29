@@ -1396,7 +1396,7 @@ export function analyseCore(
 	 *
 	 * Sits beside the two readings above because it answers the question they cannot: `segments` says what
 	 * the rotation should have been moment to moment, and it is right about a belt team's four minutes of
-	 * nothing to hit — right, and describing an encounter the reader did not have. This names the reason.
+	 * nothing to hit. Right, and describing an encounter the reader did not have. This names the reason.
 	 *
 	 * **It changes nothing.** No figure above or below it moves; the finding is published and the report
 	 * prints it above the grades. `game/splitGroups.ts` carries the rules, the game ids and the pulls each
