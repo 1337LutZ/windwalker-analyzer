@@ -3491,9 +3491,14 @@ export interface LavaSurgeProc {
 	 * pressed at: one or two enemies up, with something in contact.
 	 *
 	 * **Three enemies is a list with no Lava Burst rung at all.** `aoe.apl.json` carries none, not a
-	 * relaxed one, so a surge that ran its whole ten seconds inside an add wave was never a free cast the
-	 * player declined; it was a free cast the fight offered at a moment the rotation spends on Chain
-	 * Lightning. The ladder's own rung says the same thing in the same currency, `bands: [1, 2]`.
+	 * relaxed one, so a surge that ran its window out inside an add phase was never a free cast the player
+	 * declined; it was a free cast the fight offered at a moment the rotation spends on Chain Lightning.
+	 * The ladder's own rung says the same thing in the same currency, `bands: [1, 2]`.
+	 *
+	 * **The stretches this reads are the engine's exempt segments, which are the `aoe` *and* `mixed` ones.**
+	 * A count that kept moving is as much "not the single-target list" as a steady four is. The test is a
+	 * quarter-second of overlap rather than any at all, so a sliver of graded time at the edge of an add
+	 * wave is not a moment anybody could have cast in. `analyseCore`'s `exemptFrom` owns both.
 	 *
 	 * False is "nothing to judge", never "spent": a wasted surge that was never judgeable stays `wasted`,
 	 * because it is still a free cast that expired and the section still lists it, and is left out of the
@@ -3501,20 +3506,6 @@ export interface LavaSurgeProc {
 	 * truthiness rather than against null.
 	 */
 	judged?: boolean;
-	/**
-	 * Why a proc was not judged, when it was not: the fight's doing, in one word.
-	 *
-	 * `aoe` is three or more enemies for the whole of the window, the count `aoe.apl.json` has no Lava
-	 * Burst rung at. `unreachable` is a window with nothing in range for any of it, a submerge or a phase
-	 * the player could not act in. Absent on a judged proc, and absent on any analysis captured
-	 * before this existed.
-	 *
-	 * Published because the section says which, in words, on the row for a surge it declines to charge.
-	 * Deciding that at the reader would mean re-deriving two clocks the audit has already cut, which is
-	 * the drift `exemptTrack.test.ts` exists to prevent. The first version of that row said "three or more
-	 * enemies up" on every uncharged surge, including ones the boss had simply walked away from.
-	 */
-	exempt?: 'aoe' | 'unreachable';
 }
 
 /** One Lava Burst press, what made it free, and whether Flame Shock paid for it. */
@@ -3561,9 +3552,14 @@ export interface LavaBurstAudit {
 	/**
 	 * The procs a rule exists at: `LavaSurgeProc.judged`, counted.
 	 *
-	 * The denominator the scorecard grades the waste over, published rather than left for `score.ts` to
-	 * rebuild by re-filtering the array. A second derivation of a band cut is what `earthShockAoeBand`
-	 * was written after, and this one would be a third reading of the same series.
+	 * **The sample gate, and not the denominator.** `score.ts` grades `wastedJudged` over *every* proc, so
+	 * that a forgiven surge still counts as one of the free casts the pull was handed; what this decides is
+	 * whether the rule may be graded at all. A pull whose every proc fell inside an add phase has nothing
+	 * to answer for and must read "cannot say" rather than a perfect zero, the free pass `exemptions.md`
+	 * names as the failure mode of a numerator-only cut.
+	 *
+	 * Published rather than left for `score.ts` to rebuild by re-filtering the array: a second derivation
+	 * of a band cut is what `earthShockAoeBand` was written after.
 	 *
 	 * Absent on any analysis captured before this existed; read it for truthiness.
 	 */

@@ -83,12 +83,19 @@ verdict than `bad` nor a better one than `good` — it is not on the scale at al
 
 ## 2 · Band scoping — which target counts a rule is a claim about
 
-Rarer than you would guess: **8 declarations across three specs.**
+Rarer than you would guess: **9 declarations across three specs.**
 
-**Elemental** (`specs/elemental/lib/score.ts`) — 7 of 18 rules:
-`flameShockUptime` `[1,2]` `:891` · `flameShockWaste` `[1]` `:933` · `flameShockMultiDot` `[2]` `:974` ·
-`earthShockWaste` `[1,2]` `:994` · `elementalDischargeUptime` `[1,2]` `:1016` · `searingTotemUptime`
-`[1,2]` `:1047` · `lightningShieldOvercap` `[1,2]` `:1298`.
+**Elemental** (`specs/elemental/lib/score.ts`), 8 of 19 rules:
+`flameShockUptime` `[1,2]` `:948` · `flameShockWaste` `[1]` `:990` · `lavaSurgeWaste` `[1,2]` `:1024` ·
+`flameShockMultiDot` `[2]` `:1065` · `earthShockWaste` `[1,2]` `:1085` · `elementalDischargeUptime`
+`[1,2]` `:1107` · `searingTotemUptime` `[1,2]` `:1138` · `lightningShieldOvercap` `[1,2]` `:1389`.
+(Every line number in this list was stale before this entry was added; they are re-read here.)
+
+`lavaSurgeWaste` is the one of the eight whose band cut is in the **numerator only**: the share it grades
+is the surges the player threw away over *every* proc the fight handed out, because a proc an add wave
+forgave is still a free cast that was offered. What the cut decides there is the sample gate rather than
+the denominator (`LavaBurstAudit.judged`), which is what keeps the rule from grading a clean `good` on a
+pull whose every proc the exemption excused. That failure mode is §4's, one file along.
 
 The reasoning is the same shape each time — the aoe list does not contain the rung:
 
@@ -115,7 +122,8 @@ narrowing that bites is a **counter** beside it: `tigerPalmShare`, `EarthShockAu
 ## 3 · Clock cuts — seconds removed from a denominator
 
 Twenty of them. The load-bearing one is Elemental's `gradedSpans = complementOf(aoeWindows, duration)`
-(`index.ts:2300`), hoisted once and shared by four clocks:
+(`index.ts:2303`), hoisted once and shared by five clocks, with `gradedContact` (its intersection with
+the contact clock) hoisted beside it for the three that wanted both:
 
 > "**each cuts both halves of its own ratio with this same array.** Clipping a numerator and not its
 > denominator is how a percentage above 100 happens."

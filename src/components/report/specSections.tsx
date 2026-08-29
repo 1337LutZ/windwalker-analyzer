@@ -632,8 +632,8 @@ export const SPEC_TAKEAWAYS: Record<string, SpecTakeaways> = {
 			ascendance: 'ascendance',
 			flameShock: 'flame-shock',
 			earthShock: 'earth-shock',
-			// The Lava Surge card's evidence: the section lists every surge that expired unspent, at the
-			// timestamp it expired at.
+			// The Lava Surge card's evidence: the section lists every surge that expired unspent, stamped at
+			// the moment the proc went up.
 			lavaBurst: 'lava-burst',
 			searingTotem: 'searing-totem',
 			fireElemental: 'fire-elemental',

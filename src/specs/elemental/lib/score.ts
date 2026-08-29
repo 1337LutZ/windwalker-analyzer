@@ -10,6 +10,7 @@ import type { Analysis, ElementalAuditResult } from '~/lib/types';
 import {
 	GRADE_ORDER,
 	gradedOver,
+	MIN_GRADED_SAMPLE,
 	gradeOf,
 	grader,
 	overallOf,
@@ -318,12 +319,38 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 	 * a smaller pull and hide the total the section prints two tiles along, which is where this started.
 	 *
 	 * What the cut is worth on the committed pulls: `addsThenBoss` wastes five surges and **none** of them
-	 * is charged, since every one expired at three or more enemies, so the pull reads a clean 0 of 39
-	 * rather than 12.8%. `cleave` wastes three, all three charged, and reads 13.6% of 22. The two
-	 * single-target pulls waste none of 18 and none of 20. So the cut is the difference between faulting a
-	 * player for an add wave and faulting one for a habit, on the two pulls that have adds in them.
+	 * is charged, since every one expired inside an add phase, so the pull reads a clean 0 of 39 rather
+	 * than 12.8%. `cleave` wastes three, all three charged, and reads 13.6% of 22. The two single-target
+	 * pulls waste none of 18 and none of 20. So the cut is the difference between faulting a player for an
+	 * add wave and faulting one for a habit, on the two pulls that have adds in them.
+	 *
+	 * **The gate is `judged` and it is not the denominator**, which is the distinction a numerator-only cut
+	 * has to make or it grades the pulls it just excused: see the value below and `LavaBurstAudit.judged`.
 	 */
-	const lavaSurgeWaste = metric('lavaSurgeWaste', shareOf(lavaBurst.wastedJudged ?? 0, lavaBurst.procs.length));
+	const lavaSurgeWaste = metric(
+		'lavaSurgeWaste',
+		/**
+		 * **The sample is the judged procs and the denominator is every proc, and the two have to be
+		 * separate fields or the rule grades a pull it never asked anything of.** `shareOf` sets
+		 * `sampleSize` to its own denominator, and `metricOf` refuses a metric whose sample is under
+		 * `MIN_GRADED_SAMPLE`, so handing it 39 procs of which none is judged would have produced a
+		 * flat 0% over a sample of 39, a full `good` and a full point, on the pull the exemption just
+		 * excused. `exemptions.md` names that shape as the failure mode of a numerator-only cut, and it
+		 * is why `judged` is published: the value is withheld here on the count the cut left, while the
+		 * pair the card prints stays the fault over the whole pull's procs.
+		 *
+		 * `undefined` on either field is an analysis captured before this rule existed, which is "cannot
+		 * say" and never a clean zero — the guard every other legacy-optional metric in this file takes.
+		 */
+		lavaBurst.wastedJudged === undefined || lavaBurst.judged === undefined
+			? null
+			: {
+					value:
+						lavaBurst.judged >= MIN_GRADED_SAMPLE ? sharePct(lavaBurst.wastedJudged, lavaBurst.procs.length) : null,
+					sampleSize: lavaBurst.procs.length,
+					part: lavaBurst.wastedJudged,
+				},
+	);
 
 	/**
 	 * The tier-16 two-piece debuff, as the uptime it actually is.
@@ -983,8 +1010,9 @@ export const THRESHOLDS = {
 	 * 22 procs and 25.0% of the 12 it could be charged for, and both readings are meant to be `bad`.
 	 *
 	 * **The sample this was set against is four pulls and it is stated rather than implied.** Three read
-	 * 0% (0 of 18, 0 of 20, 0 of 39) and `cleave` reads 13.6% of 22, so the committed set separates `good`
-	 * from `bad` and says nothing about where inside that gap the two lines belong. No Elemental reference
+	 * 0% (0 of 18, 0 of 20, 0 of 39) over samples of 16, 17 and 19 judged procs, and `cleave` reads 13.6%
+	 * of 22 over a sample of 12, so the committed set separates `good` from `bad` and says nothing about
+	 * where inside that gap the two lines belong. No Elemental reference
 	 * sweep exists yet (`.reference-cache` holds Windwalker pulls only), so unlike `gcdUtilisation` these
 	 * are not quantiles of anything, and the first sweep that does exist should re-cut them.
 	 *

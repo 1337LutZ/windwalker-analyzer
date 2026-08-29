@@ -31,7 +31,7 @@ import { DataGrid, Note, Prose, Section, SpellIcon, StatTile, StatTiles, type Gr
 export default function LavaBurst({ analysis }: { analysis: Analysis }) {
 	const el = analysis as Analysis & ElementalAuditResult;
 	const { lavaBurst } = el;
-	const { t, unasked } = useReportCopy(analysis);
+	const { t, gradeOf, unasked } = useReportCopy(analysis);
 
 	const faultRows = useMemo<GridRow[]>(() => {
 		const faults = [
@@ -39,22 +39,21 @@ export default function LavaBurst({ analysis }: { analysis: Analysis }) {
 			// the fight took back during an intermission was never on offer.
 			// **Two states, because two of these are not the same mistake.** A surge that expired at one or two
 			// enemies is a free cast the list asked for and the player did not take; one that expired inside
-			// an add wave is a free cast the list never asks for, since `aoe.apl.json` carries no Lava Burst
+			// an add phase is a free cast the list never asks for, since `aoe.apl.json` carries no Lava Burst
 			// rung at all, so it is listed without being faulted and the note under the table says how many.
 			// `judged` is the engine's own flag, so the row, the note and the summary card are one reading.
+			//
+			// **The uncharged row names the add phase and never the pull walking away**, which is sound
+			// rather than a simplification: a row exists only for a *wasted* surge, and `wasted` is itself
+			// gated on the expiry landing inside the contact clock, so a window with nothing in range
+			// throughout cannot reach this table. `lavaSurgeWaste.test.ts` holds that pairing.
 			...lavaBurst.procs
 				.filter((proc) => proc.wasted)
 				.map((proc) => ({
 					at: proc.start,
 					kind: 'surge',
 					fault: proc.judged !== false,
-					state: t(
-						proc.judged !== false
-							? 'lavaBurst.state.wasted'
-							: proc.exempt === 'unreachable'
-								? 'lavaBurst.state.wastedAway'
-								: 'lavaBurst.state.wastedAoe',
-					),
+					state: t(proc.judged === false ? 'lavaBurst.state.wastedAdds' : 'lavaBurst.state.wasted'),
 				})),
 			// `=== false` and not `!p.flameShock`: null is "the log named no target and the pull had no
 			// hit to fall back on", which is a missing measurement rather than a missing dot.
@@ -125,8 +124,10 @@ export default function LavaBurst({ analysis }: { analysis: Analysis }) {
 
 			<div className="mt-5 flex flex-col gap-3.5">
 				{/* Only when the pull actually excused one, so a single-target reader never meets a sentence
-				    about add waves, the same rule every conditional caveat in this report follows. */}
-				{excused > 0 ? (
+				    about add phases, and never on a reading that exempted the rule outright: a note explaining
+				    why the tile was not charged is nonsense beside a tile nobody asked a charge of.
+				    `EarthShock.tsx` guards its own AoE note the same way. */}
+				{excused > 0 && gradeOf('lavaBurst') !== 'exempt' ? (
 					<Note>{t('lavaBurst.aoeNote', { count: excused, charged: lavaBurst.wastedJudged ?? 0 })}</Note>
 				) : null}
 				<Note>{t('lavaBurst.note')}</Note>

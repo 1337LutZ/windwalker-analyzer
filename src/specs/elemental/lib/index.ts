@@ -2305,11 +2305,12 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * The same array with contact on top of it: the stretches this pull was both **judgeable** and
 	 * **reachable**, which is the clock every single-target rule that needs a live enemy is cut to.
 	 *
-	 * Hoisted because two rules read it and a second `intersect(contact, gradedSpans)` written at the
+	 * Hoisted because three rules read it and a second `intersect(contact, gradedSpans)` written at the
 	 * second reader is the drift `exemptTrack.test.ts` exists to prevent, the same argument that made
-	 * `gradedSpans` itself one array with several readers rather than a `complementOf` apiece. The
-	 * shield's overcap clock is one of the two and carries the measured case for the contact cut
-	 * (`shieldSpans`); the Lava Surge waste is the other.
+	 * `gradedSpans` itself one array with several readers rather than a `complementOf` apiece. The dot's
+	 * own clock is `fsGraded`, the shield's overcap clock carries the measured case for the contact cut
+	 * (`shieldSpans`), and the Lava Surge waste is the third. Two of the three were already this exact
+	 * expression written twice; the third was written a third time and is what made the copy a rule.
 	 */
 	const gradedContact = intersect(contact, gradedSpans);
 
@@ -2430,7 +2431,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * that would have replaced it — does not exist above two enemies. The full argument, and the reason
 	 * band 2 keeps the bar, is at `flameShockUptime` in `score.ts`.
 	 */
-	const fsGraded = intersect(contact, gradedSpans);
+	const fsGraded = gradedContact;
 	const fsGradedMs = unionMs(fsGraded);
 	const fsContactDotBySpawn = new Map<string, Interval[]>();
 	const fsDotOn = (key: string): Interval[] => {
@@ -3125,20 +3126,26 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * `gradedContact` rather than a cut of its own: the aoe stretches and the contact clock are both
 	 * already answered once in this file, and the shield's overcap reads the same array.
 	 */
-	const surgeJudged = (w: Window): boolean => overlapMs(w.start, w.end, gradedContact) > 0;
 	/**
-	 * Which of the two clocks refused a proc, for the row that says so in words.
+	 * **A quarter of a second of overlap, not a millisecond of it, and not a global either.**
 	 *
-	 * Read off the same two arrays `gradedContact` is built from rather than from a third derivation, and
-	 * in this order: a window with nothing in range for any of its ten seconds is `unreachable` whatever
-	 * the enemy count was, because a count of enemies the player cannot reach is not the reason they did
-	 * not cast. What is left is a window that had contact and no moment under three enemies.
+	 * Any overlap at all was the first rule and it charges a surge for a moment nobody could have cast in:
+	 * `exemptFrom` trims the tail of every add stretch and the count series moves a whole `targetWindowMs`
+	 * after the hit that fed it, so a boundary can leave a sliver of graded time at the edge of a window.
+	 * `SELF_EVENT_MS` is this file's standing answer for "one instant, as the client wrote it", and a
+	 * stretch shorter than that is not a moment the log can tell apart from no stretch at all.
+	 *
+	 * **A global was tried first and it is the wrong floor, which the fixtures show rather than argue.**
+	 * `GCD_MIN_MS` took `cleave` from three charged surges to one: two of its three wasted procs carry 800
+	 * and 900ms of single-target contact inside their ten seconds, and a Lava Surge press is *instant*: it
+	 * needs a moment to react in, not a global to fit in, and the sim's own list would take it. Flooring at
+	 * a global also swept out most of the consumed procs, whose windows end when the buff is spent and are
+	 * therefore short by construction, which would have made the sample gate an accident of how promptly
+	 * the player reacted.
 	 */
-	const surgeExempt = (w: Window): 'aoe' | 'unreachable' =>
-		overlapMs(w.start, w.end, contact) > 0 ? 'aoe' : 'unreachable';
+	const surgeJudged = (w: Window): boolean => overlapMs(w.start, w.end, gradedContact) >= SELF_EVENT_MS;
 	const lavaSurgeProcs = lavaSurgeWindows.map((w) => {
 		const consumed = lavaBurstCasts.some((t) => t >= w.start && t <= w.end);
-		const judged = surgeJudged(w);
 		return {
 			start: w.start,
 			end: w.end,
@@ -3146,8 +3153,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 			// A surge that expired while the player could not act — an intermission — is the fight
 			// taking the free cast back, not a cast the player threw away.
 			wasted: !consumed && contact.some(([s, e]) => w.end >= s && w.end < e),
-			judged,
-			...(judged ? {} : { exempt: surgeExempt(w) }),
+			judged: surgeJudged(w),
 		};
 	});
 	/**
