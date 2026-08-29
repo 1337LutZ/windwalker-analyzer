@@ -92,7 +92,7 @@ Rarer than you would guess: **9 declarations across three specs.**
 (Every line number in this list was stale before this entry was added; they are re-read here.)
 
 `lavaSurgeWaste` is the one of the eight whose band cut is in the **numerator only**: the share it grades
-is the surges the player threw away over *every* proc the fight handed out, because a proc an add wave
+is the surges the player threw away over _every_ proc the fight handed out, because a proc an add wave
 forgave is still a free cast that was offered. What the cut decides there is the sample gate rather than
 the denominator (`LavaBurstAudit.judged`), which is what keeps the rule from grading a clean `good` on a
 pull whose every proc the exemption excused. That failure mode is §4's, one file along.
