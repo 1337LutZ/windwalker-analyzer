@@ -30,9 +30,8 @@ const ROW_HEIGHT = 36;
 /**
  * How much of a row the bar fills, as the fraction `plotOptions.bar.barHeight` is written from.
  *
- * A number rather than the `'92%'` string it used to be written as, because the refresh tick has to be
- * exactly this tall in pixels and a second spelling of the same fraction is a second thing to keep in
- * step. See `REFRESH_TICK.height`.
+ * A number rather than the `'92%'` string it used to be written as: it is read in one place and the
+ * string was the kind of literal a second reader spells out again slightly differently.
  */
 const BAR_HEIGHT = 0.92;
 const CHROME = 92;
@@ -89,27 +88,18 @@ const minimumSpan = (durationMs: number) => durationMs / 400;
  * That is the same argument `text-bg` makes for the figures written inside a bar on the cast timeline:
  * the ground is the one colour guaranteed to contrast with every tone a bar can take.
  */
-const REFRESH_TICK = {
-	width: 2,
-	/**
-	 * Exactly the bar, and floored so it can only ever be shorter.
-	 *
-	 * `barHeight` is a percentage of the row and the tick is drawn in pixels, so the two have to be
-	 * computed from one number or they drift the first time a row changes height: a tick a pixel taller
-	 * than the bar hangs out of both ends of it and reads as a divider between rows rather than as a mark
-	 * on one. `Math.floor` is which way that error is allowed to fall.
-	 */
-	height: Math.floor(ROW_HEIGHT * BAR_HEIGHT),
-	/**
-	 * Black at half strength, which is a shadow rather than a colour.
-	 *
-	 * The ground was tried first and it reads as a *gap*: a bar cut into two bars, which is the one thing
-	 * a renewal is not. A translucent black darkens whichever tone the bar is drawn in and stays the same
-	 * mark on all four of them, and needs no entry in the palette to do it — nothing else in this report
-	 * spends a colour on saying "here".
-	 */
-	fill: 'rgba(0, 0, 0, 0.5)',
-} as const;
+/**
+ * The mark a renewal is drawn as: a sliver of translucent black, the bar's own height.
+ *
+ * **Black at half strength, which is a shadow rather than a colour.** The chart's ground was tried
+ * first and it reads as a *gap*, a bar cut into two bars, which is the one thing a renewal is not. A
+ * translucent black darkens whichever tone the bar carries and is the same mark on all four of them,
+ * without spending a palette entry on saying "here".
+ *
+ * The width is `minimumSpan`, the floor every other span on this chart is drawn at, so a renewal is as
+ * wide as the narrowest window the chart will draw and no wider.
+ */
+const REFRESH_FILL = 'rgba(0, 0, 0, 0.5)';
 
 /**
  * The renewals in a lane's applications: the ones that opened no window of their own.
@@ -287,6 +277,39 @@ function buildSpans(rows: readonly Row[], durationMs: number, theme: ChartTheme)
 				},
 			});
 		}
+		/**
+		 * The renewals, drawn as bars rather than as annotations, and that is the whole fix.
+		 *
+		 * **A point annotation cannot be placed on a bar in this chart.** ApexCharts resolves a category
+		 * annotation by finding the y-axis label with that name and reading its `y` — and this chart hides
+		 * its y-axis labels, because `TrackLabels` draws them as HTML to get a spell icon beside each name.
+		 * With no label to find, Apex falls back to `(gridHeight / rows - 1) * (index + 1) - barHeight`,
+		 * which lands about three pixels above the first bar and drifts a further pixel or so per row: on
+		 * the six-row Elemental summary the marks sat on the top edge of their bars, and on a twenty-row
+		 * pull they would have been a row out. Measured on `B79VQfyxk8an312v` fight 43 rather than reasoned
+		 * about, because the fallback only runs when the labels are off and nothing in the options says so.
+		 *
+		 * A span is laid out by the code that lays out the window it marks, so it is inside that bar at
+		 * exactly its height by construction, at every row count and every zoom step. It costs the mark its
+		 * fixed pixel width — a bar is drawn in the pull's own units, so a renewal widens as the reader
+		 * zooms in — which is the trade this chart already makes for every window it draws.
+		 *
+		 * After the windows, because a later span in this series paints over an earlier one. That is the
+		 * same ordering the fault windows below rely on.
+		 */
+		for (const t of row.refreshes) {
+			spans.push({
+				x: row.name,
+				y: [t, t + floor],
+				fillColor: REFRESH_FILL,
+				strokeColor: REFRESH_FILL,
+				meta: {
+					title: row.name,
+					tone: row.tone,
+					rows: [['renewed at', formatStamp(t)]],
+				},
+			});
+		}
 		for (const t of row.presses) {
 			spans.push({
 				x: row.name,
@@ -415,63 +438,6 @@ export default function LanesTimeline({ analysis }: { analysis: Analysis }) {
 				grid: { ...baseGrid(theme), padding: { ...GRID_PADDING, left: narrow ? NARROW_LABEL_PX : LABEL_PX } },
 				xaxis: timeAxis(theme, analysis.durationMs, narrow),
 				yaxis: { labels: { show: false } },
-				/**
-				 * A tick on the bar wherever the aura was renewed.
-				 *
-				 * **What this is for.** A bar says the aura was up; it cannot say how many presses kept it
-				 * there, because `auraWindows` closes a window on a remove and discards every refresh inside
-				 * it. Elemental Discharge on `B79VQfyxk8an312v` fight 43 is 47 seconds of unbroken bar for a
-				 * buff that runs fourteen, and a reader looking for the renewals had nothing to look at.
-				 *
-				 * **Renewals only, which is what separates this chart from the cast log.** An application that
-				 * opened a window is the bar's own left edge, drawn full height already; a tick there marks
-				 * nothing new. `Row.refreshes` is where that cut is made and why.
-				 *
-				 * **A notch rather than the aura's art.** The icon shipped first and read as clutter here: this
-				 * is the summary, its label column already names and pictures the row, and a dozen thumbnails
-				 * down a lane are not a rhythm. The tick is a translucent black the bar's own height, so it
-				 * darkens whichever tone the bar carries instead of cutting it in two.
-				 *
-				 * **Off on a narrow chart, and stated rather than silent.** A phone draws the whole pull into
-				 * 390px, where a busy row's ticks land on top of each other and hatch the bar solid, for the same
-				 * reason `dataLabels` is gated on `narrow` twenty lines above. The windows still draw; it is
-				 * the marks that wait for room.
-				 */
-				annotations: narrow
-					? {}
-					: {
-							/**
-							 * **A stated cast, and it is the axis rather than the annotation that forces it.**
-							 * `PointAnnotations.y` is typed `number | null`, which is right for a numeric axis and
-							 * wrong for this one: these bars are a category axis — the row's name is its
-							 * coordinate — and ApexCharts resolves a category annotation by that string at
-							 * runtime. A numeric `y` here would be read as a value on an axis that has none.
-							 */
-							points: rows.flatMap((row) =>
-								row.refreshes.map((t) => ({
-									x: t,
-									y: row.name,
-									// The tick is the mark, so the default dot underneath it would be a second one.
-									marker: { size: 0 },
-									/**
-									 * Drawn as SVG rather than as an `image` or a `marker`, because neither can be this
-									 * shape. A marker is a dot or a square sized by one number, and an `image` would mean
-									 * encoding a two-pixel rectangle as a data URI to get a rectangle. `customSVG` is
-									 * documented as deprecated in favour of those two and still supported; it is the only
-									 * one of the three that draws a line.
-									 *
-									 * Centred on the moment and on the bar by the rect's own offsets: the tick straddles the
-									 * timestamp the log gave rather than starting after it, since a mark two pixels wide has
-									 * no meaningful left edge to align, and it sits inside the bar's own height rather than
-									 * across the row. Square corners, because a two-pixel mark with rounded ends is a mark
-									 * with no ends.
-									 */
-									customSVG: {
-										SVG: `<rect x="${-REFRESH_TICK.width / 2}" y="${-REFRESH_TICK.height / 2}" width="${REFRESH_TICK.width}" height="${REFRESH_TICK.height}" fill="${REFRESH_TICK.fill}" />`,
-									},
-								})),
-							) as unknown as ApexOptions['annotations'] extends { points?: infer P } ? P : never,
-						},
 				tooltip: baseTooltip(theme),
 			};
 		},
