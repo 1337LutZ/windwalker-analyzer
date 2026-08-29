@@ -29,6 +29,23 @@ const text = (split: SplitGroup | null): string =>
 		.trim();
 
 describe('the callout', () => {
+	/**
+	 * The one sentence all three share, asserted once rather than three times over.
+	 *
+	 * The three findings are different facts about a pull and their opening sentences say so, but every
+	 * one of them ends on the same offer: the findings are still worth reading, and here is the limit.
+	 * A drift in one arm is the failure this catches — the family reads as one voice or it reads as three.
+	 */
+	it('closes every arm on the same offer to the reader', () => {
+		const arms: SplitGroup[] = [
+			{ kind: 'towerRuns', share: 0.03, windows: [[0, 20_000]], awayMs: 20_000, partedYards: null, name: null },
+			{ kind: 'belt', share: 1, windows: [[0, 20_000]], awayMs: 20_000, partedYards: null, name: null },
+			{ kind: 'splitPair', share: 0.99, windows: [], awayMs: 0, partedYards: null, name: 'Earthbreaker Haromm' },
+			{ kind: 'splitPair', share: 0.59, windows: [], awayMs: 0, partedYards: 170, name: 'Earthbreaker Haromm' },
+		];
+		for (const arm of arms) expect(text(arm)).toContain('You can use these findings');
+	});
+
 	it('draws nothing at all on a pull the raid fought together', () => {
 		expect(renderToStaticMarkup(createElement(SplitGroupCallout, { split: null }))).toBe('');
 		expect(renderToStaticMarkup(createElement(SplitGroupCallout, { split: undefined }))).toBe('');
@@ -48,7 +65,7 @@ describe('the callout', () => {
 			name: null,
 		});
 		expect(said).toContain('Tower duty');
-		expect(said).toContain('You went up the towers 2 times');
+		expect(said).toContain('You were assigned tower duty and went up 2 times');
 		expect(said).toContain('43.7s');
 		// The sentence points at a word the reader can see on their own timeline, which is the whole
 		// job of it: the tower stretch is the pull's least coherent segment and is not a fumbled one.
@@ -66,7 +83,7 @@ describe('the callout', () => {
 			partedYards: null,
 			name: null,
 		});
-		expect(said).toContain('You went up a tower for 11.4s');
+		expect(said).toContain('You were assigned tower duty and went up once, 11.4s');
 		expect(said).toContain('stretch that reads as mixed');
 		expect(said).not.toContain('times');
 	});
@@ -103,7 +120,7 @@ describe('the callout', () => {
 			name: 'Earthbreaker Haromm',
 		});
 		expect(said).toContain('Split bosses');
-		expect(said).toContain('You spent this pull on Earthbreaker Haromm');
+		expect(said).toContain('You were assigned one of the two bosses — Earthbreaker Haromm');
 		expect(said).toContain('tanked 170 yards away');
 		expect(said).not.toContain('59%');
 	});
@@ -117,12 +134,12 @@ describe('the callout', () => {
 			partedYards: null,
 			name: 'Earthbreaker Haromm',
 		};
-		expect(text(held)).toContain('Earthbreaker Haromm took 99% of your damage');
+		expect(text(held)).toContain('Earthbreaker Haromm took 99% of your damage to the pair');
 		// The report's actor list names every enemy in its own stream, so the unnamed arm is a guard
 		// rather than an observed case — and a guard that rendered `{{name}}` empty would read as a
 		// sentence with a word missing.
 		const unnamed = text({ ...held, name: null });
-		expect(unnamed).toContain('One of the two bosses took 99%');
-		expect(unnamed).not.toContain('took 99% of your damage to the two bosses');
+		expect(unnamed).toContain('one of the two bosses, which took 99%');
+		expect(unnamed).not.toContain('Earthbreaker');
 	});
 });

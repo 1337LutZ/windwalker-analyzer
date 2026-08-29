@@ -199,13 +199,13 @@
     "title_towerRuns": "Tower duty",
     "title_splitPair": "Split bosses",
     "title_belt": "Belt duty",
-    "towerRuns_one": "You went up a tower for {{away, duration}} of this pull. The fight up there is a climb and one elite while the rest of the raid holds the courtyard, so the stretch that reads as mixed on your timeline is the tower — a different fight, not a rotation that came apart.",
-    "towerRuns_other": "You went up the towers {{count}} times, {{away, duration}} in all. The fight up there is a climb and one elite while the rest of the raid holds the courtyard, so the stretches that read as mixed on your timeline are the tower runs — a different fight, not a rotation that came apart.",
+    "towerRuns_one": "You were assigned tower duty and went up once, {{away, duration}} of this pull. You can use these findings as they stand, but the stretch that reads as mixed on your timeline is the tower rather than a rotation that came apart.",
+    "towerRuns_other": "You were assigned tower duty and went up {{count}} times, {{away, duration}} of this pull. You can use these findings as they stand, but the stretches that read as mixed on your timeline are the tower runs rather than a rotation that came apart.",
     "belt": "You were assigned belt duty, so nothing below is a fair read of how you played. You can use these findings to improve your belt play, but the analyzer is not optimised for this.",
-    "splitPair_parted": "You spent this pull on {{name}}. The other boss was tanked {{yards}} yards away, so there was never a second target in front of you — this is a single-target fight, and nothing below is looking for a cleave.",
-    "splitPair_partedUnnamed": "The two bosses were tanked {{yards}} yards apart, so you spent the pull on one of them and never had a second target in front of you. This is a single-target fight, and nothing below is looking for a cleave.",
-    "splitPair": "{{name}} took {{share, percent}} of your damage to the two bosses. Whether the raid pulled them apart or you were told to hold one, you fought this as a single-target pull — and nothing below is looking for a cleave.",
-    "splitPair_unnamed": "One of the two bosses took {{share, percent}} of your damage to the pair. Whether the raid pulled them apart or you were told to hold one, you fought this as a single-target pull — and nothing below is looking for a cleave."
+    "splitPair_parted": "You were assigned one of the two bosses — {{name}}, with the other tanked {{yards}} yards away. You can use these findings as they stand, but they describe a single-target pull rather than the cleave this fight usually is.",
+    "splitPair_partedUnnamed": "You were assigned one of the two bosses, tanked {{yards}} yards from the other. You can use these findings as they stand, but they describe a single-target pull rather than the cleave this fight usually is.",
+    "splitPair": "You spent this pull on one of the two bosses: {{name}} took {{share, percent}} of your damage to the pair. You can use these findings as they stand, but they describe a single-target pull rather than the cleave this fight usually is.",
+    "splitPair_unnamed": "You spent this pull on one of the two bosses, which took {{share, percent}} of your damage to the pair. You can use these findings as they stand, but they describe a single-target pull rather than the cleave this fight usually is."
   },
   "tigerPalm": {
     "title": "Tiger Palm",
