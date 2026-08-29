@@ -379,6 +379,17 @@ inconsistency is invisible until somebody reads all three.
 `specs/__tests__/readerVoice.test.ts` gates the first two: no `analyser`, and no `{{` in a family listed
 in `REFUSAL_FAMILIES`.
 
+**The `unslop` banned-phrase list is enforced, and it is the only voice scanner that is.**
+`src/__tests__/bannedPhrases.test.ts` runs `banned_phrase_scan.py` over every leaf of both locale
+files with `--include-quoted`, and pins the count at zero, which is where it measured on 2026-08-29
+across 1,787 strings. The other two scanners `docs/report-register.md` §10 keeps produce numbers a
+person has to read rather than a verdict, so they stay a measurement and this one is a gate.
+
+The skill is vendored and gitignored, so the suite **skips** when it is missing and says so on the
+console rather than failing a clone that never had it. Two non-vacuity assertions guard the skip: the
+scanner is fed prose it must refuse before its silence on ours is trusted, and the walker has to find
+more than 1,500 strings. A wrong path and clean copy both return zero, and only one of them is true.
+
 Two tests guard all of this and both must stay green: `lib/i18n/__tests__/keys.test.ts` fails if a
 component asks for a key that does not exist (a missing key renders as its own key path rather than
 throwing, so nothing else would catch it), and `specs/windwalker/lib/__tests__/score.test.ts` asserts the
