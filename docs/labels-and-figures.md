@@ -40,6 +40,23 @@ The tempting fix is to change the number so the label survives: show `18/12`, pr
 
 ---
 
+## The unit has to be one the reader can count
+
+Added 2026-08-29. The line under the summary headline read `Scored on 21 of 26 points`, where 21 of 26
+is how much of the _weighted_ model the pull could measure. Two pulls whose verdicts were 11 and 89
+printed the same pair, and a reader asked how that could be.
+
+Two failures at once, and the first is failure mode 1 above: a ratio under the verb "scored" reads as a
+mark out of 26. The second is new, and it is about the unit rather than the label. The number was
+denominated in something the reader has no access to and cannot verify: weights are a per-spec table
+inside `score.ts`, and no card on the page is worth "3". Counting the same coverage in checks, one per
+metric, gives a denominator a reader can walk down the grid and count.
+
+**So: a figure a reader is shown has to be in a unit they can count on the page.** Where the internal
+model runs in another currency, publish both and print the countable one. `Judged.checks` beside
+`Judged.measured` is that pattern, and it is what let the weights go fractional in the same week
+without any reader meeting a total of 27.5.
+
 ## The check
 
 Read the label and the figure aloud as a single phrase.

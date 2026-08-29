@@ -317,6 +317,39 @@ with reality.
 
 ## Copy, and how a report says anything
 
+**Every judgment names its cause.** A row that judges anything carries one of six tags, published by the
+engine as `JudgmentCause` and drawn by `CauseTag`:
+
+| Tag              | Means                                                     | Takeaway              |
+| ---------------- | --------------------------------------------------------- | --------------------- |
+| **Player**       | A mistake at the keyboard: forgetting, late, wrong button | Practise it           |
+| **Rotation**     | The priority list asked for it, or allows it              | Nothing to fix        |
+| **Fight**        | The encounter took the chance away                        | Nothing you could do  |
+| **Log**          | The pull cannot be read on this point                     | Missing evidence      |
+| **Raid**         | Somebody else's cooldown or buff                          | Communicate cooldowns |
+| **Talent build** | The talents taken, not the presses made                   | Change the build      |
+
+Four things about it are decisions rather than defaults, and each was got wrong once before it was
+written down:
+
+1. **Correct play is `Rotation`, not untagged.** The tag names the authority behind a row and not its
+   verdict, so an opener press and a forgiven add-phase proc carry the same word. A tag that appeared
+   only on faults would be a second severity column, and the red band is already that.
+2. **`Raid` is an action.** Its takeaway is _communicate cooldowns_, and folding it into `Fight` would
+   tell a reader to shrug at the one row they can fix by talking. The line falls at what a player can
+   see coming: an Ascendance spent with no Skull Banner inside it is `Player`, because the banner is on
+   the raid frames.
+3. **The tag is published data, never text inside a string.** A prefix in the copy cannot be coloured,
+   counted or guarded, and deciding it at the component breaks the rule two paragraphs down.
+4. **It is drawn even where a whole table shares one tag.** The column that answers "whose was this" is
+   the same column on every table in the report, and one that goes blank where the answer happens not
+   to vary reads as one that stopped working.
+
+**A judgment label is a tag and a phrase, not a sentence.** The tag carries the blame, the phrase
+carries the fact, and the justification goes to the section's note. Six words is the target and the
+longest in the tree is thirteen. "The proc expired with three or more enemies up, where Chain Lightning
+hits harder than one Lava Burst" is now `Rotation` over "Three or more targets up".
+
 **Tier sets are abbreviated.** `T15 2P`, `T16 2P`, `T16 4P`, never `tier-16 two-piece` and never a bare
 `two-piece`. Adopted 2026-08-29 with the cause tags; `docs/report-register.md` carries the table and the
 argument, which is that the old spelling cost most of a ten-word label to say what a raider reads as four

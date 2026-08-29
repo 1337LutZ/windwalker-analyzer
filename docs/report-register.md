@@ -279,6 +279,30 @@ observation was right and the instruction was wrong: prose about this game is or
 because that is how people write, and a corpus that declined every contraction was not a house style
 worth defending.
 
+## 6a. A sentence may not claim more than the figure beside it
+
+Added 2026-08-29 after a reader found three of these in one sitting, all in the summary, all shipped
+for months. Each one reads well and says something the number under it cannot support.
+
+| Shipped                                        | What the number was                                 | Now                                                  |
+| ---------------------------------------------- | --------------------------------------------------- | ---------------------------------------------------- |
+| "Some parts were solid and others lost damage" | A weighted mean, which cannot see a spread at all   | Split on `hasSolidSection`, a real distribution test |
+| "Scored on 21 of 26 points"                    | Coverage in weight, printed under the verb "scored" | "Measured 14 of 19 checks on this pull"              |
+| "Several core habits of the spec are missing"  | A mean under 45%, which counts no habits            | "Most of what this page measures came out short"     |
+
+The test to apply, before shipping any sentence that sits next to a figure:
+
+1. **Name the quantity the sentence claims.** A spread, a count, a share, a cost.
+2. **Ask whether the figure beside it measures that quantity**, not something correlated with it. A
+   mean is not a spread. Weight is not a score. A share below a line is not a count of habits.
+3. **If it does not, either measure the claim or drop it.** `hasSolidSection` is the first of those;
+   "fell short" in place of "lost damage" is the second, because nothing here computes damage lost.
+
+The failure is hard to see in review because both halves are defensible alone: the sentence is true of
+some pull, and the number is correct. What is wrong is only the join. Two of the three above survived
+every guard in the suite, and the third was caught by a reader asking why two pulls with verdicts of 11
+and 89 printed the same 21 of 26.
+
 ## 7. Never
 
 - **Em dashes.** 0 across all 12 pieces, and 3 calibration rewrites restructured sentences

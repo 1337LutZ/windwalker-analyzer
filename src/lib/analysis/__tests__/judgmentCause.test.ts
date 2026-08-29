@@ -89,3 +89,59 @@ describe('the tag and the tint say the same thing', () => {
 		}
 	});
 });
+
+/**
+ * The label register, as a gate rather than as advice.
+ *
+ * `docs/conventions.md` says a judgment label is a tag and a phrase and not a sentence: the tag carries
+ * the blame, the phrase carries the fact, and the justification belongs to the section's note. Before
+ * that rule these ran to fifty words, one of which explained the multi-target order inside a table cell.
+ *
+ * A ceiling and not an average, because the failure is per string: one restored explanation is one row
+ * a reader has to read twice. Thirteen is the longest in the tree today and every arm of it is a
+ * measurement rather than prose (`flameShock.state.snapshot_gaveUp` names two figures and the proc
+ * between them), so fourteen leaves a word of room and still refuses a returning clause.
+ *
+ * Placeholders count as one word each: `{{gain}}` renders as a number, and a rule that counted its
+ * braces would grade the template rather than the sentence.
+ */
+describe('a judgment label stays a tag and a phrase', () => {
+	const LABEL_CEILING = 14;
+
+	/** The families a `CauseTag` is drawn beside, which is what the register governs. */
+	const labels = (): [string, string][] => {
+		const out: [string, string][] = [];
+		const walk = (node: unknown, path: string[]): void => {
+			if (typeof node === 'string') out.push([path.join('.'), node]);
+			else if (node !== null && typeof node === 'object')
+				for (const [key, value] of Object.entries(node)) walk(value, [...path, key]);
+		};
+		walk(i18n.getResourceBundle('en', 'report'), []);
+		return out.filter(
+			([key]) =>
+				key.includes('.state.') ||
+				key.includes('.read.fault.') ||
+				key.includes('.read.reason.') ||
+				key.includes('.decisions.cells.'),
+		);
+	};
+
+	it('keeps every one of them inside the ceiling', () => {
+		const long = labels()
+			.map(([key, copy]): [string, number, string] => [
+				key,
+				copy.replaceAll(/\{\{[^}]*\}\}/g, 'X').split(/\s+/).length,
+				copy,
+			])
+			.filter(([, words]) => words > LABEL_CEILING);
+		expect(
+			long,
+			`judgment labels over ${LABEL_CEILING} words:\n${long.map(([k, n]) => `  ${n} ${k}`).join('\n')}`,
+		).toEqual([]);
+	});
+
+	/** A sweep with nothing in it passes, and this file's neighbours have been bitten by that before. */
+	it('has labels to sweep', () => {
+		expect(labels().length).toBeGreaterThan(50);
+	});
+});
