@@ -583,7 +583,7 @@ leaves, 1,324 sentences, median 16, 212 past 25 (16.0%), 1 em-dash in 0 sentence
 
 One leaf in, one prose string with it, and three of the five headlines reworded. The line under them
 changed what it counts, too. It
-read "Scored on 21 of 26 points", which is how much of the *weight* a pull could measure and not how it
+read "Scored on 21 of 26 points", which is how much of the _weight_ a pull could measure and not how it
 did, and two pulls whose verdicts were 11 and 89 printed the same pair. A ratio under "scored" reads as
 a mark, which `labels-and-figures.md` names as its first failure mode, so the line now counts checks:
 one per metric, weights left inside the letter. The leaf beside it is the headline's second middle arm, for the
