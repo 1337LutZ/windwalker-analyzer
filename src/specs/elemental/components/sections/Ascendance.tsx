@@ -2,9 +2,22 @@ import { useMemo } from 'react';
 
 import { useReportCopy } from '~/hooks/useReportCopy';
 import { formatClock, formatSeconds } from '~/lib/format';
-import type { Analysis, ElementalAuditResult } from '~/lib/types';
+import { ASCENDANCE_FAULT_CAUSE } from '~/lib/types';
+import type { Analysis, ElementalAuditResult, JudgmentCause } from '~/lib/types';
+import { ASCENDANCE_REASON_CAUSE } from '~/specs/elemental/lib/ascendance';
 
-import { DataGrid, Note, Prose, Section, SpellIcon, StatTile, StatTiles, type GridRow } from '~/components/primitives';
+import {
+	CauseLegend,
+	CauseTag,
+	DataGrid,
+	Note,
+	Prose,
+	Section,
+	SpellIcon,
+	StatTile,
+	StatTiles,
+	type GridRow,
+} from '~/components/primitives';
 
 /**
  * Ascendance, on its own, and shown on every pull because it is on every bar.
@@ -36,7 +49,7 @@ export default function Ascendance({ analysis }: { analysis: Analysis }) {
 	 * The numbers go into the sentences rather than into columns of their own. "Threw away 14.3s" is the
 	 * whole of what rule 2 has to say, and a `wasted` column would be empty on every press that did not.
 	 */
-	const rows = useMemo<GridRow[]>(() => {
+	const rows = useMemo<(GridRow & { cause: JudgmentCause })[]>(() => {
 		const readOf = (press: (typeof ascendance.presses)[number]): string => {
 			if (press.fault !== null)
 				return t(`ascendance.read.fault.${press.fault}`, {
@@ -46,10 +59,25 @@ export default function Ascendance({ analysis }: { analysis: Analysis }) {
 			if (press.sync.reason !== null) return t(`ascendance.read.reason.${press.sync.reason}`);
 			return t('ascendance.read.good');
 		};
+		/**
+		 * Whose the row is, and the two published fields answer it between them.
+		 *
+		 * A fault is the player's, every one of the five, and `ASCENDANCE_FAULT_CAUSE` carries the argument,
+		 * including the Skull Banner case that looks like somebody else's and is not. A refusal is whatever
+		 * refused it: the AoE list, the fight, or a pull that could not be read. A press that broke no
+		 * demand is the list being followed.
+		 */
+		const causeOf = (press: (typeof ascendance.presses)[number]): JudgmentCause =>
+			press.fault !== null
+				? ASCENDANCE_FAULT_CAUSE[press.fault]
+				: press.sync.reason !== null
+					? ASCENDANCE_REASON_CAUSE[press.sync.reason]
+					: 'rotation';
 		return [...ascendance.presses]
 			.sort((a, b) => a.t - b.t)
 			.map((press, i) => ({
 				key: `${press.t}-${i}`,
+				cause: causeOf(press),
 				// Red behind a press the rules faulted, and behind nothing else. `fault` is the decomposition
 				// of `grade: 'bad'` and is null on every other outcome, so this cannot tint a refusal — a
 				// press the log could not read has not been shown to be a mistake, and `docs/conventions.md`
@@ -65,7 +93,12 @@ export default function Ascendance({ analysis }: { analysis: Analysis }) {
 						: press.twoPiece
 							? t('ascendance.state.twoPiece')
 							: t('ascendance.state.plain'),
-					read: readOf(press),
+					read: (
+						<span className="inline-flex items-baseline">
+							<CauseTag cause={causeOf(press)} />
+							<span>{readOf(press)}</span>
+						</span>
+					),
 				},
 			}));
 	}, [ascendance.presses, t]);
@@ -114,6 +147,10 @@ export default function Ascendance({ analysis }: { analysis: Analysis }) {
 					// `none` keeps the neutral sentence for a pull the rules refused to judge at all.
 					empty={ascendance.grade === 'bad' ? t('ascendance.noneMissed') : t('ascendance.none')}
 				/>
+			</div>
+
+			<div className="mt-3.5">
+				<CauseLegend causes={rows.map((row) => row.cause)} />
 			</div>
 			{secondBannerSynced !== undefined && (
 				<div className="mt-5">

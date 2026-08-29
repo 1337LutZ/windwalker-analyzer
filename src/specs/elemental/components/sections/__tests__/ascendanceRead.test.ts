@@ -64,9 +64,7 @@ const press = (fault: AscendanceFault | null, sync: Partial<AscendancePress['syn
 describe('every Ascendance fault reaches the reader as a sentence', () => {
 	/** Rule 1 (§80.1) — the fault that did not exist before `cbc9259` and had nowhere to appear. */
 	it('says the opener was missed, and what to do instead', () => {
-		expect(render([press('opener-late')])).toContain(
-			'Pressed after the opening five seconds. Open with Ascendance instead',
-		);
+		expect(render([press('opener-late')])).toContain('Pressed after the opening five seconds');
 	});
 
 	/**
@@ -75,18 +73,16 @@ describe('every Ascendance fault reaches the reader as a sentence', () => {
 	 */
 	it('says how much of the window ran past the kill', () => {
 		const html = render([press('window-past-the-kill', { wastedMs: 14_286, dischargeRemainingMs: null })]);
-		expect(html).toContain('14.3s of the fifteen seconds ran past the kill. Press it sooner');
+		expect(html).toContain('14.3s ran past the kill');
 	});
 
 	it('says an opener came too late into the haste', () => {
-		expect(render([press('late-into-haste', { delayMs: 9000 })])).toContain(
-			'Too long after the haste went up to be spent inside it. Press it with Bloodlust',
-		);
+		expect(render([press('late-into-haste', { delayMs: 9000 })])).toContain('Too late into the haste to fit inside it');
 	});
 
 	it('says how little of the tier-16 proc was left', () => {
 		expect(render([press('discharge-too-short', { dischargeRemainingMs: 2500 })])).toContain(
-			'Only 2.5s of the tier-16 proc left. Hold it for a fresher one',
+			'Only 2.5s of the T16 2P proc left',
 		);
 	});
 
@@ -100,9 +96,7 @@ describe('every Ascendance fault reaches the reader as a sentence', () => {
 	 */
 	it('says the window held no banner, in the union’s terms and not one warrior’s', () => {
 		const html = render([press('no-banner', { bannerOverlapMs: 0 })]);
-		expect(html).toContain(
-			'Barely any Skull Banner inside the window. Spend Ascendance while the raid&#x27;s banner is up',
-		);
+		expect(html).toContain('Barely any Skull Banner inside the window');
 		expect(html).not.toContain('a warrior&#x27;s banner');
 	});
 
@@ -130,11 +124,11 @@ describe('a press the rules refused is not a fault, and does not read like one',
 	 */
 	it('renders each refusal as what could not be read', () => {
 		const cases: [AscendanceReason, string][] = [
-			['ascendance-up-at-the-pull', 'Already running at the pull, so this press is not in your log'],
-			['nothing-to-hit', 'Nothing was in reach when this press was due, so it cannot be read either way'],
-			['no-two-piece-evidence', 'No tier-16 two-piece in your gear, so there was no proc to pair it with'],
-			['t16-2pc-not-in-log', 'Your tier-16 two-piece never procced on this pull, so there was nothing to pair it with'],
-			['pull-ends-too-soon', 'Less pull left than the pairing needs, nothing you could press would have met it'],
+			['ascendance-up-at-the-pull', 'Already running at the pull'],
+			['nothing-to-hit', 'No targets nearby'],
+			['no-two-piece-evidence', 'No T16 2P equipped'],
+			['t16-2pc-not-in-log', 'T16 2P never procced'],
+			['pull-ends-too-soon', 'Pull ended before the pairing fits'],
 		];
 		for (const [reason, sentence] of cases) {
 			const html = render([press(null, { grade: 'none', reason })]);
@@ -181,7 +175,7 @@ describe('the column that carries all of it', () => {
 	it('reads the committed pull without a synthetic press in sight', () => {
 		const html = render(unbroken.ascendance.presses, unbroken.ascendance.grade);
 		expect(html).toContain('Well placed');
-		expect(html).toContain('Less pull left than the pairing needs');
+		expect(html).toContain('Pull ended before the pairing fits');
 	});
 });
 

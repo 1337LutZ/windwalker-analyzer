@@ -2,9 +2,21 @@ import { useMemo } from 'react';
 
 import { useReportCopy } from '~/hooks/useReportCopy';
 import { formatClock, formatPercent, formatPercentValue, formatSeconds } from '~/lib/format';
-import type { Analysis, ElementalAuditResult, FlameShockPress } from '~/lib/types';
+import { FLAME_SHOCK_KIND_CAUSE } from '~/lib/types';
+import type { Analysis, ElementalAuditResult, FlameShockPress, JudgmentCause } from '~/lib/types';
 
-import { DataGrid, Note, Prose, Section, SpellIcon, StatTile, StatTiles, type GridRow } from '~/components/primitives';
+import {
+	CauseLegend,
+	CauseTag,
+	DataGrid,
+	Note,
+	Prose,
+	Section,
+	SpellIcon,
+	StatTile,
+	StatTiles,
+	type GridRow,
+} from '~/components/primitives';
 import FlameShockDepth from '../charts/FlameShockDepth';
 import FlameShockUptime from '../charts/FlameShockUptime';
 
@@ -95,7 +107,7 @@ export default function FlameShock({ analysis }: { analysis: Analysis }) {
 	const caption = (metric: string, emptyClock = false) =>
 		unasked(metric) || emptyClock ? t('metric.notAsked') : undefined;
 
-	const rows = useMemo<GridRow[]>(
+	const rows = useMemo<(GridRow & { cause: JudgmentCause })[]>(
 		() =>
 			[...flameShock.presses]
 				.sort((a, b) => a.t - b.t)
@@ -145,8 +157,25 @@ export default function FlameShock({ analysis }: { analysis: Analysis }) {
 							: press.duringAscendance
 								? t('flameShock.state.duringAscendance')
 								: t(`flameShock.state.${press.kind}`, snapshotWording(press));
+					/**
+					 * Whose the row is: the model's table for the press kind, and `log` for the one press this
+					 * report declines to measure at all.
+					 *
+					 * The unmeasured refresh outranks the kind for the same reason it outranks the tint two lines
+					 * up. A press we never judged has no author to name, and `Rotation` on it would say the list
+					 * asked for something the report just declined to read.
+					 *
+					 * `duringAscendance` is a fault the kind cannot see: the press is a `reapply` or a `snapshot` by
+					 * kind and a global thrown away by placement, so it takes the tint's own reading.
+					 */
+					const cause: JudgmentCause = unmeasuredRefresh
+						? 'log'
+						: faulted
+							? 'player'
+							: FLAME_SHOCK_KIND_CAUSE[press.kind];
 					return {
 						key: `${press.t}-${i}`,
+						cause,
 						band: faulted && !unmeasuredRefresh ? ('warn' as const) : undefined,
 						cells: {
 							at: formatClock(press.t),
@@ -173,7 +202,12 @@ export default function FlameShock({ analysis }: { analysis: Analysis }) {
 							// per-row tooltip. `band` is `1 | 2 | 3 | 4` where 4 means *four or more*, so a number
 							// here would understate a press made into eight enemies; the chart's key already reads
 							// "More than one enemy, not measured", which is true at two and at thirteen.
-							state: unmeasuredRefresh ? `${state}, ${t('flameShock.state.unmeasured')}` : state,
+							state: (
+								<span className="inline-flex items-baseline">
+									<CauseTag cause={cause} />
+									<span>{unmeasuredRefresh ? `${state}, ${t('flameShock.state.unmeasured')}` : state}</span>
+								</span>
+							),
 						},
 					};
 				}),
@@ -346,6 +380,10 @@ export default function FlameShock({ analysis }: { analysis: Analysis }) {
 					rows={rows}
 					empty={t('flameShock.none')}
 				/>
+			</div>
+
+			<div className="mt-3.5">
+				<CauseLegend causes={rows.map((row) => row.cause)} />
 			</div>
 
 			<div className="mt-5 flex flex-col gap-3.5">

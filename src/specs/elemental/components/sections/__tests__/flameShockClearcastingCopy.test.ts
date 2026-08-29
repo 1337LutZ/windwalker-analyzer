@@ -73,13 +73,9 @@ describe('a credited early refresh names the term that made the dot stronger', (
 	 */
 	it('says so where this dot froze the proc and the dot it replaced had not', () => {
 		expect(pressAt(28_628).kind).toBe('snapshot');
-		expect(html).toContain(
-			'Refreshed early into a dot 42.44% stronger, with Clearcasting’s +20% frozen into it, 18.7% stronger without the proc',
-		);
+		expect(html).toContain('Early into a dot 42.44% stronger, Clearcasting frozen in (18.7% without it)');
 		// The second credited press of the same shape, so the case is not one row.
-		expect(html).toContain(
-			'Refreshed early into a dot 56.15% stronger, with Clearcasting’s +20% frozen into it, 30.13% stronger without the proc',
-		);
+		expect(html).toContain('Early into a dot 56.15% stronger, Clearcasting frozen in (30.13% without it)');
 	});
 
 	/**
@@ -90,9 +86,7 @@ describe('a credited early refresh names the term that made the dot stronger', (
 	it('says so the other way round where the dot it replaced was the one with the proc', () => {
 		expect(pressAt(140_025).kind).toBe('snapshot');
 		expect(pressAt(140_025).snapshotClearcasting).toBe(false);
-		expect(html).toContain(
-			'Refreshed early into a dot 32.67% stronger even though Clearcasting was up on the dot you replaced and not on this one, 59.21% stronger on everything but the proc',
-		);
+		expect(html).toContain('Early into a dot 32.67% stronger, but you dropped Clearcasting (59.21% without it)');
 	});
 
 	/**
@@ -111,12 +105,12 @@ describe('a credited early refresh names the term that made the dot stronger', (
 			snapshotDeltaWithoutClearcastingPct: 0.2,
 		};
 		const cell = render(withOnePress(neutral));
-		expect(cell).toContain('Refreshed early into a dot 20% stronger, worth the tick');
+		expect(cell).toContain('Early into a dot 20% stronger');
 		// Neither of the attributing forms, scoped to their own wording: the proc is named in the section's
 		// opening sentence and in the note below the table on every pull, so a bare search for the word is
 		// no test at all.
-		expect(cell).not.toContain('frozen into it');
-		expect(cell).not.toContain('even though Clearcasting was up');
+		expect(cell).not.toContain('Clearcasting frozen in');
+		expect(cell).not.toContain('but you dropped Clearcasting');
 		expect(cell).not.toContain('flameShock.state.');
 	});
 

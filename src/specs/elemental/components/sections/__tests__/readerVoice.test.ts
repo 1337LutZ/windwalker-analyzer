@@ -62,7 +62,7 @@ describe('the two cooldown states the complaint named', () => {
 			...unbroken,
 			ascendance: { ...unbroken.ascendance, presses: [{ ...press, opener: false, twoPiece: false }] },
 		} as Analysis);
-		expect(html).toContain('Pressed outside the opener with no tier-16 proc up, save it for one of those');
+		expect(html).toContain('No opener, no T16 2P proc');
 	});
 
 	/** `reason: null` — the cell that said "pressed while Ascendance was still coming back". */
@@ -71,9 +71,7 @@ describe('the two cooldown states the complaint named', () => {
 			...unbroken,
 			elementalMastery: { presses: [{ t: 60_000, reason: null }], talented: true },
 		} as Analysis);
-		expect(html).toContain(
-			'Pressed with Ascendance on cooldown and not far enough out to spend on its own. Hold the haste for Ascendance',
-		);
+		expect(html).toContain('Ascendance on cooldown, hold the haste for it');
 	});
 
 	/**
@@ -90,7 +88,7 @@ describe('the two cooldown states the complaint named', () => {
 			...unbroken,
 			elementalMastery: { presses: [{ t: 60_000, reason: 'off-near', ascReadySec: 3 }], talented: true },
 		} as Analysis);
-		expect(html).toContain('Pressed with Ascendance 3s out, it comes back inside the haste, so the two overlap anyway');
+		expect(html).toContain('Ascendance 3s out, they overlap anyway');
 	});
 
 	it('tells a press far from Ascendance the opposite reason, and neither reads as a fault', () => {
@@ -98,9 +96,7 @@ describe('the two cooldown states the complaint named', () => {
 			...unbroken,
 			elementalMastery: { presses: [{ t: 60_000, reason: 'off-far', ascReadySec: 120 }], talented: true },
 		} as Analysis);
-		expect(html).toContain(
-			'Pressed with Ascendance 120s away, far too long to hold a ninety-second cooldown for, so spending it now is right',
-		);
+		expect(html).toContain('Ascendance 120s away, too long to hold');
 	});
 
 	/**

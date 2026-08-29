@@ -2,9 +2,20 @@ import { useMemo } from 'react';
 
 import { useReportCopy } from '~/hooks/useReportCopy';
 import { formatClock } from '~/lib/format';
-import type { Analysis, ElementalAuditResult } from '~/lib/types';
+import type { Analysis, ElementalAuditResult, JudgmentCause } from '~/lib/types';
 
-import { DataGrid, Note, Prose, Section, SpellIcon, StatTile, StatTiles, type GridRow } from '~/components/primitives';
+import {
+	CauseLegend,
+	CauseTag,
+	DataGrid,
+	Note,
+	Prose,
+	Section,
+	SpellIcon,
+	StatTile,
+	StatTiles,
+	type GridRow,
+} from '~/components/primitives';
 
 /**
  * Fire Elemental: the five-minute summon.
@@ -22,16 +33,39 @@ export default function FireElemental({ analysis }: { analysis: Analysis }) {
 	// so the note and the summary card cannot end up making different claims about one pull.
 	const prepullTone = toneOf('fireElementalPrepull');
 
-	const rows = useMemo<GridRow[]>(
+	const rows = useMemo<(GridRow & { cause: JudgmentCause })[]>(
 		() =>
 			[...fireElemental.presses]
 				.sort((a, b) => a.t - b.t)
 				.map((press, i) => ({
 					key: `${press.t}-${i}`,
+					// `prepull` is the log rather than the list: the summon was already out, so the pull carries no
+					// cast to read. `early` is the player spending it outside all three windows, and the rest are
+					// the pairing the list asks for. `null` is the press with no pairing left at all.
+					cause: (press.reason === 'prepull'
+						? 'log'
+						: press.reason === null || press.reason === 'early'
+							? 'player'
+							: 'rotation') as JudgmentCause,
 					band: press.reason === null ? ('warn' as const) : undefined,
 					cells: {
 						at: formatClock(press.t),
-						state: press.reason === null ? t('fireElemental.state.plain') : t(`fireElemental.state.${press.reason}`),
+						state: (
+							<span className="inline-flex items-baseline">
+								<CauseTag
+									cause={
+										press.reason === 'prepull'
+											? 'log'
+											: press.reason === null || press.reason === 'early'
+												? 'player'
+												: 'rotation'
+									}
+								/>
+								<span>
+									{press.reason === null ? t('fireElemental.state.plain') : t(`fireElemental.state.${press.reason}`)}
+								</span>
+							</span>
+						),
 					},
 				})),
 		[fireElemental.presses, t],
@@ -78,6 +112,10 @@ export default function FireElemental({ analysis }: { analysis: Analysis }) {
 					// really was never summoned.
 					empty={t('fireElemental.none')}
 				/>
+			</div>
+
+			<div className="mt-3.5">
+				<CauseLegend causes={rows.map((row) => row.cause)} />
 			</div>
 
 			<div className="mt-5 flex flex-col gap-3.5">

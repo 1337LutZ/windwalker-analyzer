@@ -2,9 +2,20 @@ import { useMemo } from 'react';
 
 import { useReportCopy } from '~/hooks/useReportCopy';
 import { formatClock } from '~/lib/format';
-import type { Analysis, EarthElementalVerdict, ElementalAuditResult } from '~/lib/types';
+import type { Analysis, EarthElementalVerdict, ElementalAuditResult, JudgmentCause } from '~/lib/types';
 
-import { DataGrid, Note, Prose, Section, SpellIcon, StatTile, StatTiles, type GridRow } from '~/components/primitives';
+import {
+	CauseLegend,
+	CauseTag,
+	DataGrid,
+	Note,
+	Prose,
+	Section,
+	SpellIcon,
+	StatTile,
+	StatTiles,
+	type GridRow,
+} from '~/components/primitives';
 
 /**
  * Earth Elemental, against the three branches its rule actually has.
@@ -37,18 +48,39 @@ export default function EarthElemental({ analysis }: { analysis: Analysis }) {
 	const { earthElemental } = el;
 	const { t } = useReportCopy(analysis);
 
-	const rows = useMemo<GridRow[]>(
+	const rows = useMemo<(GridRow & { cause: JudgmentCause })[]>(
 		() =>
 			[...earthElemental.presses]
 				.sort((a, b) => a.t - b.t)
 				.map((press, i) => ({
 					key: `${press.t}-${i}`,
+					// `unknown` is the log: the call this press might have been standing in for turns on a Skull
+					// Banner cooldown the pull does not carry, so nothing here can be attributed either way. An
+					// inferred pre-pull summon is the list's, since the list has no pre-pull play to break.
+					cause: (press.verdict === 'unknown'
+						? 'log'
+						: press.verdict === 'off-rule' && !press.inferred
+							? 'player'
+							: 'rotation') as JudgmentCause,
 					// Only a refuted press is marked. An `unknown` is not a fault and must not be coloured as
 					// one, and an inferred pre-pull row is not graded at all — the list has no pre-pull play.
 					band: press.verdict === 'off-rule' && !press.inferred ? ('warn' as const) : undefined,
 					cells: {
 						at: press.inferred ? t('earthElemental.inferred') : formatClock(press.t),
-						state: t(`earthElemental.state.${STATE_KEY[press.verdict]}`),
+						state: (
+							<span className="inline-flex items-baseline">
+								<CauseTag
+									cause={
+										press.verdict === 'unknown'
+											? 'log'
+											: press.verdict === 'off-rule' && !press.inferred
+												? 'player'
+												: 'rotation'
+									}
+								/>
+								<span>{t(`earthElemental.state.${STATE_KEY[press.verdict]}`)}</span>
+							</span>
+						),
 					},
 				})),
 		[earthElemental.presses, t],
@@ -90,6 +122,10 @@ export default function EarthElemental({ analysis }: { analysis: Analysis }) {
 					rows={rows}
 					empty={t('earthElemental.none')}
 				/>
+			</div>
+
+			<div className="mt-3.5">
+				<CauseLegend causes={rows.map((row) => row.cause)} />
 			</div>
 
 			<div className="mt-5">

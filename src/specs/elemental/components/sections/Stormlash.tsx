@@ -4,7 +4,17 @@ import { useReportCopy } from '~/hooks/useReportCopy';
 import { formatClock, formatSeconds } from '~/lib/format';
 import type { Analysis, ElementalAuditResult } from '~/lib/types';
 
-import { DataGrid, Note, Prose, Section, SpellIcon, StatTile, StatTiles, type GridRow } from '~/components/primitives';
+import {
+	CauseTag,
+	DataGrid,
+	Note,
+	Prose,
+	Section,
+	SpellIcon,
+	StatTile,
+	StatTiles,
+	type GridRow,
+} from '~/components/primitives';
 import StormlashTotems from '../charts/StormlashTotems';
 
 /**
@@ -59,10 +69,19 @@ export default function Stormlash({ analysis }: { analysis: Analysis }) {
 					// else's, and a row about a press this player did not make gets no verdict cell rather
 					// than a reassuring one — the same em dash the Flame Shock table uses for a figure that
 					// does not apply to a row.
+					// The tag is the list's on both arms, and deliberately so: laying your own totem outside
+					// Ascendance is what the list asks for, and laying it inside is a preference about which
+					// global carries it rather than a mistake anybody made. A row about somebody else's totem
+					// carries no judgment and so carries no tag.
 					state:
-						totem.duringAscendance === null
-							? '—'
-							: t(`stormlash.state.${totem.duringAscendance ? 'duringAscendance' : 'yours'}`),
+						totem.duringAscendance === null ? (
+							'—'
+						) : (
+							<span className="inline-flex items-baseline">
+								<CauseTag cause="rotation" />
+								<span>{t(`stormlash.state.${totem.duringAscendance ? 'duringAscendance' : 'yours'}`)}</span>
+							</span>
+						),
 				},
 			})),
 		[received, t],

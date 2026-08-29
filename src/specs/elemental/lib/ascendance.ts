@@ -249,7 +249,7 @@
 import type { AuraWindow } from '~/lib/analysis/auras';
 import { mergeIntervals, overlapMs } from '~/lib/analysis/intervals';
 import type { Interval } from '~/lib/analysis/intervals';
-import type { Window } from '~/lib/types';
+import type { JudgmentCause, Window } from '~/lib/types';
 
 /**
  * How far into the raid's haste cooldown the opener may go before the press reads as late.
@@ -488,6 +488,28 @@ export type AscendanceReason =
 	 * sync it could not reach.
 	 */
 	| 'pull-ends-too-soon';
+
+/**
+ * Whose each refusal is, as the tag the section draws beside it.
+ *
+ * The six split three ways and none of them is the player's, which is the point: a refusal is the report
+ * saying it cannot charge this press, and a tag that read `player` on any of them would charge it in the
+ * one column the reader trusts for authorship.
+ *
+ * `pressed-in-aoe` is the list's own doing, `nothing-to-hit` and `pull-ends-too-soon` are the fight
+ * taking the chance away, and the three that turn on gear or on a missing stream are the log failing to
+ * prove anything either way. `no-two-piece-evidence` is deliberately not `build`: the report cannot see
+ * whether the set was owned and unworn or never owned, so calling it a talent-and-gear decision would
+ * state more than the pull does.
+ */
+export const ASCENDANCE_REASON_CAUSE: Record<AscendanceReason, JudgmentCause> = {
+	'ascendance-up-at-the-pull': 'log',
+	'no-two-piece-evidence': 'log',
+	'nothing-to-hit': 'fight',
+	'pressed-in-aoe': 'rotation',
+	'pull-ends-too-soon': 'fight',
+	't16-2pc-not-in-log': 'log',
+};
 
 /** How one Ascendance press read against whichever rule governs it. */
 export interface AscendancePressVerdict {

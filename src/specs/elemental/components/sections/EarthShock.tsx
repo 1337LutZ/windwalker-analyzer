@@ -2,10 +2,21 @@ import { useMemo } from 'react';
 
 import { useReportCopy } from '~/hooks/useReportCopy';
 import { formatClock, formatPercentValue } from '~/lib/format';
-import type { Analysis, ElementalAuditResult } from '~/lib/types';
-import { SOFT_EARTH_SHOCK_REASONS } from '~/lib/types';
+import type { Analysis, ElementalAuditResult, JudgmentCause } from '~/lib/types';
+import { EARTH_SHOCK_REASON_CAUSE, SOFT_EARTH_SHOCK_REASONS } from '~/lib/types';
 
-import { DataGrid, Note, Prose, Section, SpellIcon, StatTile, StatTiles, type GridRow } from '~/components/primitives';
+import {
+	CauseLegend,
+	CauseTag,
+	DataGrid,
+	Note,
+	Prose,
+	Section,
+	SpellIcon,
+	StatTile,
+	StatTiles,
+	type GridRow,
+} from '~/components/primitives';
 
 /**
  * Earth Shock: the Lightning Shield spender, judged against the sim's own rule — and there is more than
@@ -79,7 +90,7 @@ export default function EarthShock({ analysis }: { analysis: Analysis }) {
 	const neverCast = !shockUnasked && earthShock.presses.length === 0;
 	const tooFew = !shockUnasked && toneOf('earthShockWaste') === null && earthShock.presses.length > 0;
 
-	const rows = useMemo<GridRow[]>(
+	const rows = useMemo<(GridRow & { cause: JudgmentCause })[]>(
 		() =>
 			[...earthShock.presses]
 				// The table is the bad-shock ledger, not the log: a shock the rule wanted needs no row, and
@@ -90,22 +101,41 @@ export default function EarthShock({ analysis }: { analysis: Analysis }) {
 				// ledger with an empty reasons cell — a row accusing a player of nothing in particular.
 				.filter((press) => press.good === false)
 				.sort((a, b) => a.t - b.t)
-				.map((press, i) => ({
-					key: `${press.t}-${i}`,
-					// The row's band is the press's own charge, so the ledger reads the way the score counts. A
-					// press whose every reason is soft cost half a global and gets the quieter band; one carrying
-					// a hard reason — on its own or beside a soft one — is a full fault and keeps `warn`. The
-					// same `every` the audit counts `ok` with, for the same reason: two soft reasons must not
-					// add up to a promotion.
-					band: press.reasons.every((reason) => SOFT_EARTH_SHOCK_REASONS.includes(reason))
-						? ('ok' as const)
-						: ('warn' as const),
-					cells: {
-						at: formatClock(press.t),
-						stacks: press.lsStacks === null ? '—' : `${press.lsStacks}`,
-						state: press.reasons.map((reason) => t(`earthShock.state.${reason}`)).join(', '),
-					},
-				})),
+				.map((press, i) => {
+					/**
+					 * Whose the press is, out of the reasons it carries.
+					 *
+					 * A press can carry several and they do not have to share an author: the list holding the shock
+					 * for Ascendance is `rotation`, a shield spent under its floor is the player's. One tag has to
+					 * pick, and it picks the player wherever any reason is theirs, because a row that named the
+					 * list while the shield sat at four charges would forgive the half a reader can fix.
+					 */
+					const cause: JudgmentCause = press.reasons.some((reason) => EARTH_SHOCK_REASON_CAUSE[reason] === 'player')
+						? 'player'
+						: (EARTH_SHOCK_REASON_CAUSE[press.reasons[0] ?? 'belowFull'] ?? 'player');
+					return {
+						key: `${press.t}-${i}`,
+						cause,
+						// The row's band is the press's own charge, so the ledger reads the way the score counts. A
+						// press whose every reason is soft cost half a global and gets the quieter band; one carrying
+						// a hard reason — on its own or beside a soft one — is a full fault and keeps `warn`. The
+						// same `every` the audit counts `ok` with, for the same reason: two soft reasons must not
+						// add up to a promotion.
+						band: press.reasons.every((reason) => SOFT_EARTH_SHOCK_REASONS.includes(reason))
+							? ('ok' as const)
+							: ('warn' as const),
+						cells: {
+							at: formatClock(press.t),
+							stacks: press.lsStacks === null ? '—' : `${press.lsStacks}`,
+							state: (
+								<span className="inline-flex items-baseline">
+									<CauseTag cause={cause} />
+									<span>{press.reasons.map((reason) => t(`earthShock.state.${reason}`)).join(', ')}</span>
+								</span>
+							),
+						},
+					};
+				}),
 		[earthShock.presses, t],
 	);
 
@@ -170,6 +200,10 @@ export default function EarthShock({ analysis }: { analysis: Analysis }) {
 					rows={rows}
 					empty={t('earthShock.none')}
 				/>
+			</div>
+
+			<div className="mt-3.5">
+				<CauseLegend causes={rows.map((row) => row.cause)} />
 			</div>
 
 			<div className="mt-5 flex flex-col gap-3.5">

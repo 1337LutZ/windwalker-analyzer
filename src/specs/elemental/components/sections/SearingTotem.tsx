@@ -2,9 +2,20 @@ import { useMemo } from 'react';
 
 import { useReportCopy } from '~/hooks/useReportCopy';
 import { formatClock, formatPercentValue, formatSeconds } from '~/lib/format';
-import type { Analysis, ElementalAuditResult } from '~/lib/types';
+import type { Analysis, ElementalAuditResult, JudgmentCause } from '~/lib/types';
 
-import { DataGrid, Note, Prose, Section, SpellIcon, StatTile, StatTiles, type GridRow } from '~/components/primitives';
+import {
+	CauseLegend,
+	CauseTag,
+	DataGrid,
+	Note,
+	Prose,
+	Section,
+	SpellIcon,
+	StatTile,
+	StatTiles,
+	type GridRow,
+} from '~/components/primitives';
 import SearingTotemUptime from '../charts/SearingTotemUptime';
 
 /**
@@ -57,7 +68,7 @@ export default function SearingTotem({ analysis }: { analysis: Analysis }) {
 	const uptimeUnasked = unasked('searingTotemUptime');
 	const narrowed = !neverPressed && uptimeUnasked && grade !== 'none' && grade !== 'exempt';
 
-	const rows = useMemo<GridRow[]>(
+	const rows = useMemo<(GridRow & { cause: JudgmentCause })[]>(
 		() =>
 			[...searingTotem.presses]
 				.sort((a, b) => a.t - b.t)
@@ -65,21 +76,38 @@ export default function SearingTotem({ analysis }: { analysis: Analysis }) {
 					// A clip and an under-Fire-Elemental placement are both faults; a late placement is a
 					// fault only past the ten-second line, which is how the press was flagged in the audit.
 					const faulted = press.clipped || press.feOverlap || press.late;
+					/**
+					 * Whose the placement is, and the overlap is the one that is not the player's.
+					 *
+					 * A totem laid under the Fire Elemental is the list's own doing: the summon holds the fire
+					 * totem slot for its whole minute, so the press had nowhere to land. A clip, a late placement
+					 * and an early refresh are all the player's own timing, and a clean placement is the list
+					 * being followed.
+					 */
+					const cause: JudgmentCause = press.feOverlap ? 'rotation' : faulted ? 'player' : 'rotation';
 					return {
 						key: `${press.t}-${i}`,
+						cause,
 						band: faulted ? ('warn' as const) : undefined,
 						cells: {
 							at: formatClock(press.t),
 							remaining: press.remainingMs === null ? '—' : formatSeconds(press.remainingMs),
-							state: press.feOverlap
-								? t('searingTotem.state.feOverlap')
-								: press.late
-									? t('searingTotem.state.late')
-									: press.remainingMs === null
-										? t('searingTotem.state.fresh')
-										: press.clipped
-											? t('searingTotem.state.clip')
-											: t('searingTotem.state.refresh'),
+							state: (
+								<span className="inline-flex items-baseline">
+									<CauseTag cause={cause} />
+									<span>
+										{press.feOverlap
+											? t('searingTotem.state.feOverlap')
+											: press.late
+												? t('searingTotem.state.late')
+												: press.remainingMs === null
+													? t('searingTotem.state.fresh')
+													: press.clipped
+														? t('searingTotem.state.clip')
+														: t('searingTotem.state.refresh')}
+									</span>
+								</span>
+							),
 						},
 					};
 				}),
@@ -128,6 +156,10 @@ export default function SearingTotem({ analysis }: { analysis: Analysis }) {
 					rows={rows}
 					empty={t('searingTotem.none')}
 				/>
+			</div>
+
+			<div className="mt-3.5">
+				<CauseLegend causes={rows.map((row) => row.cause)} />
 			</div>
 
 			<div className="mt-5 flex flex-col gap-3.5">

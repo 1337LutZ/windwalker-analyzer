@@ -2,9 +2,18 @@ import { useMemo } from 'react';
 
 import { useReportCopy } from '~/hooks/useReportCopy';
 import { formatClock } from '~/lib/format';
-import type { Analysis, ElementalAuditResult } from '~/lib/types';
+import type { Analysis, ElementalAuditResult, JudgmentCause } from '~/lib/types';
 
-import { DataGrid, Note, Prose, Section, SpellIcon, type GridRow } from '~/components/primitives';
+import {
+	CauseLegend,
+	CauseTag,
+	DataGrid,
+	Note,
+	Prose,
+	Section,
+	SpellIcon,
+	type GridRow,
+} from '~/components/primitives';
 
 import { elementalMasteryTalented } from './gates';
 
@@ -33,21 +42,32 @@ export default function ElementalMastery({ analysis }: { analysis: Analysis }) {
 	// "cannot say", and the two differ only in what an empty table is allowed to claim.
 	const talented = elementalMasteryTalented(analysis);
 
-	const rows = useMemo<GridRow[]>(
+	const rows = useMemo<(GridRow & { cause: JudgmentCause })[]>(
 		() =>
 			[...elementalMastery.presses]
 				.sort((a, b) => a.t - b.t)
 				.map((press, i) => ({
 					key: `${press.t}-${i}`,
+					// The four named reasons are all the list's: the opener, the pairing, the set's proc, and the
+					// two readings where Ascendance is either close enough to overlap anyway or far enough that
+					// holding a ninety-second cooldown for it would cost more than it bought. `null` is the one
+					// press nothing in the list wanted, which is the player's own.
+					cause: (press.reason === null ? 'player' : 'rotation') as JudgmentCause,
 					cells: {
 						at: formatClock(press.t),
 						// `ascReady` is passed on every row and read only by the two `off-*` sentences, which are
 						// the ones that need it: an interpolation an arm does not name is simply not printed,
 						// and branching the call per reason would be a second copy of the reason table.
-						state:
-							press.reason === null
-								? t('elementalMastery.state.plain')
-								: t(`elementalMastery.state.${press.reason}`, { ascReady: press.ascReadySec }),
+						state: (
+							<span className="inline-flex items-baseline">
+								<CauseTag cause={press.reason === null ? 'player' : 'rotation'} />
+								<span>
+									{press.reason === null
+										? t('elementalMastery.state.plain')
+										: t(`elementalMastery.state.${press.reason}`, { ascReady: press.ascReadySec })}
+								</span>
+							</span>
+						),
 					},
 				})),
 		[elementalMastery.presses, t],
@@ -72,6 +92,10 @@ export default function ElementalMastery({ analysis }: { analysis: Analysis }) {
 					rows={rows}
 					empty={talented === true ? t('elementalMastery.noneTalented') : t('elementalMastery.noneUnknown')}
 				/>
+			</div>
+
+			<div className="mt-3.5">
+				<CauseLegend causes={rows.map((row) => row.cause)} />
 			</div>
 
 			{talented === null && (

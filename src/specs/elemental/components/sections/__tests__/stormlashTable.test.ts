@@ -141,7 +141,7 @@ describe('the table, on the pulls whose placement fetch is missing', () => {
 		// here, which is the whole reason `received` exists.
 		expect(fx('cleave').stormlash.totems).toBe(0);
 		expect(html).toContain('laid by');
-		expect(html).toContain('Yours, laid outside Ascendance');
+		expect(html).toContain('Yours, outside Ascendance');
 		// The player named in the first person and the raid-mates by whatever the actor list could give,
 		// which on an anonymous report is `Player (n)`.
 		expect(html).toContain('>You<');
@@ -171,7 +171,7 @@ describe('what the rendered rows refuse to say', () => {
 	it('never claims a press was made during Ascendance on a pull where none was', () => {
 		for (const name of FIXTURES) {
 			const html = render(fx(name));
-			expect(html, name).toContain('Yours, laid outside Ascendance');
+			expect(html, name).toContain('Yours, outside Ascendance');
 			expect(html, name).not.toContain('laid during Ascendance');
 		}
 	});
@@ -207,8 +207,8 @@ describe('the row rule 6 can fire, rendered', () => {
 
 	it('prints the hedge and names the button the global was wanted on', () => {
 		const html = forced();
-		expect(html).toContain('Yours, and laid during Ascendance, ideally that global goes to Lava Beam instead');
-		expect(html).not.toContain('Yours, laid outside Ascendance');
+		expect(html).toContain('Laid during Ascendance, Lava Beam wants that global');
+		expect(html).not.toContain('Yours, outside Ascendance');
 	});
 
 	// Also not a red — the second and last of them, for the same reason as the guard above.

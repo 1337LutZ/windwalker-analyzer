@@ -1578,16 +1578,16 @@
     },
     "state": {
       "apply": "First application",
-      "reapply": "Put back up the moment it dropped",
-      "late": "Put back up after the dot had been down over a second",
-      "duringAscendance": "Refresh during Ascendance",
-      "ascPrep": "Refreshed early to carry the dot into Ascendance",
+      "reapply": "Refreshed the moment it dropped",
+      "late": "Refreshed over a second late",
+      "duringAscendance": "Refreshed inside Ascendance",
+      "ascPrep": "Early, to carry the dot into Ascendance",
       "windowed": "Last-tick refresh",
-      "snapshot": "Refreshed early into a dot {{gain}} stronger, worth the tick",
-      "snapshot_froze": "Refreshed early into a dot {{gain}} stronger, with Clearcasting’s +20% frozen into it, {{own}} stronger without the proc",
-      "snapshot_gaveUp": "Refreshed early into a dot {{gain}} stronger even though Clearcasting was up on the dot you replaced and not on this one, {{own}} stronger on everything but the proc",
+      "snapshot": "Early into a dot {{gain}} stronger",
+      "snapshot_froze": "Early into a dot {{gain}} stronger, Clearcasting frozen in ({{own}} without it)",
+      "snapshot_gaveUp": "Early into a dot {{gain}} stronger, but you dropped Clearcasting ({{own}} without it)",
       "early": "Early, a tick thrown away",
-      "unmeasured": "not measured with more than one enemy up"
+      "unmeasured": "Not measured above one target"
     },
     "caption": "Every Flame Shock press, what was left on the dot, and what the press bought you",
     "none": "No presses to list.",
@@ -1644,15 +1644,15 @@
       "state": "what it was"
     },
     "state": {
-      "ascActive": "Pressed inside Ascendance. Hold the shock, every global in there is a Lava Burst",
+      "ascActive": "Ascendance was up, hold the shock",
       "belowFull": "Shield below 7 charges",
-      "fsLow": "Flame Shock had under 6s left",
-      "ascReady": "Ascendance was up within 6s. Hold the shock for it",
-      "twoPiece": "Spent with over 8s still on the tier-16 proc, the whole window was still ahead of it",
-      "twoPieceEarly": "Spent 4–8s before the tier-16 proc ran out, nearly held, and charged at half",
-      "fsTail": "Flame Shock had under two ticks left",
-      "cleaveStacks": "Shield below 6 charges, with two enemies up",
-      "cleaveDot": "Flame Shock had under 8s left, with two enemies up"
+      "fsLow": "Flame Shock under 6s",
+      "ascReady": "Ascendance back within 6s, hold the shock",
+      "twoPiece": "Over 8s of T16 2P proc left",
+      "twoPieceEarly": "4 to 8s of T16 2P proc left, charged at half",
+      "fsTail": "Flame Shock under two ticks",
+      "cleaveStacks": "Shield below 6 charges at two targets",
+      "cleaveDot": "Flame Shock under 8s at two targets"
     },
     "caption": "Every Earth Shock the priority list would not have pressed, and what went wrong when you pressed it",
     "none": "Every Earth Shock went out where it should have.",
@@ -1691,8 +1691,8 @@
     "state": {
       "fresh": "Fresh placement",
       "clip": "Clipped a totem",
-      "refresh": "Early refresh",
-      "feOverlap": "Placed under the Fire Elemental, which holds the slot",
+      "refresh": "Refreshed early",
+      "feOverlap": "Fire Elemental holds the slot",
       "late": "Late placement"
     },
     "caption": "Every Searing Totem you dropped, what the last one still had left, and what the press bought",
@@ -1725,27 +1725,27 @@
     },
     "state": {
       "opener": "Pressed in the opener",
-      "twoPiece": "Pressed on a tier-16 two-piece proc",
-      "plain": "Pressed outside the opener with no tier-16 proc up, save it for one of those"
+      "twoPiece": "Pressed on a T16 2P proc",
+      "plain": "No opener, no T16 2P proc"
     },
     "caption": "Every Ascendance press, how much Flame Shock was left on the target, and what you paired it with",
     "none": "Ascendance was never pressed in this pull.",
     "read": {
       "good": "Well placed",
       "fault": {
-        "opener-late": "Pressed after the opening five seconds. Open with Ascendance instead",
-        "window-past-the-kill": "{{wasted, duration}} of the fifteen seconds ran past the kill. Press it sooner",
-        "late-into-haste": "Too long after the haste went up to be spent inside it. Press it with Bloodlust",
-        "discharge-too-short": "Only {{discharge, duration}} of the tier-16 proc left. Hold it for a fresher one",
-        "no-banner": "Barely any Skull Banner inside the window. Spend Ascendance while the raid's banner is up"
+        "opener-late": "Pressed after the opening five seconds",
+        "window-past-the-kill": "{{wasted, duration}} ran past the kill",
+        "late-into-haste": "Too late into the haste to fit inside it",
+        "discharge-too-short": "Only {{discharge, duration}} of the T16 2P proc left",
+        "no-banner": "Barely any Skull Banner inside the window"
       },
       "reason": {
-        "ascendance-up-at-the-pull": "Already running at the pull, so this press is not in your log",
-        "nothing-to-hit": "Nothing was in reach when this press was due, so it cannot be read either way",
-        "pressed-in-aoe": "Pressed in AoE, where the priority list drops Earth Shock, so there was no proc to pair it with, and nothing here counts against you",
-        "no-two-piece-evidence": "No tier-16 two-piece in your gear, so there was no proc to pair it with",
-        "t16-2pc-not-in-log": "Your tier-16 two-piece never procced on this pull, so there was nothing to pair it with",
-        "pull-ends-too-soon": "Less pull left than the pairing needs, nothing you could press would have met it"
+        "ascendance-up-at-the-pull": "Already running at the pull",
+        "nothing-to-hit": "No targets nearby",
+        "pressed-in-aoe": "Pressed in AoE, no proc to pair with",
+        "no-two-piece-evidence": "No T16 2P equipped",
+        "t16-2pc-not-in-log": "T16 2P never procced",
+        "pull-ends-too-soon": "Pull ended before the pairing fits"
       },
       "secondBanner": {
         "synced": "Your second Ascendance landed on a warrior's second Skull Banner, which is the pairing to aim for.",
@@ -1764,10 +1764,10 @@
     "state": {
       "opener": "Pressed in the opener",
       "sync": "Pressed with Ascendance",
-      "t15": "Pressed on a tier-15 four-piece proc",
-      "off-near": "Pressed with Ascendance {{ascReady, seconds}} out, it comes back inside the haste, so the two overlap anyway",
-      "off-far": "Pressed with Ascendance {{ascReady, seconds}} away, far too long to hold a ninety-second cooldown for, so spending it now is right",
-      "plain": "Pressed with Ascendance on cooldown and not far enough out to spend on its own. Hold the haste for Ascendance"
+      "t15": "Pressed on a T15 4P proc",
+      "off-near": "Ascendance {{ascReady, seconds}} out, they overlap anyway",
+      "off-far": "Ascendance {{ascReady, seconds}} away, too long to hold",
+      "plain": "Ascendance on cooldown, hold the haste for it"
     },
     "caption": "Every Elemental Mastery press and whether it landed on Ascendance",
     "noneTalented": "You took Elemental Mastery and never pressed it, twenty seconds of haste that stayed on the bar all pull.",
@@ -1802,11 +1802,11 @@
       "state": "what it was"
     },
     "state": {
-      "prepull": "Already out at the pull, no cast in your log",
-      "near-end": "Pressed in the last minute, it lives to the end",
+      "prepull": "Out at the pull, no cast logged",
+      "near-end": "Pressed in the last minute",
       "sync": "Pressed with Ascendance",
-      "early": "Outside all three windows, though the cooldown does come back before the end, pair it with Ascendance or hold it for the last minute and this becomes a second summon",
-      "plain": "No Ascendance to pair with, and too late to come back before the end. Press it with Ascendance or hold it for the last minute"
+      "early": "Outside all three windows, it does come back",
+      "plain": "No pairing left, and too late to come back"
     },
     "caption": "Every Fire Elemental summon, and what you pressed it with",
     "none": "Fire Elemental was never pressed in this pull.",
@@ -1827,9 +1827,9 @@
       "state": "what it was"
     },
     "state": {
-      "nearEnd": "Pressed in the fight's last minute, where it belongs",
-      "offRule": "Too early. Hold it for the fight's last minute",
-      "unknown": "Early, only right if you were standing in for a Fire Elemental that could not be up, and your log does not show the Skull Banner cooldown that call waits on"
+      "nearEnd": "Pressed in the last minute",
+      "offRule": "Too early, hold it for the last minute",
+      "unknown": "No Skull Banner cooldown logged to check"
     },
     "caption": "Every Earth Elemental summon, and where in the fight it went out",
     "none": "Earth Elemental was never pressed in this pull.",
@@ -1900,8 +1900,8 @@
       "state": "what it was"
     },
     "state": {
-      "yours": "Yours, laid outside Ascendance",
-      "duringAscendance": "Yours, and laid during Ascendance, ideally that global goes to Lava Beam instead"
+      "yours": "Yours, outside Ascendance",
+      "duringAscendance": "Laid during Ascendance, Lava Beam wants that global"
     },
     "you": "You",
     "caption": "Every Stormlash Totem that reached you in this pull, whoever laid it, and whether your own went down during Ascendance",

@@ -3131,6 +3131,64 @@ export type EarthShockReason =
  */
 export const SOFT_EARTH_SHOCK_REASONS: readonly EarthShockReason[] = ['twoPieceEarly'];
 
+/**
+ * Whose each shock reason is, as the tag the section draws beside it.
+ *
+ * **The one union in this file whose arms do not share an author.** `ascActive` and `ascReady` are the
+ * list holding the shock for Ascendance, so a press that carries them went against the rotation rather
+ * than against the player's own discipline; every other arm is a bar the player let slip, a dot they let
+ * run short, or a window they spent early. A single tag over the union would have to pick one of those
+ * and be wrong about the other half.
+ *
+ * A record and not a list, so a new arm does not compile until somebody decides whose it is. That is
+ * the half `SOFT_EARTH_SHOCK_REASONS` above cannot enforce for itself, and this table pays for it.
+ */
+export const EARTH_SHOCK_REASON_CAUSE: Record<EarthShockReason, JudgmentCause> = {
+	ascActive: 'rotation',
+	ascReady: 'rotation',
+	belowFull: 'player',
+	cleaveDot: 'player',
+	cleaveStacks: 'player',
+	fsLow: 'player',
+	fsTail: 'player',
+	twoPiece: 'player',
+	twoPieceEarly: 'player',
+};
+
+/**
+ * Whose each Flame Shock press is.
+ *
+ * Four of the seven are the list asking for the press: an application, a re-application the moment the
+ * dot fell, the last-tick refresh and the Ascendance carry. `snapshot` joins them because the sim's own
+ * list reapplies into a stronger dot; what separates a good snapshot from a bad one is which proc was on
+ * the dot being replaced, and `FlameShock.tsx` narrows the *wording* on that rather than the author.
+ */
+export const FLAME_SHOCK_KIND_CAUSE: Record<FlameShockPressKind, JudgmentCause> = {
+	apply: 'rotation',
+	ascPrep: 'rotation',
+	early: 'player',
+	late: 'player',
+	reapply: 'rotation',
+	snapshot: 'rotation',
+	windowed: 'rotation',
+};
+
+/**
+ * Whose each Ascendance fault is, and all five are the player's.
+ *
+ * Written out rather than defaulted, because the register the tags exist to enforce is that a fault
+ * names its author: `no-banner` is the one that looks like somebody else's and is not. Skull Banner sits
+ * on the raid frames with its cooldown visible, so spending your own fifteen seconds outside it is a
+ * call made with the information in hand. `raid` is for what a player cannot see coming.
+ */
+export const ASCENDANCE_FAULT_CAUSE: Record<AscendanceFault, JudgmentCause> = {
+	'discharge-too-short': 'player',
+	'late-into-haste': 'player',
+	'no-banner': 'player',
+	'opener-late': 'player',
+	'window-past-the-kill': 'player',
+};
+
 /** One Earth Shock press, with everything the sim's rule reads, at the press. */
 export interface EarthShockPress {
 	t: number;
