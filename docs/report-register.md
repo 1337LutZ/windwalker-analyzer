@@ -24,9 +24,23 @@ verdict and the fix behind it.
 
 ## Provenance
 
-**Corpus: 11 short reader-facing pieces written by this project's author, 326 words**, plus 4
-passages the same author rewrote by hand during A/B voice calibration. Every rule below either held
-across every piece in the corpus or is quoted verbatim from it.
+**Corpus: 11 short reader-facing pieces, 326 words**, plus 4 passages rewritten during A/B voice
+calibration. Every rule below either held across every piece in the corpus or is quoted verbatim
+from it.
+
+> **Correction, 2026-08-29: the corpus is machine-written, not the author's own prose.** This file
+> opened by calling it "written by this project's author" and every rule below was derived on that
+> footing. It is wrong. What the corpus records is what a model produces when asked to write like
+> this project, which is a different thing and in places the opposite of it.
+>
+> **This does not void the file, and it does not bless it either.** A rule that only ever rested on
+> a habit of the corpus is now evidence of nothing — it is measuring the model. A rule the shipped
+> copy corroborates stands on the corroboration and never needed the corpus. The evidence bar below
+> already draws exactly that line, so apply it again, per rule, before trusting one. §6 has been
+> retracted under it; §7's em dash keeps its enforcement because both locale files corroborate it.
+>
+> Where a rule reads as an AI tell rather than as a voice — expanded verbs, uniform sentence length,
+> a tidy closing clause — suspect the corpus first.
 
 **The measured profile of that corpus is `low_confidence`.** At 326 words and 11 sentences of prose,
 its rhythm and punctuation statistics are noise, and they are deliberately not reproduced here.
@@ -194,11 +208,21 @@ Two genuine contractions in 326 words across 11 pieces:
 Everything else expands where a contraction would fit: `others will not eat your damage`, not
 `won't`. `you will now also have`, not `you'll`.
 
-**Retraction, recorded because this claim has been wrong twice.** It read "zero contractions, every
-opportunity declined" until the praise pieces, then "contractions appear only in praise verdicts"
-until an argument piece put one in an observation clause. The honest statement is the plain one: the
-register is predominantly expanded, and a contraction turning up in a short evaluative sentence is
-normal. Write expanded by default. Do not treat a contraction as an error.
+**Retraction, third and final: "write expanded by default" is dead.** It had already been wrong
+twice — "zero contractions, every opportunity declined" until the praise pieces, then "contractions
+appear only in praise verdicts" until an argument piece put one in an observation clause. The third
+correction kills the rule rather than narrowing it, because the corpus it was measured from is
+machine-written (see Provenance). A model declining a contraction is not a voice; it is the single
+most reliable tell that prose was generated, and a register that enforced it was teaching the defect
+it exists to catch.
+
+**Write the contraction wherever speech would take one.** `can't`, `doesn't`, `you're`. Expand only
+where the full form carries weight the short one loses, which is rare and is a decision about that
+sentence rather than a default. Nothing enforces this in either direction, deliberately: the last
+thing this rule should acquire is a scanner counting apostrophes.
+
+The table above is kept as a record of what the corpus contained, and it is no longer evidence of
+anything about how this project should sound.
 
 A measured `contraction_rate` on this corpus reads about 0.012 and overstates it. Two of the four
 apostrophe tokens are the possessive `it's` (see §9), which are not contractions.
@@ -206,10 +230,11 @@ apostrophe tokens are the possessive `it's` (see §9), which are not contraction
 In longer verdict prose the same author contracts every time (`doesn't`, `isn't`, `would've`). The
 split tracks length and purpose, not mood.
 
-**Expect this to look wrong against guide writing.** Prose about this game is ordinarily contracted,
-and a reviewer coming from a guide will read the expanded form as stiff. This project's own short
-strings do not contract, and that is the record. Do not relax the rule because a guide reads
-differently.
+**The guide-writing note that used to sit here was the tell, and it was read backwards.** It said to
+expect the expanded form to look stiff against guide prose, and to hold the rule anyway. The
+observation was right and the instruction was wrong: prose about this game is ordinarily contracted
+because that is how people write, and a corpus that declined every contraction was not a house style
+worth defending.
 
 ## 7. Never
 

@@ -117,7 +117,7 @@ describe('the callout', () => {
 			name: null,
 		}));
 		for (const arm of kinds) {
-			expect(text(arm)).toContain('so the analysis cannot score you properly for optimal performance');
+			expect(text(arm)).toContain("so the analysis can't score you properly for optimal performance");
 			expect(text(arm)).toContain('but the analyzer is not optimised for this');
 		}
 	});

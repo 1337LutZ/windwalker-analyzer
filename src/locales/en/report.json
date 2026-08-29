@@ -199,9 +199,9 @@
     "title_towerRuns": "Tower duty",
     "title_splitPair": "Split bosses",
     "title_belt": "Belt duty",
-    "towerRuns": "You were assigned tower duty, so the analysis cannot score you properly for optimal performance. You can use these findings to improve your tower play, but the analyzer is not optimised for this.",
-    "splitPair": "You fought one of the two bosses, so the analysis cannot score you properly for optimal performance. You can use these findings to improve your play on the boss you held, but the analyzer is not optimised for this.",
-    "belt": "You were assigned belt duty, so the analysis cannot score you properly for optimal performance. You can use these findings to improve your belt play, but the analyzer is not optimised for this."
+    "towerRuns": "You were assigned tower duty, so the analysis can't score you properly for optimal performance. You can use these findings to improve your tower play, but the analyzer is not optimised for this.",
+    "splitPair": "You fought one of the two bosses, so the analysis can't score you properly for optimal performance. You can use these findings to improve your play on the boss you held, but the analyzer is not optimised for this.",
+    "belt": "You were assigned belt duty, so the analysis can't score you properly for optimal performance. You can use these findings to improve your belt play, but the analyzer is not optimised for this."
   },
   "tigerPalm": {
     "title": "Tiger Palm",

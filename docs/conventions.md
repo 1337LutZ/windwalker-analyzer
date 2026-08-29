@@ -365,11 +365,10 @@ it out of the sentence.
 **A refusal says what it cannot do, then what is still worth reading.** Two sentences, and a sibling of
 the fault shape in `docs/report-register.md` §1 rather than a competitor to it: a refusal is not a fault,
 so the first sentence names what the player was assigned and the consequence rather than a mistake, and
-the second offers what the findings are still good for instead of a fix. Expanded verbs, per §6 — the
-register's contractions live in short evaluative sentences and this is not one. Fill in the blanks and
-stop:
+the second offers what the findings are still good for instead of a fix. Contract where speech would:
+see §6, whose "expanded by default" line is retracted. Fill in the blanks and stop:
 
-> You were assigned _belt duty_, so the analysis cannot score you properly for optimal performance. You
+> You were assigned _belt duty_, so the analysis can't score you properly for optimal performance. You
 > can use these findings to improve your _belt play_, but the analyzer is not optimised for this.
 
 **A family of findings in one slot shares its closing sentence.** Different facts open differently and
@@ -555,7 +554,7 @@ copy itself follows — say it once, outside the arms.
 As of the split-group callout, it prints 1787 leaves, 848 prose, 26,371
 words; median 27, p75 41, p90 61, p95 70, p99 102, max 158; longest 9% carry 23%; report.json 770 prose
 leaves, 1,367 sentences, median 16, 242 past 25 (17.7%), 1 em-dash in 0 sentences (0.0%);
-72 / 30 / 1 / 2 on the quote lines.
+75 / 30 / 1 / 2 on the quote lines.
 
 Eight leaves and three sentences, the smallest block to move this census in some time: six column
 headings, a table caption and one line of prose, added when the Method section's per-encounter figures
@@ -732,12 +731,16 @@ it happened to take.** The engine measures the run count, the seconds away, the 
 distance between two bosses; none reaches the reader, because a caveat that is quantified invites an
 argument with its size instead of being read.
 
-**No row moves but the three counting rows, and one of them nearly did.** The three sentences shipped
-with `can't` in them and put the straight-apostrophe row up to 75, which is what sent this pass back to
-`report-register.md` §6: the register's contractions live in short evaluative sentences, and a caveat
-explaining why a pull cannot be scored is not one. Expanded, the row is back at 72. It is a small
-reading, and it is the kind this census exists to make: a family that moves a row it has no business
-moving has usually drifted somewhere the prose rules can name.
+**The straight-apostrophe row moves 72 to 75, and chasing it is how a bad rule got caught.** Three
+`can't`s put it there. The row sent this pass to `report-register.md` §6, which said to write expanded
+by default; the copy was expanded, the row went back to 72, and the reading looked tidy. It was wrong.
+§6 was measured from a machine-written corpus, and a model declining a contraction is the most
+reliable tell there is that prose was generated. The rule is retracted, the copy contracts again, and
+the row stands at 75.
+
+**What this census is for, on the evidence of that round trip.** A row moving is a question, not a
+verdict. This one was answered wrongly twice before the provenance of the rule behind it was checked,
+and the number was the same number all three times.
 
 <!-- /census:figures -->
 
