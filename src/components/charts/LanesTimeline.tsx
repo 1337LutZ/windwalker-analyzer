@@ -5,7 +5,6 @@ import { useTranslation } from 'react-i18next';
 import type { ApexOptions } from 'apexcharts';
 
 import type { Analysis, AuraLane } from '~/lib/types';
-import { spellIconUrl } from '~/components/primitives/spellIcon';
 import type { CounterLoad, TimelineCounter } from '~/lib/view/timelineBanks';
 
 import { formatSeconds, formatStamp } from '~/lib/format';
@@ -69,8 +68,33 @@ interface Span {
 /** A span shorter than this is a sliver too thin to hover, so it is drawn at this width. */
 const minimumSpan = (durationMs: number) => durationMs / 400;
 
-/** How large an application icon is drawn on a lane. A shade under the 9-unit lane height. */
-const APPLICATION_ICON_PX = 14;
+/**
+ * The tick a refresh is drawn as: two pixels of the chart's own ground, most of a lane tall.
+ *
+ * **A tick and not the aura's icon.** The icon was tried first and read as clutter on a summary: this
+ * chart's rows are 36px of mostly bar, an icon is a second picture of the row's own label, and a dozen
+ * of them down one lane are a row of thumbnails rather than a rhythm. A notch says the one thing the
+ * mark is for, that the bar was bought again here, and says it at any width.
+ *
+ * Painted in `bg` so it reads as a gap cut into the bar rather than as something laid on top of it.
+ * That is the same argument `text-bg` makes for the figures written inside a bar on the cast timeline:
+ * the ground is the one colour guaranteed to contrast with every tone a bar can take.
+ */
+const REFRESH_TICK_PX = { width: 2, height: 22 } as const;
+
+/**
+ * The renewals in a lane's applications: the ones that opened no window of their own.
+ *
+ * The engine hands both kinds over in one array (`AuraLane.applications`), and a window's own start is
+ * what tells them apart, exactly rather than by a tolerance, because `auraWindows` stamps the window
+ * from the very event this list carries. An application that opened a bar is that bar's left edge, and a
+ * tick drawn on top of it marks nothing the reader cannot already see.
+ *
+ * Exported for its guard. It is one line of filtering and the line is the whole rule this chart draws
+ * by, which is the kind of line that goes quietly wrong in a chart nothing can render in a test.
+ */
+export const refreshesOf = (lane: AuraLane): number[] =>
+	(lane.applications ?? []).filter((at) => !lane.windows.some((w) => w.start === at));
 
 interface Row {
 	name: string;
@@ -79,12 +103,18 @@ interface Row {
 	windows: Array<[number, number]>;
 	presses: number[];
 	/**
-	 * When the aura was applied or refreshed, drawn as an icon on the bar.
+	 * When the aura was renewed inside a window it already had, drawn as a tick on the bar.
 	 *
 	 * A window closes on a remove and swallows every refresh inside it, so a long bar hides the presses
-	 * that paid for it — see `AuraLane.applications`. These are what puts them back on the page.
+	 * that paid for it — see `AuraLane.applications`. These are what put them back on the page.
+	 *
+	 * **The applications that opened a window are left out here, and only here.** A bar's left edge is
+	 * already that event, drawn at full height and impossible to miss, so a tick on top of it marks
+	 * nothing the reader cannot see: on the summary it doubled every bar's start with a notch. What is
+	 * invisible without a mark is the refresh *inside* a bar, which is the whole reason the field exists.
+	 * The cast timeline keeps both, because a merged row there is read against its presses.
 	 */
-	applications: number[];
+	refreshes: number[];
 	/**
 	 * A counter's loads, when the spec draws one on this row: one entry per load it built and let go of.
 	 *
@@ -151,10 +181,10 @@ function buildRows(
 			tone,
 			windows: [],
 			presses: [],
-			applications: [],
+			refreshes: [],
 		};
 		row.windows.push(...lane.windows.map((w): [number, number] => [w.start, w.end]));
-		row.applications.push(...(lane.applications ?? []));
+		row.refreshes.push(...refreshesOf(lane));
 		byName.set(lane.name, row);
 	}
 	if (summaryKeys === null) {
@@ -166,7 +196,7 @@ function buildRows(
 				tone: CAST_TONE,
 				windows: [],
 				presses: [],
-				applications: [],
+				refreshes: [],
 			};
 			row.presses.push(mark.t);
 			byName.set(mark.name, row);
@@ -187,9 +217,9 @@ function buildRows(
 			tone: counter.tone,
 			windows: [],
 			presses: [],
-			// A counter row draws one bar per load and already shows every spend, so an icon per stack gain
+			// A counter row draws one bar per load and already shows every spend, so a tick per stack gain
 			// would be a second mark for a thing the row is made of.
-			applications: [],
+			refreshes: [],
 			loads: counter.loads,
 			faultWindows: counter.faultWindows,
 		});
@@ -355,20 +385,26 @@ export default function LanesTimeline({ analysis }: { analysis: Analysis }) {
 				xaxis: timeAxis(theme, analysis.durationMs, narrow),
 				yaxis: { labels: { show: false } },
 				/**
-				 * The aura's own icon wherever the player applied or refreshed it.
+				 * A tick on the bar wherever the aura was renewed.
 				 *
 				 * **What this is for.** A bar says the aura was up; it cannot say how many presses kept it
 				 * there, because `auraWindows` closes a window on a remove and discards every refresh inside
-				 * it. Elemental Discharge on `XJ83wN9h1GQqP4tY` fight 16 is 38.9 seconds of unbroken bar over
-				 * three applications, and a reader looking for the refreshes had nothing to look at. The icon
-				 * marks each one on the bar it belongs to.
+				 * it. Elemental Discharge on `B79VQfyxk8an312v` fight 43 is 47 seconds of unbroken bar for a
+				 * buff that runs fourteen, and a reader looking for the renewals had nothing to look at.
 				 *
-				 * **Off on a narrow chart, and stated rather than silent.** The icons are 14px and the rows
-				 * are 92% of a lane's height, so on a phone a busy row would stack them into an unreadable
-				 * smear — the same reason `dataLabels` is gated on `narrow` twenty lines above. The windows
-				 * still draw; it is the marks that wait for room.
+				 * **Renewals only, which is what separates this chart from the cast log.** An application that
+				 * opened a window is the bar's own left edge, drawn full height already; a tick there marks
+				 * nothing new. `Row.refreshes` is where that cut is made and why.
 				 *
-				 * A row whose id has no icon in `spells.json` contributes nothing rather than a broken image.
+				 * **A notch rather than the aura's art.** The icon shipped first and read as clutter here: this
+				 * is the summary, its label column already names and pictures the row, and a dozen thumbnails
+				 * down a lane are not a rhythm. The tick is drawn in the chart's ground so it reads as a gap in
+				 * the bar at every tone the bar can take.
+				 *
+				 * **Off on a narrow chart, and stated rather than silent.** A phone draws the whole pull into
+				 * 390px, where a busy row's ticks land on top of each other and hatch the bar solid, for the same
+				 * reason `dataLabels` is gated on `narrow` twenty lines above. The windows still draw; it is
+				 * the marks that wait for room.
 				 */
 				annotations: narrow
 					? {}
@@ -380,17 +416,28 @@ export default function LanesTimeline({ analysis }: { analysis: Analysis }) {
 							 * coordinate — and ApexCharts resolves a category annotation by that string at
 							 * runtime. A numeric `y` here would be read as a value on an axis that has none.
 							 */
-							points: rows.flatMap((row) => {
-								const path = spellIconUrl(row.id);
-								if (path === null) return [];
-								return row.applications.map((t) => ({
+							points: rows.flatMap((row) =>
+								row.refreshes.map((t) => ({
 									x: t,
 									y: row.name,
-									// The image is the mark, so the default dot underneath it would be a second one.
+									// The tick is the mark, so the default dot underneath it would be a second one.
 									marker: { size: 0 },
-									image: { path, width: APPLICATION_ICON_PX, height: APPLICATION_ICON_PX },
-								}));
-							}) as unknown as ApexOptions['annotations'] extends { points?: infer P } ? P : never,
+									/**
+									 * Drawn as SVG rather than as an `image` or a `marker`, because neither can be this
+									 * shape. A marker is a dot or a square sized by one number, and an `image` would mean
+									 * encoding a two-pixel rectangle as a data URI to get a rectangle. `customSVG` is
+									 * documented as deprecated in favour of those two and still supported; it is the only
+									 * one of the three that draws a line.
+									 *
+									 * Centred on the moment by the rect's own offsets, so the tick straddles the timestamp
+									 * the log gave rather than starting after it, since a mark two pixels wide has no meaningful
+									 * left edge to align.
+									 */
+									customSVG: {
+										SVG: `<rect x="${-REFRESH_TICK_PX.width / 2}" y="${-REFRESH_TICK_PX.height / 2}" width="${REFRESH_TICK_PX.width}" height="${REFRESH_TICK_PX.height}" rx="1" fill="${theme.bg}" />`,
+									},
+								})),
+							) as unknown as ApexOptions['annotations'] extends { points?: infer P } ? P : never,
 						},
 				tooltip: baseTooltip(theme),
 			};

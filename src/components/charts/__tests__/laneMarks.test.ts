@@ -15,6 +15,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
 import CastTimeline from '../CastTimeline';
+import { refreshesOf } from '../LanesTimeline';
 import { SpecContext } from '~/components/report/specContext';
 import { initI18n } from '~/lib/i18n/config';
 import { getSpec } from '~/lib/spec';
@@ -109,5 +110,30 @@ describe('an aura lane marks its applications on the bar', () => {
 		const drawn = marksIn(render(createElement(CastTimeline, { analysis: analysisWith(laneWith(crowded)) })));
 		expect(drawn).toBeGreaterThan(0);
 		expect(drawn).toBeLessThan(crowded.length);
+	});
+});
+
+/**
+ * The summary timeline's own cut, which is not the cast log's.
+ *
+ * `PullTimeline` draws a tick per renewal and nothing at a bar's start: the left edge is that
+ * application already, at full height, and a mark on top of it is a second drawing of one event. The
+ * cast log keeps both, because a merged row there is read against the presses beside it.
+ */
+describe('the summary timeline marks renewals and not openings', () => {
+	it('drops the application that opened each window', () => {
+		const lane = laneWith([0, 20_000, 60_000], {
+			windows: [
+				{ start: 0, end: 30_000 },
+				{ start: 60_000, end: 90_000 },
+			],
+		});
+		expect(refreshesOf(lane)).toEqual([20_000]);
+	});
+
+	/** A lane the log carries no applications for is not a lane with an empty one; both draw nothing. */
+	it('answers with nothing when the engine wrote no applications', () => {
+		const bare: AuraLane = { ...FS, group: 'debuff', windows: [{ start: 0, end: 30_000 }] };
+		expect(refreshesOf(bare)).toEqual([]);
 	});
 });
