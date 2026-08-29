@@ -351,7 +351,8 @@ once already.
 **Ability names stay out of the locale.** WarcraftLogs returns them localised in `masterData`, and a
 second table here would drift from the one the API hands us.
 
-**The tool is called the `analyzer`.** One noun, one spelling, z — `app.title` renders it at the top of
+**The tool is called the `analyzer`.** One noun, one spelling, z, and `report-register.md` §5 writes it
+the same way — `app.title` renders it at the top of
 every page and a sentence underneath must not contradict the heading. Verbs stay British: analyse,
 analysed, analysis. Never "this report" or "this page" for the thing doing the work.
 
@@ -361,11 +362,14 @@ a measurement invites them to argue with its size — _is 43 seconds really enou
 instead of reading it. Measure it, record it on the finding, print it in the research script, and keep
 it out of the sentence.
 
-**A refusal says what it cannot do, then what is still worth reading.** Two sentences. The first names
-what the player was doing and the consequence; the second offers what the findings are still good for
-and where the tool stops. Fill in the blanks and stop:
+**A refusal says what it cannot do, then what is still worth reading.** Two sentences, and a sibling of
+the fault shape in `docs/report-register.md` §1 rather than a competitor to it: a refusal is not a fault,
+so the first sentence names what the player was assigned and the consequence rather than a mistake, and
+the second offers what the findings are still good for instead of a fix. Expanded verbs, per §6 — the
+register's contractions live in short evaluative sentences and this is not one. Fill in the blanks and
+stop:
 
-> You were assigned _belt duty_, so the analysis can't score you properly for optimal performance. You
+> You were assigned _belt duty_, so the analysis cannot score you properly for optimal performance. You
 > can use these findings to improve your _belt play_, but the analyzer is not optimised for this.
 
 **A family of findings in one slot shares its closing sentence.** Different facts open differently and
@@ -551,7 +555,7 @@ copy itself follows — say it once, outside the arms.
 As of the split-group callout, it prints 1787 leaves, 848 prose, 26,371
 words; median 27, p75 41, p90 61, p95 70, p99 102, max 158; longest 9% carry 23%; report.json 770 prose
 leaves, 1,367 sentences, median 16, 242 past 25 (17.7%), 1 em-dash in 0 sentences (0.0%);
-75 / 30 / 1 / 2 on the quote lines.
+72 / 30 / 1 / 2 on the quote lines.
 
 Eight leaves and three sentences, the smallest block to move this census in some time: six column
 headings, a table caption and one line of prose, added when the Method section's per-encounter figures
@@ -726,9 +730,14 @@ holds at 1 in 0 sentences.
 **The family carries no figure either, and that is the rule this pass wrote down rather than the shape
 it happened to take.** The engine measures the run count, the seconds away, the damage share and the
 distance between two bosses; none reaches the reader, because a caveat that is quantified invites an
-argument with its size instead of being read. The straight-apostrophe row is the only one that moves,
-72 to 75, from one contraction appearing three times: a refusal is where this corpus speaks to the
-reader most directly.
+argument with its size instead of being read.
+
+**No row moves but the three counting rows, and one of them nearly did.** The three sentences shipped
+with `can't` in them and put the straight-apostrophe row up to 75, which is what sent this pass back to
+`report-register.md` §6: the register's contractions live in short evaluative sentences, and a caveat
+explaining why a pull cannot be scored is not one. Expanded, the row is back at 72. It is a small
+reading, and it is the kind this census exists to make: a family that moves a row it has no business
+moving has usually drifted somewhere the prose rules can name.
 
 <!-- /census:figures -->
 

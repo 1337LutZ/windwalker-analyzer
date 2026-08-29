@@ -1,4 +1,4 @@
-// What `detectSplitGroup` says about real pulls, straight out of the analyser's own code path.
+// What `detectSplitGroup` says about real pulls, straight out of the analyzer's own code path.
 //
 // **This is the reproduction path for every figure in `lib/game/splitGroups.ts`.** That module's
 // thresholds are argued from shares measured on named reports — 83 to 100% on the belt, 50.3 to 62.0%
