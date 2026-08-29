@@ -26,6 +26,15 @@ import { rowRank } from './timelineOrder';
  * row, so a 24px icon is not squeezed; 24 for the rest.
  */
 const ROW_HEIGHT = 36;
+
+/**
+ * How much of a row the bar fills, as the fraction `plotOptions.bar.barHeight` is written from.
+ *
+ * A number rather than the `'92%'` string it used to be written as, because the refresh tick has to be
+ * exactly this tall in pixels and a second spelling of the same fraction is a second thing to keep in
+ * step. See `REFRESH_TICK.height`.
+ */
+const BAR_HEIGHT = 0.92;
 const CHROME = 92;
 const LABEL_PX = 172;
 const NARROW_LABEL_PX = 84;
@@ -80,7 +89,27 @@ const minimumSpan = (durationMs: number) => durationMs / 400;
  * That is the same argument `text-bg` makes for the figures written inside a bar on the cast timeline:
  * the ground is the one colour guaranteed to contrast with every tone a bar can take.
  */
-const REFRESH_TICK_PX = { width: 2, height: 22 } as const;
+const REFRESH_TICK = {
+	width: 2,
+	/**
+	 * Exactly the bar, and floored so it can only ever be shorter.
+	 *
+	 * `barHeight` is a percentage of the row and the tick is drawn in pixels, so the two have to be
+	 * computed from one number or they drift the first time a row changes height: a tick a pixel taller
+	 * than the bar hangs out of both ends of it and reads as a divider between rows rather than as a mark
+	 * on one. `Math.floor` is which way that error is allowed to fall.
+	 */
+	height: Math.floor(ROW_HEIGHT * BAR_HEIGHT),
+	/**
+	 * Black at half strength, which is a shadow rather than a colour.
+	 *
+	 * The ground was tried first and it reads as a *gap*: a bar cut into two bars, which is the one thing
+	 * a renewal is not. A translucent black darkens whichever tone the bar is drawn in and stays the same
+	 * mark on all four of them, and needs no entry in the palette to do it — nothing else in this report
+	 * spends a colour on saying "here".
+	 */
+	fill: 'rgba(0, 0, 0, 0.5)',
+} as const;
 
 /**
  * The renewals in a lane's applications: the ones that opened no window of their own.
@@ -367,7 +396,9 @@ export default function LanesTimeline({ analysis }: { analysis: Analysis }) {
 					}),
 				},
 				series: [{ name: 'spans', data: spans }],
-				plotOptions: { bar: { horizontal: true, barHeight: '92%', borderRadius: 2, rangeBarGroupRows: false } },
+				plotOptions: {
+					bar: { horizontal: true, barHeight: `${BAR_HEIGHT * 100}%`, borderRadius: 2, rangeBarGroupRows: false },
+				},
 				dataLabels: {
 					enabled: !narrow,
 					formatter: (_value, opts) => counts[(opts as unknown as { dataPointIndex: number }).dataPointIndex] ?? '',
@@ -398,8 +429,8 @@ export default function LanesTimeline({ analysis }: { analysis: Analysis }) {
 				 *
 				 * **A notch rather than the aura's art.** The icon shipped first and read as clutter here: this
 				 * is the summary, its label column already names and pictures the row, and a dozen thumbnails
-				 * down a lane are not a rhythm. The tick is drawn in the chart's ground so it reads as a gap in
-				 * the bar at every tone the bar can take.
+				 * down a lane are not a rhythm. The tick is a translucent black the bar's own height, so it
+				 * darkens whichever tone the bar carries instead of cutting it in two.
 				 *
 				 * **Off on a narrow chart, and stated rather than silent.** A phone draws the whole pull into
 				 * 390px, where a busy row's ticks land on top of each other and hatch the bar solid, for the same
@@ -429,12 +460,14 @@ export default function LanesTimeline({ analysis }: { analysis: Analysis }) {
 									 * documented as deprecated in favour of those two and still supported; it is the only
 									 * one of the three that draws a line.
 									 *
-									 * Centred on the moment by the rect's own offsets, so the tick straddles the timestamp
-									 * the log gave rather than starting after it, since a mark two pixels wide has no meaningful
-									 * left edge to align.
+									 * Centred on the moment and on the bar by the rect's own offsets: the tick straddles the
+									 * timestamp the log gave rather than starting after it, since a mark two pixels wide has
+									 * no meaningful left edge to align, and it sits inside the bar's own height rather than
+									 * across the row. Square corners, because a two-pixel mark with rounded ends is a mark
+									 * with no ends.
 									 */
 									customSVG: {
-										SVG: `<rect x="${-REFRESH_TICK_PX.width / 2}" y="${-REFRESH_TICK_PX.height / 2}" width="${REFRESH_TICK_PX.width}" height="${REFRESH_TICK_PX.height}" rx="1" fill="${theme.bg}" />`,
+										SVG: `<rect x="${-REFRESH_TICK.width / 2}" y="${-REFRESH_TICK.height / 2}" width="${REFRESH_TICK.width}" height="${REFRESH_TICK.height}" fill="${REFRESH_TICK.fill}" />`,
 									},
 								})),
 							) as unknown as ApexOptions['annotations'] extends { points?: infer P } ? P : never,
