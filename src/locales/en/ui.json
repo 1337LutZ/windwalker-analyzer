@@ -17,7 +17,7 @@
     "privacy": "There is no server, no cookies and no analytics. Nothing is stored except your token, and only until this tab closes. If you open DevTools → Network while it runs, you will see this page's own assets, POSTs to warcraftlogs.com, and spell icons from Wowhead's image host. The icon requests carry no token, no report code and nothing else.",
     "moved": {
       "title": "This analyzer has moved",
-      "body": "It used to live at one address per spec, and now serves both from here. Your WarcraftLogs API client still points at the old address, so sign-in will fail until you add the one below to it. Adding it is enough — nothing has to be removed, and one entry covers every spec.",
+      "body": "It used to live at one address per spec, and now serves them all from here. Your WarcraftLogs API client still points at the old address, so sign-in will fail until you add the one below to it. Adding it is enough: nothing has to be removed, and one entry covers every spec.",
       "uri": "Redirect URI to add",
       "dismiss": "Got it"
     },
@@ -118,7 +118,7 @@
       "tokenBefore": "What comes back is an access token. It is held in this browser tab, sent to",
       "tokenBetween": "as an",
       "tokenAfter": "header, and sent nowhere else. This page has no server to send it to: it is a folder of static files, and the content-security policy it ships makes your browser enforce that whatever the JavaScript intends.",
-      "tab": "Closing this tab discards it. Nothing is written to a cookie, and nothing survives that outlives the tab — on a shared machine there is nothing to remember to clean up. Signing out clears it immediately, and you can revoke the app’s access from your WarcraftLogs account whenever you like.",
+      "tab": "Closing this tab discards it. Nothing is written to a cookie, and nothing survives that outlives the tab, so on a shared machine there is nothing to remember to clean up. Signing out clears it immediately, and you can revoke the app’s access from your WarcraftLogs account whenever you like.",
       "docs": "The underlying API, and what the analyzer reads with that token, is documented at",
       "close": "Close"
     }
@@ -163,7 +163,7 @@
       },
       "missing": {
         "credits": "WarcraftLogs did not report the hourly point budget for this token.",
-        "report": "No report \"{{code}}\" on {{host}}. Check the code — this analyzer only reads Mists of Pandaria Classic logs, and a code from another WarcraftLogs site does not exist here.",
+        "report": "No report \"{{code}}\" on {{host}}. Check the code: this analyzer only reads Mists of Pandaria Classic logs, and a code from another WarcraftLogs site does not exist here.",
         "reportPublicOnly": "This token also reads public logs only, and a private report answers \"not found\" rather than saying it is private. If the code is right, the log may not be public.",
         "actors": "Report \"{{code}}\" has no actor list, so nothing in it can be named.",
         "players": "WarcraftLogs returned no player list for fight {{fightID}} of report \"{{code}}\", so nothing in it can be matched to a spec.",

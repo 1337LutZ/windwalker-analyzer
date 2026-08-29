@@ -548,10 +548,10 @@ copy itself follows — say it once, outside the arms.
      src/lib/i18n/__tests__/conventionsCensus.test.ts. Re-run the block above and paste the whole set
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
-As of the fight-audit split, it prints 1781 leaves, 845 prose, 26,266
-words; median 27, p75 41, p90 61, p95 70, p99 102, max 158; longest 9% carry 23%; report.json 767 prose
-leaves, 1,361 sentences, median 16, 242 past 25 (17.8%), 1 em-dash in 0 sentences (0.0%);
-72 / 30 / 1 / 2 on the quote lines.
+As of the split-group callout, it prints 1787 leaves, 848 prose, 26,371
+words; median 27, p75 41, p90 61, p95 70, p99 102, max 158; longest 9% carry 23%; report.json 770 prose
+leaves, 1,367 sentences, median 16, 242 past 25 (17.7%), 1 em-dash in 0 sentences (0.0%);
+75 / 30 / 1 / 2 on the quote lines.
 
 Eight leaves and three sentences, the smallest block to move this census in some time: six column
 headings, a table caption and one line of prose, added when the Method section's per-encounter figures
@@ -717,6 +717,18 @@ argument stays.
 The straight-apostrophe line is the one that did move: 71 to 74, from a single contraction appearing
 three times. Worth knowing which line a family lands on, and this one lands there because a refusal is
 the place the corpus talks to the reader most directly — _can't_, not _cannot_.
+
+Six leaves and 106 words in the pass that named the raid splitting up, and the whole family is three
+titles and three sentences: one per kind of split, a reader ever seeing one of the three. It is the
+first entry added since the em dash was retired, and it did not have to be talked out of one. The count
+holds at 1 in 0 sentences.
+
+**The family carries no figure either, and that is the rule this pass wrote down rather than the shape
+it happened to take.** The engine measures the run count, the seconds away, the damage share and the
+distance between two bosses; none reaches the reader, because a caveat that is quantified invites an
+argument with its size instead of being read. The straight-apostrophe row is the only one that moves,
+72 to 75, from one contraction appearing three times: a refusal is where this corpus speaks to the
+reader most directly.
 
 <!-- /census:figures -->
 
