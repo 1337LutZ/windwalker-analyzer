@@ -714,9 +714,9 @@ longest string in the tree is now 158 rather than 191. Nothing was deleted. Pref
 cutting whenever the length is evidence rather than scaffolding: the page gets shorter and the
 argument stays.
 
-The straight-apostrophe line is the only one that moved on the last edit: 71 to 74, from one contraction
-appearing three times. It is worth knowing which line a family lands on, and this one lands there because
-a refusal is the place the corpus talks to the reader most directly — _can't_, not _cannot_.
+The straight-apostrophe line is the one that did move: 71 to 74, from a single contraction appearing
+three times. Worth knowing which line a family lands on, and this one lands there because a refusal is
+the place the corpus talks to the reader most directly — _can't_, not _cannot_.
 
 <!-- /census:figures -->
 
