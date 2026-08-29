@@ -351,6 +351,31 @@ once already.
 **Ability names stay out of the locale.** WarcraftLogs returns them localised in `masterData`, and a
 second table here would drift from the one the API hands us.
 
+**The tool is called the `analyzer`.** One noun, one spelling, z — `app.title` renders it at the top of
+every page and a sentence underneath must not contradict the heading. Verbs stay British: analyse,
+analysed, analysis. Never "this report" or "this page" for the thing doing the work.
+
+**A refusal carries no figure.** Everything else in this report argues from numbers. A sentence saying
+the analysis cannot stand behind a pull must not: the reader has just been told the verdict is void, and
+a measurement invites them to argue with its size — _is 43 seconds really enough to spoil this?_ —
+instead of reading it. Measure it, record it on the finding, print it in the research script, and keep
+it out of the sentence.
+
+**A refusal says what it cannot do, then what is still worth reading.** Two sentences. The first names
+what the player was doing and the consequence; the second offers what the findings are still good for
+and where the tool stops. Fill in the blanks and stop:
+
+> You were assigned _belt duty_, so nothing below is a fair read of how you played. You can use these
+> findings to improve your _belt play_, but the analyzer is not optimised for this.
+
+**A family of findings in one slot shares its closing sentence.** Different facts open differently and
+close identically. Three callouts written separately read as three voices — one naming the tool, one
+pointing at a chart, one reciting a percentage — and a reader meets exactly one of them, so the
+inconsistency is invisible until somebody reads all three.
+
+`specs/__tests__/readerVoice.test.ts` gates the first two: no `analyser`, and no `{{` in a family listed
+in `REFUSAL_FAMILIES`.
+
 Two tests guard all of this and both must stay green: `lib/i18n/__tests__/keys.test.ts` fails if a
 component asks for a key that does not exist (a missing key renders as its own key path rather than
 throwing, so nothing else would catch it), and `specs/windwalker/lib/__tests__/score.test.ts` asserts the

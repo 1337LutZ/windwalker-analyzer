@@ -742,6 +742,52 @@ describe('the shared copy is about the pull, not about the audit', () => {
 
 // ================================================================= the file, closed
 
+/**
+ * Families whose whole message is that the report cannot judge this pull.
+ *
+ * Written out, because there is no way to recognise one from its text — a refusal reads like any other
+ * caveat until you know what the section does with it.
+ */
+const REFUSAL_FAMILIES = ['splitGroup'];
+
+describe('a refusal names the tool and carries no figure', () => {
+	/**
+	 * **One spelling of the tool's own name: `analyzer`.**
+	 *
+	 * The verbs stay British — `analyse`, `analysed`, `analysis` — and only the noun takes the z, which
+	 * looks like an inconsistency and is not: the z is the product's name rather than a spelling choice.
+	 * `app.title` renders it at the top of every page, so a sentence underneath spelling it `analyser`
+	 * contradicts the heading the reader is looking at.
+	 *
+	 * The corpus held both for a long time, 2 against 4, and nothing said which was right. The title is
+	 * what settled it.
+	 */
+	it('spells the tool the way its own title spells it', () => {
+		expect(matching(['analyser'], bothLocales())).toEqual([]);
+		// Non-vacuous, and pinned against the string that decides the question.
+		expect(bothLocales().filter(([, value]) => /\banalyzer\b/i.test(value)).length).toBeGreaterThan(5);
+		expect(bothLocales().find(([key]) => key === 'ui:app.title')?.[1]).toContain('analyzer');
+	});
+
+	/**
+	 * **A refusal is not quantified.**
+	 *
+	 * The rest of this report argues from figures and should. A refusal is the one thing that must not:
+	 * told the analysis cannot stand behind their pull, a reader does not need the caveat measured, and a
+	 * number invites them to argue with its size — *is 43 seconds really enough to spoil this?* — instead
+	 * of reading the sentence. The split-group family shipped ten leaves carrying run counts, seconds
+	 * away, a damage share and a distance in yards, and came back as six carrying none of it.
+	 *
+	 * The measurements are not lost; they stop at the component. `game/splitGroups.ts` still records every
+	 * one, `scripts/split-report.mjs` prints them and `game/__tests__/splitGroups.test.ts` pins them.
+	 */
+	it('puts no interpolation in a family that refuses to judge', () => {
+		const refusals = localeStrings().filter(([key]) => REFUSAL_FAMILIES.includes(key.split('.')[0]!));
+		expect(refusals.length).toBeGreaterThan(3);
+		expect(refusals.filter(([, value]) => value.includes('{{')).map(([key]) => key)).toEqual([]);
+	});
+});
+
 describe('no string in report.json sits outside every scope', () => {
 	/**
 	 * The gap this file's whole history is about, made impossible rather than fixed again.
