@@ -74,11 +74,11 @@ describe('a credited early refresh names the term that made the dot stronger', (
 	it('says so where this dot froze the proc and the dot it replaced had not', () => {
 		expect(pressAt(28_628).kind).toBe('snapshot');
 		expect(html).toContain(
-			'Refreshed early into a dot 42.44% stronger, with Clearcasting’s +20% frozen into it — 18.7% stronger without the proc',
+			'Refreshed early into a dot 42.44% stronger, with Clearcasting’s +20% frozen into it, 18.7% stronger without the proc',
 		);
 		// The second credited press of the same shape, so the case is not one row.
 		expect(html).toContain(
-			'Refreshed early into a dot 56.15% stronger, with Clearcasting’s +20% frozen into it — 30.13% stronger without the proc',
+			'Refreshed early into a dot 56.15% stronger, with Clearcasting’s +20% frozen into it, 30.13% stronger without the proc',
 		);
 	});
 
@@ -91,7 +91,7 @@ describe('a credited early refresh names the term that made the dot stronger', (
 		expect(pressAt(140_025).kind).toBe('snapshot');
 		expect(pressAt(140_025).snapshotClearcasting).toBe(false);
 		expect(html).toContain(
-			'Refreshed early into a dot 32.67% stronger even though Clearcasting was up on the dot you replaced and not on this one — 59.21% stronger on everything but the proc',
+			'Refreshed early into a dot 32.67% stronger even though Clearcasting was up on the dot you replaced and not on this one, 59.21% stronger on everything but the proc',
 		);
 	});
 
@@ -111,7 +111,7 @@ describe('a credited early refresh names the term that made the dot stronger', (
 			snapshotDeltaWithoutClearcastingPct: 0.2,
 		};
 		const cell = render(withOnePress(neutral));
-		expect(cell).toContain('Refreshed early into a dot 20% stronger — worth the tick');
+		expect(cell).toContain('Refreshed early into a dot 20% stronger, worth the tick');
 		// Neither of the attributing forms, scoped to their own wording: the proc is named in the section's
 		// opening sentence and in the note below the table on every pull, so a bare search for the word is
 		// no test at all.
@@ -125,9 +125,10 @@ describe('a credited early refresh names the term that made the dot stronger', (
 	 * nothing else as what a dot freezes.
 	 */
 	it('opens by naming everything the dot freezes, the proc included', () => {
-		expect(html).toContain(
-			'the dot freezes everything you had up at the instant you applied it — spellpower, your haste, and Clearcasting’s +20%',
-		);
+		// All three terms, in the opening sentence, in the order the dot freezes them. Asserted as a shape
+		// rather than a quotation: the wrong reason this guards against is naming spellpower and stopping,
+		// and a shorter sentence that still names all three has not made that mistake.
+		expect(html).toMatch(/freezes[^.]{0,90}spellpower[^.]{0,30}haste[^.]{0,40}Clearcasting’s \+20%/);
 	});
 
 	/**

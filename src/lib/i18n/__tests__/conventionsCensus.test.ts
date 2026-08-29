@@ -79,8 +79,8 @@ const CENSUS: readonly { readonly name: string; readonly doc: RegExp; readonly t
 	{ name: 'sentence median', doc: /sentences, median ([\d,]+),/, tree: /median ([\d,]+) words,/ },
 	{ name: 'sentences past 25', doc: /median [\d,]+, ([\d,]+) past 25/, tree: /([\d,]+) past 25/ },
 	{ name: 'share past 25', doc: /past 25 \(([\d.]+)%\)/, tree: /past 25 \(([\d.]+)%\)/ },
-	{ name: 'em-dashes', doc: /([\d,]+) em-dashes/, tree: /em-dashes ([\d,]+),/ },
-	{ name: 'sentences carrying an em-dash', doc: /em-dashes in ([\d,]+) sentences/, tree: /in ([\d,]+) sentences/ },
+	{ name: 'em-dashes', doc: /([\d,]+) em-dashe?s?/, tree: /em-dashes ([\d,]+),/ },
+	{ name: 'sentences carrying an em-dash', doc: /em-dashe?s? in ([\d,]+) sentences/, tree: /in ([\d,]+) sentences/ },
 	{ name: 'share carrying an em-dash', doc: /sentences \(([\d.]+)%\)/, tree: /sentences \(([\d.]+)%\)/ },
 	{
 		name: 'strings with a straight apostrophe',

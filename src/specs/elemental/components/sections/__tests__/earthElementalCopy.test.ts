@@ -71,7 +71,7 @@ describe('the Earth Elemental verdicts, in a reader’s words', () => {
 	 */
 	it('tells a refuted press what to do instead', () => {
 		const html = withVerdict('off-rule');
-		expect(html).toContain('Too early — hold it for the fight&#x27;s last minute');
+		expect(html).toContain('Too early. Hold it for the fight&#x27;s last minute');
 	});
 
 	/**
@@ -83,7 +83,7 @@ describe('the Earth Elemental verdicts, in a reader’s words', () => {
 	it('says what could not be read, rather than "cannot say"', () => {
 		const html = withVerdict('unknown');
 		expect(html).toContain(
-			'Early — only right if you were standing in for a Fire Elemental that could not be up, and your log does not show the Skull Banner cooldown that call waits on',
+			'Early, only right if you were standing in for a Fire Elemental that could not be up, and your log does not show the Skull Banner cooldown that call waits on',
 		);
 		expect(html).toContain('another player&#x27;s button, which your combat log does not record');
 		expect(html).not.toContain('Cannot say');

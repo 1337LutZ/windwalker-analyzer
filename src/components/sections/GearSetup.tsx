@@ -157,7 +157,7 @@ function GearRow({
 				itemLevel={slot.itemLevel}
 				gems={slot.gems}
 				setPieceIds={setPieceIds}
-				label={`${slot.slot} — open item ${slot.id} on Wowhead`}
+				label={`${slot.slot}, open item ${slot.id} on Wowhead`}
 			/>
 			<div className="min-w-0">
 				<div className="truncate font-mono text-sm text-ink-2">{slot.slot}</div>

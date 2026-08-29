@@ -241,7 +241,7 @@ describe('the Touch of Karma section', () => {
 		const html = render(noStamina);
 
 		expect(capLine(html)).toContain('cannot be said on this pull');
-		expect(capLine(html)).not.toContain('— 0% of it');
+		expect(capLine(html)).not.toContain(', 0% of it');
 		expect(tile(html, t('karma.kpi.ofCap'))).toBe('');
 	});
 

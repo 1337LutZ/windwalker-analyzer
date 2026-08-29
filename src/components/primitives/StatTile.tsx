@@ -46,7 +46,7 @@ export default function StatTile({
 				{suffix ? <em className="text-sm not-italic text-muted sm:text-base">{suffix}</em> : null}
 			</b>
 			<span className="mt-2 block font-mono text-sm leading-[1.4] font-medium tracking-[0.1em] uppercase text-muted">
-				{caption === undefined ? label : `${label} — ${caption}`}
+				{caption === undefined ? label : `${label}, ${caption}`}
 			</span>
 		</div>
 	);

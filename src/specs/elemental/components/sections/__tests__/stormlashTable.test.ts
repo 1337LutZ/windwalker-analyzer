@@ -207,7 +207,7 @@ describe('the row rule 6 can fire, rendered', () => {
 
 	it('prints the hedge and names the button the global was wanted on', () => {
 		const html = forced();
-		expect(html).toContain('Yours, and laid during Ascendance — ideally that global goes to Lava Beam instead');
+		expect(html).toContain('Yours, and laid during Ascendance, ideally that global goes to Lava Beam instead');
 		expect(html).not.toContain('Yours, laid outside Ascendance');
 	});
 

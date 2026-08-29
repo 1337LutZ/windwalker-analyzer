@@ -938,28 +938,26 @@ describe('stripping the templates hides no violation', () => {
 // | scope           | four scoped lists + exemptions + closure test | whole file, unscoped, no exemptions             |
 // | files           | `report.json`                                 | both, from the start                            |
 //
-// The audience measurements quoted below come from `docs/audience-wow-players.md`, which is the
-// tracked copy of the corpus block and the record if it and the (gitignored) tone-of-voice skill ever
-// diverge: 18,889 words of Wowhead MoP guide prose, 12 pages, 6 authors. Rates are
-// per 100,000 words, and the author spread matters more than the rate — a marker used by one author of
-// six is that writer's tic, not the genre.
+// This list used to be argued against a corpus of third-party MoP guide prose. That corpus was
+// removed on 2026-08-28 — this project does not ground its copy standard in other people's writing.
+// Every ban below survived the removal unchanged; only the justification moved, to `docs/conventions.md`,
+// `docs/report-register.md` (this project's own voice record) or to a stated project decision. Where a
+// ban was once defended as "the genre does this anyway", it now says so plainly instead.
 
 /**
  * Vocabulary that says a machine wrote it.
  *
- * Openers (`SKILL.md` §3), filler and hedges (§1–§2), formal connectors (§1), manufactured enthusiasm
- * (§6) and the corporate register words (§2). Every one of them has a plain replacement that always
+ * Openers, filler and hedges, formal connectors, manufactured enthusiasm and the corporate register
+ * words. Every one of them has a plain replacement that always
  * works, which is what makes this list a floor rather than a preference.
  *
- * **Two entries are genre-*present* and banned anyway, and the reason has to sit here or it will be
- * relaxed by the next person who checks the corpus.**
+ * **Two entries are common in guide writing and banned anyway, and the reason has to sit here or it
+ * will be relaxed by the next person who reads a guide and notices.**
  *
- *   - **`very`** — 243/100k across **6 of 6** authors. It is genuinely how these writers write. It
- *     stays banned because `SKILL.md` §1–§2 is a floor the audience register does not lower, and
- *     because the corpus's own default quality word is `strong` (312/100k, 6/6) with no intensifier in
- *     front of it. An earlier draft of the register file claimed `very` was absent from the genre; it
- *     is not, and that correction should not have to be made a second time.
- *   - **`however`** — 6 uses, **4 of 6** authors. Also present, also banned, same reason.
+ *   - **`very`** — plainly readable prose about this game uses it, and it stays banned regardless.
+ *     `strong` is the plain quality word and carries the meaning with no intensifier in front of it,
+ *     so `very` is always removable without loss. Project decision.
+ *   - **`however`** — same. `but` does the work at a lower register.
  *
  * Neither is an exemption, and neither gets one. `casts.verdict_good` said "Very little went unused"
  * and read better as "Almost nothing went unused" until that arm was priced against its own band and
@@ -984,7 +982,7 @@ const AI_WORDS = [
 	'moreover',
 	'furthermore',
 	'additionally',
-	// Manufactured enthusiasm — §6. The corpus reaches for `strong`, not for these.
+	// Manufactured enthusiasm. `strong` carries this without reaching for any of them.
 	'amazing',
 	'awesome',
 	'insane',
@@ -1004,27 +1002,25 @@ const AI_WORDS = [
 /**
  * First person. A report describes a pull; it is not a party to it.
  *
- * **Half of this list is the genre and half is this project's own stricter line, and the halves must
- * not be confused.**
+ * **One entry is measured from this project's own writing and the rest are a house line, and the two
+ * must not be confused.**
  *
- *   - **`I` is genre.** Zero instances in 18,889 words, across all six authors. It is the strongest
- *     single finding in the corpus, and it is why `SKILL.md` §7 — which assigns `I` to the opening and
- *     the method block, and warns that too *little* first person is the commoner failure — is
- *     explicitly overridden for this register. §7 is written for personal long-form. Do not run the
- *     tone-of-voice skill's `person-density.py` as a gate on this repo's copy — it ships with the
- *     skill, which is gitignored, so there is no path here to open and none is wanted. Verified: it
- *     fails a clean second-person report draft with "no author present" and exits 1 under
- *     `--strict`. An agent that
- *     obeys it will insert an author into a report that must not have one. This list is that script's
- *     load-bearing claim — person is the axis, check it deterministically — kept, with its direction
- *     corrected.
- *   - **`we` and `our` are a house tightening, not a genre rule.** Editorial first-person plural runs
- *     349 and 269 per 100k across **all six** authors: "our great utility stays untouched" is normal
- *     guide prose. Banning it here is a decision about what a *report* is, and anyone who later checks
- *     the corpus will find `we` everywhere and read the ban as a mistake. It is not. It is stricter
- *     than the genre on purpose.
- *   - **`us`** is the one entry that is an outlier inside the genre too — 127/100k from a single
- *     author out of six.
+ *   - **`I` is measured.** `docs/report-register.md` §4 records zero first-person tokens in 326 words
+ *     of this project's author's own report prose, with authority carried by the Sim or the rotation
+ *     instead of by a narrator. Never run a first-person-density check as a gate on this repo's copy:
+ *     such checks are written for personal long-form and warn that too *little* first person is the
+ *     commoner failure, which is inverted here. A `person-density.py` shipped with the tone-of-voice
+ *     skill and did exactly that; the skill was removed on 2026-08-28 and the script was never
+ *     committed, so it is gone and must not be reinstated. Verified before removal: it fails a clean
+ *     second-person report draft with "no author present" and exits 1 under `--strict`. An agent that
+ *     obeys it will insert an author into a report that must not have one. This list keeps that
+ *     script's load-bearing claim — person is the axis, check it deterministically — with its
+ *     direction corrected.
+ *   - **`we`, `our` and `us` are a house tightening.** Editorial first-person plural is ordinary in
+ *     guide writing about this game, and "our great utility stays untouched" would read as normal
+ *     there. Banning it here is a decision about what a *report* is: it describes a pull to a reader
+ *     and is not a party to it. Anyone who later reads a guide will find `we` everywhere and may read
+ *     the ban as a mistake. It is not. It is stricter on purpose.
  *
  * `I` catches nothing today and is pinned as prophylactic, in the same sense and for the same reason
  * as `exempt` in `MODEL_WORDS`: it is the word by which this defect would arrive, not one already
@@ -1045,11 +1041,11 @@ const AUTHOR_WORDS = ['we', 'us', 'our', 'ours', "we're", "let's", 'let’s', 'I
 /**
  * Metaphor reaching outside the game.
  *
- * The register file §6 measured the audience's analogy domain as cross-class and cross-expansion
- * comparison, almost exclusively — a new mechanic explained by pointing at one the reader already
- * knows. **No picture from outside the game appears anywhere in 18,889 words**: no sport, cooking,
- * machinery, weather or business figure, from any of the six authors. Checked by name: `bell` 0, `on
- * the table` 0, `in the same breath` 0, `if anything` 0.
+ * The analogy domain is cross-class and cross-expansion comparison, almost exclusively: a new
+ * mechanic explained by pointing at one the reader already knows. **No picture from outside the game
+ * belongs in a report** — no sport, cooking, machinery, weather or business figure. Project decision,
+ * and the reason is that a reader who has to decode a metaphor before reading a number has been
+ * charged for nothing.
  *
  * **Four phrases cannot catch the next metaphor, and this list does not pretend otherwise.** A word
  * list finds words; a figure of speech is a construction. Every entry here was found by a human
@@ -1067,7 +1063,8 @@ const AUTHOR_WORDS = ['we', 'us', 'our', 'ours', "we're", "let's", 'let’s', 'I
  * `masterData`, never from the locale (`docs/conventions.md:288`), so no reader-facing string can be
  * forced to carry the word — and the right-hand boundary keeps `bellow` out.
  *
- * **Sequencing, recorded because the plan had it wrong.** `docs/tone-of-voice-migration.md` puts this
+ * **Sequencing, recorded because the plan had it wrong.** `docs/tone-of-voice-migration.md` (deleted
+ * 2026-08-28, once the migration landed) put this
  * list in Phase 2 and the twelve locale strings it fires on in Phase 4b-i, which would have left the
  * Phase 2 + 3 pair red on landing — and CI blocks a red PR. Resolved by pulling 4b-i's *locale* half
  * forward into the Phase 3 commit: all twelve are in-place string edits, and three of them are the
@@ -1079,8 +1076,8 @@ const AUTHOR_WORDS = ['we', 'us', 'our', 'ours', "we're", "let's", 'let’s', 'I
  * "where each one went wrong" — and then left the phrase standing in three more places it had not
  * looked: the `verdict` column head of the Fists of Fury table, the same head in Energizing Brew, and
  * `earthShock.caption`. All three now say "what went wrong", which is a verb where a copula was. It is
- * at **0** across the corpus, like the four above it, and it is in this list rather than in a register
- * note because a column head is the one place a rewrite is most likely to put it back.
+ * banned like the four above it, and it is in this list rather than in a register note because a
+ * column head is the one place a rewrite is most likely to put it back.
  */
 const OFF_DOMAIN = ['bell', 'on the table', 'in the same breath', 'if anything', 'what was wrong'];
 
@@ -1269,9 +1266,10 @@ describe('no string in either locale sounds machine-written', () => {
 		// code comment and this file's own prose — and a sweep against a rule the repo breaks in every
 		// file is theatre.
 		//
-		// It is an override of `SKILL.md` §15.5 **and** of the audience corpus, not a register-native
-		// choice: the genre uses 6 em-dashes in 18,889 words, none of them a spaced appositive pair, and
-		// reaches for parentheses instead (317/100k). Recorded that way rather than as genre support,
+		// It is an override, not a register-native choice. Guide writing about this game barely uses the
+		// em dash and reaches for parentheses instead, and `docs/report-register.md` §7 records that this
+		// project's author does not use one either. The dash is kept here on its own merits, for
+		// appositive definitions, and recorded as an override rather than as support from anywhere,
 		// because a false claim of support does not survive the next reviewer.
 		//
 		// What survives the override is the ceiling. Two in a string is an aside; three is a sentence

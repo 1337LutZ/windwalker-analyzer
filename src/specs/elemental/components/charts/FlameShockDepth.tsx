@@ -209,7 +209,7 @@ export function buildBars(flameShock: FlameShockAudit, theme: ChartTheme): Depth
 					// reading `band` and `judged` are both taken from, published one step earlier, so the
 					// sentence, the grey and the grade still cannot disagree about one press.
 					!p.judged
-						? (['reason', `not measured — ${p.targets} enemies up`] as [string, string])
+						? (['reason', `not measured, ${p.targets} enemies up`] as [string, string])
 						: p.duringAscendance
 							? (['reason', 'refresh during Ascendance'] as [string, string])
 							: p.ascPrep

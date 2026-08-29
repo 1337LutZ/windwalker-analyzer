@@ -190,7 +190,7 @@ describe('the second-target tile on a pull with an empty band-2 clock', () => {
 
 	/** With the caption, in the label, beside the figure — not in a note under the table. */
 	it('says in the label that nothing measured it', () => {
-		expect(render(allAoe)).toContain('Second target uptime — not measured at this many enemies');
+		expect(render(allAoe)).toContain('Second target uptime, not measured at this many enemies');
 	});
 
 	/**
@@ -211,7 +211,7 @@ describe('the second-target tile on a pull with an empty band-2 clock', () => {
 	it('leaves a measured pull and a single-target pull exactly as they were', () => {
 		const measured = render(cleave);
 		expect(measured).toContain('Second target uptime'); // no-change guard
-		expect(measured).not.toContain('Second target uptime — not measured'); // no-change guard
+		expect(measured).not.toContain('Second target uptime, not measured'); // no-change guard
 		expect(valueOfTile(measured, 'Second target uptime')).toBe('35.54%'); // no-change guard
 		expect(cleave.flameShock.multiTargetMs).toBe(34_783);
 

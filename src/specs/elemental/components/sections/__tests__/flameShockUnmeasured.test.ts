@@ -120,7 +120,7 @@ describe('the section says one thing about a refresh it did not measure', () => 
 	/** The row keeps its words, and gains the chart key's own register for why it is not tinted. */
 	it('says on the row itself that the press was not measured, without dropping what it did', () => {
 		const html = render(fixture('cleave'));
-		expect(html).toContain('Early — a tick thrown away, not measured with more than one enemy up');
+		expect(html).toContain('Early, a tick thrown away, not measured with more than one enemy up');
 		// The literal, spelled out rather than fetched with a second `t()` — a test whose two sides both
 		// come out of the locale file passes whatever the locale file says.
 		expect(t('flameShock.state.unmeasured')).toBe('not measured with more than one enemy up');
@@ -209,7 +209,7 @@ describe('the section says one thing about a refresh it did not measure', () => 
 		const html = render(forced);
 		expect(html).not.toContain('of those came with more than one enemy up, where the multi-target order');
 		// And no refresh row is tinted, while the `late` rows keep theirs.
-		expect(html).toContain('Early — a tick thrown away, not measured with more than one enemy up');
+		expect(html).toContain('Early, a tick thrown away, not measured with more than one enemy up');
 		expect(html).toContain('bg-band-warn');
 	});
 });

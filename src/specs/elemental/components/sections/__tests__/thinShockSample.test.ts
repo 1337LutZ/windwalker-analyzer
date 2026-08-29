@@ -182,7 +182,7 @@ describe('a pull whose shocks are too few to read', () => {
 			[2, 'only 2 of those came with one or two enemies up'],
 		] as const) {
 			const sentence = verdictOf(render(EarthShock, withJudged(judged)));
-			expect(sentence).toContain('Earth Shock was pressed in this pull — 12 in total');
+			expect(sentence).toContain('Earth Shock was pressed in this pull, 12 in total');
 			expect(sentence).toContain(counted);
 			expect(sentence).toContain('too few to tell a habit from a coincidence');
 			// The reader is sent to the table rather than left with a fraction, which is the whole difference
@@ -206,7 +206,7 @@ describe('a pull whose shocks are too few to read', () => {
 	it('holds at no judged shocks at all, while the presses are still on the page', () => {
 		const sentence = verdictOf(render(EarthShock, withJudged(0)));
 		expect(sentence).not.toContain(NEVER_PRESSED);
-		expect(sentence).toContain('Earth Shock was pressed in this pull — 12 in total');
+		expect(sentence).toContain('Earth Shock was pressed in this pull, 12 in total');
 		expect(sentence).toContain('only 0 of those came with one or two enemies up');
 		noRawKey(sentence);
 	});

@@ -73,7 +73,11 @@ describe('the shield section states one rule for both target counts', () => {
 	 */
 	it('names seven at one enemy and six at two', () => {
 		const html = render(LightningShield, cleave);
-		expect(html).toContain('Spend it at seven against one enemy and at six against two');
+		// Both numbers, both target counts, in one sentence. Asserted as a shape rather than a quotation:
+		// a literal pin here made a shorter rewrite of the same rule fail for saying it in fewer words,
+		// which is the failure `docs/labels-and-figures.md` names — "a test pinning the literal string is
+		// worse than none". What must not change is that the sentence carries both.
+		expect(html).toMatch(/seven[^.]{0,40}one enemy[^.]{0,40}six[^.]{0,40}two/);
 		// The sentence that had to go, quoted so it cannot come back under a different rewrite.
 		expect(html).not.toContain('Always spend it at seven');
 	});
@@ -85,7 +89,9 @@ describe('the shield section states one rule for both target counts', () => {
 	 */
 	it('keeps both numbers hard rather than softening either', () => {
 		const html = render(LightningShield, cleave);
-		expect(html).toContain('both are hard numbers and not preferences');
+		// The claim, not its phrasing: the rule says these are numbers and not preferences, however few
+		// words it takes to say so.
+		expect(html).toMatch(/hard numbers[^.]{0,20}not preferences/);
 		for (const hedge of ['usually spend', 'try to spend', 'prefer to spend']) {
 			expect(html, hedge).not.toContain(hedge);
 		}

@@ -179,7 +179,7 @@ describe('the Tigereye Brew sentence names the fault its own metric found', () =
 	it('does not tell a reader every brew was near the cap when one was not', () => {
 		const html = render(mixed);
 		// The sentence the original code printed here, verbatim.
-		expect(html).not.toContain('averaging 9.7 of 10 stacks — near the cap every time');
+		expect(html).not.toContain('averaging 9.7 of 10 stacks, near the cap every time');
 		expect(html).not.toContain('near the cap every time');
 		expect(html).toContain(t('brew.verdict', { context: 'short', count: 7, avg: mixed.brew.avgConsumed, short: 1 }));
 		expect(html).toContain('7 brews spent, averaging 9.7 of 10 stacks.');
@@ -268,7 +268,7 @@ describe('the Tigereye Brew sentence names the fault its own metric found', () =
 		expect(short(full)?.value).toBe(0);
 		const html = render(full);
 		expect(html).toContain(t('brew.verdict', { context: 'good', count: 7, avg: 10 }));
-		expect(html).toContain('7 brews spent, averaging 10 of 10 stacks — near the cap every time.');
+		expect(html).toContain('7 brews spent, averaging 10 of 10 stacks, near the cap every time.');
 		expect(html).not.toContain('went out with the bank under ten');
 	});
 
@@ -323,7 +323,7 @@ describe('the Tigereye Brew sentence names the fault its own metric found', () =
 		expect(html).not.toContain('averaging only');
 		// The mean's own sentence instead — and the cap fault is still on the page, in the clause whose
 		// number it actually is.
-		expect(html).toContain('6 brews spent, averaging 10 of 10 stacks — near the cap every time.');
+		expect(html).toContain('6 brews spent, averaging 10 of 10 stacks, near the cap every time.');
 		expect(html).toContain(t('brew.cap', { context: 'bad', count: 10 }));
 	});
 
@@ -344,7 +344,7 @@ describe('the Tigereye Brew sentence names the fault its own metric found', () =
 		const html = render(capped);
 		expect(html).not.toContain(t('brew.verdict', { context: 'ok', count: capped.brew.uses, avg: 10 }));
 		expect(html).not.toContain('The gap is stacks you earned but never spent');
-		expect(html).toContain('7 brews spent, averaging 10 of 10 stacks — near the cap every time.');
+		expect(html).toContain('7 brews spent, averaging 10 of 10 stacks, near the cap every time.');
 	});
 
 	/**

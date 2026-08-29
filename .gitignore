@@ -39,21 +39,31 @@ docs/plan.md
 # The working plan for the reader-voice pass, untracked for the same reason and by the same rule.
 # It was briefly tracked — Phase 1 of the plan told a lane to `git add` it — and that was the wrong
 # call: a phased migration plan is a scratchpad for whoever is mid-migration. The standard it was
-# migrating toward is the durable record, and that lives in `docs/conventions.md`.
+# migrating toward is the durable record, and that lives in `docs/conventions.md`. Both the plan and
+# the skill beside it were deleted on 2026-08-28, the migration having landed; these entries stay so
+# a stale copy in someone's checkout cannot be committed by accident.
 #
-# The skill beside it is ignored on purpose and for a different reason: it is an authoring aid for an
+# The skill was ignored on purpose and for a different reason: it was an authoring aid for an
 # agent working in this checkout — a procedure to load, not an artifact the repository ships — and it
 # is the whole `.claude/skills/` story here, where only `wcl-analyzer/SKILL.md` is tracked.
 #
-# **What that cost, and how it was paid.** `docs/conventions.md` and
-# `src/specs/__tests__/readerVoice.test.ts` source every corpus rate they quote — "243/100k across 6
-# of 6 authors", the 18,889-word sample, the em-dash count in the genre — from the skill's
-# `references/audience-wow-players.md`, so for a while two tracked files rested their arguments on a
-# path a clone does not have. The measurements are evidence rather than procedure, so they moved to
-# `docs/audience-wow-players.md` and are tracked there; the skill keeps its own copy for the agent.
-# This comment used to end "both of which stay tracked", which was never true of the second one.
+# **What that cost, and the lesson.** `docs/conventions.md` and
+# `src/specs/__tests__/readerVoice.test.ts` used to source the rates they quoted from the skill's own
+# `references/`, so for a while two tracked files rested their arguments on a path a clone does not
+# have. Evidence is not procedure, so it was extracted to `docs/` and tracked there, which is the only
+# reason `docs/labels-and-figures.md` still exists at all: the skill's copy went with the skill.
+# `references/voice-capture.md` and `scripts/person-density.py` were never committed and never
+# extracted, and are gone for good. Extract evidence before deleting the thing that holds it.
+# (The audience-register corpus that also lived there was deliberately retired on 2026-08-28; this
+# project no longer grounds its copy standard in third-party guide prose. See `docs/report-register.md`.)
 docs/tone-of-voice-migration.md
 .claude/skills/tone-of-voice/
+
+# `unslop` is a vendored third-party skill (`skills-lock.json` pins its source and hash, and is
+# tracked so a clone can reinstall it). Ignored by the same rule as the skill above: it is a
+# procedure an agent loads, not an artifact this repository ships. The voice it taught lives in
+# `.unslop/`, ignored separately because it holds personal writing samples.
+.claude/skills/unslop/
 
 # Throwaway vitest configs for one-off measurement probes. The technique is documented in the
 # lane briefs: a config at the repo root pointing at a scratchpad test, deleted after the run. A
@@ -67,3 +77,6 @@ probe*.config.mjs
 
 # Written by `scripts/segment-report.mjs`. Names a player and their reports, so it stays out of the tree.
 segment-breakdown.md
+
+# unslop voice profiles (local, contain personal writing samples)
+.unslop/

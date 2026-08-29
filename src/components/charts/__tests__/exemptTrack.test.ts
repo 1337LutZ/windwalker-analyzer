@@ -441,7 +441,7 @@ describe('the exempt row', () => {
 		// The tooltip names the count off `band`, not the flag: "three or more enemies" would be a lie on
 		// this pull's two band-2 presses, so the row says the number it was actually made at.
 		expect(press.band).toBe(4);
-		expect(row?.meta.rows).toContainEqual(['reason', 'not measured — 4 enemies up']);
+		expect(row?.meta.rows).toContainEqual(['reason', 'not measured, 4 enemies up']);
 		// Non-vacuous in the other direction: this pull's other refresh is judged and keeps its verdict.
 		expect(drawn.held.filter((bar) => bar.meta.tone !== EXEMPT)).toHaveLength(1);
 		// And the section's own waste figure is now taken over that one row rather than over both. The

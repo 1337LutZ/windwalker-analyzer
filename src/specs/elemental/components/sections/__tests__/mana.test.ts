@@ -69,7 +69,7 @@ describe('a pull that starved with Thunderstorm on the bar', () => {
 
 	it('tells the reader which button to press, and why it is not optional', () => {
 		expect(html).toContain('At 15% your next Lava Burst may not go out');
-		expect(html).toContain('press it the moment you get there');
+		expect(html).toContain('Press it the moment you get there');
 		// The cue is the mana number, not a widget. "Press it as the bar reaches the line" is what this
 		// sentence said until the deixis sweep, and the bar and the line are this report's own furniture —
 		// a sentence telling a player what to press names the game state. Quoted so it cannot come back.

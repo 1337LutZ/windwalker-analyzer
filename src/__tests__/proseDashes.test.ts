@@ -1,23 +1,24 @@
-// The em-dash ceiling `docs/conventions.md` states, applied to the prose it was never checked against.
+// The em-dash rules `docs/conventions.md` states, applied to both places this repository writes prose.
 //
-// That document overrides `SKILL.md` §15, which bans the em-dash outright, and pays for the override
-// with a rule: *"**Ceiling of two in one sentence.** Nothing reaches three today, and a sentence that
-// wants three is two sentences."* The claim and the ceiling were both about `report.json` — the copy a
-// reader sees — and `i18n/__tests__/conventionsCensus.test.ts` guards the census figures for that file
-// alone.
+// **There are two rules now, and they are different numbers.** Reader-facing copy carries none: the
+// override that kept the dash was reversed on 2026-08-28, when `docs/report-register.md` §7 — the
+// measured record of how this project's author writes — won against it. Docblocks and comments keep the
+// dash under a ceiling of two, because no reader meets them.
+//
+// **The copy gate is the one that was missing.** For as long as the override stood, nothing failed when
+// a dash entered `report.json`; `i18n/__tests__/conventionsCensus.test.ts` counted them and had no
+// opinion, by design. So the retirement removed 288 dashes from `report.json` and 24 from `ui.json` with
+// no guard behind it, and the 289th would have arrived unremarked. That is what the first describe below
+// is for. It is a gate rather than a census for the same reason the ceiling is: zero is countable.
 //
 // **The docblocks are where most of this repository's prose actually is, and nothing measured them.**
 // The locale carries about 22,000 words; the comments carry more, they are written in the same voice by
 // the same hands, and a reviewer reading a docblock has no way to tell whether the rule applies to it.
-// It does — the reason the override gives ("an appositive defines a measurement inside the sentence that
-// used it") is an argument about explanatory prose, and a docblock is nothing else.
+// It does, and the ceiling is the form it takes there.
 //
-// **This is a gate, and the census beside it deliberately is not.** The distinction is the one that file
-// draws at length: it fails a *sentence in the documentation that is false*, and has no opinion about
-// the copy. This one has an opinion, because the ceiling is a rule rather than a measurement. Rhythm is
-// still ungated for the reason `conventions.md` gives — a gate could not tell a 40-word sentence that
-// earns its length from one that does not — and that reasoning does not reach here. Three em-dashes in
-// one sentence is countable, and the document already says what to do about it.
+// Rhythm is still ungated for the reason `conventions.md` gives — a gate could not tell a 40-word
+// sentence that earns its length from one that does not — and that reasoning does not reach either rule
+// here. A dash in a string is countable, and the document already says what to do about it.
 
 import { readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -140,6 +141,64 @@ const overCeiling = (): Over[] => {
 	return found;
 };
 
+/**
+ * The one string allowed to carry an em dash, and why it is not prose.
+ *
+ * A table cell with no value renders `—`. That is a typographic glyph standing where a number would be,
+ * the same exemption `docs/labels-and-figures.md` gives labels: "a value in a table cell, an axis label
+ * or a KPI tile is not a sentence". Named here rather than pattern-matched, so adding a second one is a
+ * decision somebody has to write down.
+ */
+const DASH_EXEMPT = ['energizingBrew.cells.noReadings'];
+
+const localeLeaves = (file: string): [string, string][] => {
+	const out: [string, string][] = [];
+	const walk = (node: unknown, path: string[]) => {
+		if (typeof node === 'string') return void out.push([path.join('.'), node]);
+		if (node && typeof node === 'object') for (const [k, v] of Object.entries(node)) walk(v, [...path, k]);
+	};
+	walk(JSON.parse(readFileSync(resolve(ROOT, file), 'utf8')), []);
+	return out;
+};
+
+describe('the em dash is retired from reader-facing copy', () => {
+	it('is the rule docs/conventions.md states, read from the document', () => {
+		// Same discipline as the ceiling below: the rule lives in the document, and this reads it there.
+		// If the retirement is ever reversed, this fails and names the sentence that has to change.
+		const conventions = readFileSync(resolve(ROOT, 'docs/conventions.md'), 'utf8');
+		expect(
+			/\*\*The em-dash is retired from reader-facing copy/.test(conventions),
+			'docs/conventions.md no longer states the em-dash retirement, so this gate has no rule to enforce.\n' +
+				'Restore the sentence, or delete this describe and say in the document that copy is unenforced.',
+		).toBe(true);
+	});
+
+	it('holds in every string of both locale files', () => {
+		const carrying = ['src/locales/en/report.json', 'src/locales/en/ui.json']
+			.flatMap((file) => localeLeaves(file))
+			.filter(([key, value]) => value.includes('—') && !DASH_EXEMPT.includes(key));
+		expect(
+			carrying.map(([key, value]) => `${key}: ${value.slice(0, 120)}`),
+			`${carrying.length} string(s) carry an em dash.\n\n` +
+				'docs/report-register.md §7: the dash is not used in this register, and the sentence is\n' +
+				'restructured instead. A comma, a colon, a full stop or parentheses will each do it.\n',
+		).toEqual([]);
+	});
+
+	it('is measuring something, and is measuring copy rather than the file', () => {
+		// Non-vacuity, the same guard the ceiling carries. A leaf-walker that returned nothing would pass
+		// the assertion above by having no subject.
+		const leaves = ['src/locales/en/report.json', 'src/locales/en/ui.json'].flatMap(localeLeaves);
+		expect(leaves.length).toBeGreaterThan(1500);
+		expect(leaves.filter(([, v]) => v.split(' ').length > 20).length).toBeGreaterThan(200);
+	});
+
+	it('names an exemption that exists, so the list cannot rot', () => {
+		const keys = new Set(localeLeaves('src/locales/en/report.json').map(([k]) => k));
+		for (const key of DASH_EXEMPT) expect(keys, key).toContain(key);
+	});
+});
+
 describe('the em-dash ceiling, over the tree’s own docblocks', () => {
 	it('is the ceiling docs/conventions.md states, read from the document', () => {
 		// The number lives in one place. A guard carrying its own copy of a rule is a second rule, and the
@@ -159,8 +218,8 @@ describe('the em-dash ceiling, over the tree’s own docblocks', () => {
 			over.map(({ file, dashes, sentence }) => `${file} [${dashes}] ${sentence.slice(0, 160)}`),
 			`${over.length} sentence(s) carry more than ${CEILING} em-dashes.\n\n` +
 				`docs/conventions.md: "Ceiling of two in one sentence. Nothing reaches three today, and a\n` +
-				`sentence that wants three is two sentences." Split it, or turn one pair into parentheses —\n` +
-				`which is what the audience corpus reaches for and what the override was measured against.\n`,
+				`sentence that wants three is two sentences." Split it, or turn one pair into parentheses,\n` +
+				`which is what the dash was standing in for.\n`,
 		).toEqual([]);
 	});
 

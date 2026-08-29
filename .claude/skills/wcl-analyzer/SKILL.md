@@ -22,8 +22,13 @@ Deeper procedure lives beside this file rather than in it, so a session loads wh
 | `references/spec-gcd-analysis.md` | asking whether a metric measures the player or the boss, proposing or defending a threshold pair, or quoting a variance figure |
 | `references/sim-apl-drift.md`     | touching a spec's `lib/apl.ts` ladder or a Rotation section, or handling a failure from the sim-APL refresh                    |
 
-Two sibling skills carry the rest: **`gcd-reference`** for refreshing `src/generated/reference.json`
-(the product half of the same machinery), and **`tone-of-voice`** for anything a reader sees.
+One sibling skill carries the rest: **`gcd-reference`**, for refreshing `src/generated/reference.json`
+(the product half of the same machinery).
+
+For anything a reader sees, the standard is `docs/conventions.md`, with its evidence in
+`docs/report-register.md` (how this project's copy is written) and `docs/labels-and-figures.md`. A
+`tone-of-voice` skill used to sit here and was removed on 2026-08-28; the vendored `unslop` skill
+now does the machine-made-prose half, and its scanners fail loudly rather than asking to be read.
 
 ## Repository layout
 

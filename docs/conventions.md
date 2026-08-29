@@ -357,13 +357,40 @@ throwing, so nothing else would catch it), and `specs/windwalker/lib/__tests__/s
 thresholds actually separate three real captured pulls — a grading scheme that paints every log the
 same colour passes any test written around it and tells a reader nothing.
 
-**How the copy is meant to sound is written down, and half of it is tracked.**
-`docs/audience-wow-players.md` is the audience register, measured from 18,889 words of Wowhead MoP
-guide prose across 12 pages and 6 authors: the guides this report's readers already read. Read it
-before writing a string, and read the author-spread column, because a marker used by one author of
-six is that writer's tic rather than the genre. Sections 8–13 of it are deliberately
-`[not captured]` — there is no personal voice profile here and the output is voice-neutral on
-purpose. Never fill a blank slot with a guess.
+**How the copy is meant to sound is written down.** `docs/report-register.md` is the record: how
+this project's copy is written, captured 2026-08-28 from 11 short reader-facing pieces the author
+wrote, plus 4 passages the same author rewrote by hand during voice calibration. It carries the
+two-sentence fault-then-mechanism shape, praise that grades its verdict to the evidence and never
+appends advice, disagreement that hedges the observation but never the correction, argument that
+leads with the Sim or the rotation as the authority, and no first person anywhere. Read it before
+writing a string.
+
+It was extracted from a gitignored working directory (`.unslop/voice/analyzer/`, which holds
+personal writing samples) so that this file cites a path a clone has, and it is the record if the
+two ever disagree.
+
+**An earlier audience register was removed on 2026-08-28.** It measured 18,889 words of third-party
+MoP guide prose across 12 pages and 6 authors, and several rules below were argued against it. This
+project no longer grounds its copy standard in other people's writing. Where a rule below once cited
+that corpus, it now stands as a project decision or on `docs/report-register.md`, and the change is
+noted at the rule. Nothing was relaxed; only the justification moved.
+
+**Abbreviations a contributor meets in the code.** Reader-facing shorthand is tabled in
+`docs/report-register.md`; this is the engineering set, which appears in source and comments and was
+defined nowhere until now.
+
+| Short  | Expansion             | Where                                                  |
+| ------ | --------------------- | ------------------------------------------------------ |
+| `APL`  | action priority list  | `src/specs/*/lib/apl.ts` and the `apl` skill, 116 uses |
+| `WCL`  | Warcraft Logs         | the fetch and parse layer, 105 uses                    |
+| `GCD`  | global cooldown       | 311 uses in `src/`, and 7 in shipped copy              |
+| `DoT`  | damage over time      | 7 uses, mostly Flame Shock handling                    |
+| `RPPM` | real procs per minute | proc-rate model, `docs/item-effect-sweep.md`           |
+| `ICD`  | internal cooldown     | proc gating                                            |
+| `AP`   | attack power          | scaling maths                                          |
+
+Stat names are written in full and capitalised in copy — Haste, Crit, Mastery, Expertise, Agility —
+and are not abbreviated to `AP`/`SP` outside code.
 
 `docs/labels-and-figures.md` is tracked beside it and is the narrower rule: a label that names a number
 is read as one phrase with it, so its form follows the figure's shape rather than the voice. A
@@ -371,34 +398,44 @@ percentage takes an instruction; a count or a duration takes a noun naming what 
 wrong reads as a wrong figure rather than as bad writing, which is why it is written down at all —
 `components/sections/Scorecard.tsx` cites it and `scorecard.test.ts` guards it.
 
-The other half is `.claude/skills/tone-of-voice/SKILL.md`, the universal layer — the rules that stop
-prose reading as machine-made — and **it is ignored by `.gitignore`, so a clone does not have it.**
-That is deliberate: it is a procedure an agent loads while working in this checkout, not an artifact
-the repository ships. The consequence is the thing to know. Every `SKILL.md §n` in this file and in
-`readerVoice.test.ts` is **provenance for a rule that is stated in full where it is cited** — where
-the rule is overridden, the override and its reason are here; where it is kept, the rule is here.
-None of them is an instruction to go and open a file. The measurements are the opposite, because a
-number cannot be restated without becoming a claim nobody can check, which is why the corpus itself
-is tracked in `docs/` and the procedure is not. See the note in `.gitignore`, and the same split in
-`docs/item-effect-sweep.md`.
+The other half was `.claude/skills/tone-of-voice/SKILL.md`, the universal layer — the rules that stop
+prose reading as machine-made. **That skill has been removed (2026-08-28), and every `SKILL.md §n`
+citation in this file and in `readerVoice.test.ts` now points at a file nothing has.** This costs
+less than it sounds, and the reason was recorded before the removal: each `§n` is **provenance for a
+rule that is stated in full where it is cited** — where the rule is overridden, the override and its
+reason are here; where it is kept, the rule is here. None of them was ever an instruction to go and
+open a file, so they survive as history rather than as dangling pointers. Do not chase one; read the
+rule beside it.
+
+What replaced it is executable rather than advisory. The universal layer's job — catching prose that
+reads as machine-made — is now done by the `unslop` skill's scanners (`banned_phrase_scan.py`,
+`structure_scan.py`, `readability_metrics.py`), which fail loudly instead of asking to be remembered.
+`unslop` is vendored and gitignored by the same rule the old skill was, with `skills-lock.json`
+tracked so a clone can reinstall it.
+
+The measurements are the opposite of procedure, because a number cannot be restated without becoming
+a claim nobody can check, which is why `docs/report-register.md` is tracked and the procedure is
+not. See the note in `.gitignore`, and the same split in `docs/item-effect-sweep.md`.
 
 **Second person throughout. Never `we`, `us`, `our` or `I`.** A report describes a pull; it is not a
-party to it. Banning `I` only matches the genre — six independent authors wrote 18,889 words of
-exactly this kind of writing with zero first-person singular. Banning editorial `we`/`our` is this
-project's own tightening, and the reason has to sit next to the rule or it will be relaxed: all six
-of those authors use it freely (349 and 269 per 100k). "One use drained its pool completely, which
-tells us the pool's size" is the shape to watch for — a narrator in a sentence that only needed a
-number.
+party to it. `docs/report-register.md` §4 measures the same thing from this project's own writing:
+zero first-person tokens in 326 words, and authority carried by the Sim or the rotation rather than
+by a narrator. Banning editorial `we`/`our` goes further than that record can prove, so it stands as
+a project decision, and the reason has to sit next to the rule or it will be relaxed: a report
+describes a pull to a reader, and a narrator in it is a person the reader did not ask about. "One
+use drained its pool completely, which tells us the pool's size" is the shape to watch for — a
+narrator in a sentence that only needed a number.
 
-**The em-dash stays, and that is an override of both halves of the standard.** `SKILL.md` §15 bans
-it outright. The audience corpus has six in 18,889 words, none of them a spaced appositive pair, two
-authors using none at all — where these writers interrupt a sentence to define a term they reach for
-parentheses. This repo's copy carries them in about a fifth of its prose sentences — the
-census below prints the exact count, and is the only place in this file that does. They are kept because they earn it here: an appositive defines a
-measurement inside the sentence that used it, where a following sentence would put the definition
-after the claim it was needed for. Record it as
-an override and not as genre support — an honest override survives the next reviewer and a false
-claim does not. **Ceiling of two in one sentence.** A sentence that wants three is two sentences.
+**The em-dash is retired from reader-facing copy, and that reverses a standing override.**
+This file used to keep it against both halves of the standard, on the argument that an appositive
+defines a measurement inside the sentence that used it. `docs/report-register.md` §7 records that
+this project's author does not use one in their own prose, restructuring the sentence instead, and
+on 2026-08-28 that record won: all 288 in `src/locales/en/report.json` and all 24 in `ui.json` were removed, along with the
+two in component code that assembled copy (`StatTile`'s label/caption join and `FlameShockDepth`'s
+reason row, both now commas). The census above prints 1, which is the lone `—` in
+`energizingBrew.cells.noReadings`: a table's no-value glyph, not prose, exempt by the same rule that
+exempts labels in `docs/labels-and-figures.md`. The dash stays available in source comments and in
+this file, where no reader meets it, and there it is still bounded. **Ceiling of two in one sentence.** Nothing reaches three today, and a sentence that wants three is two sentences; `proseDashes.test.ts` reads that ceiling out of this paragraph and enforces it over every docblock in the tree.
 
 **The ceiling reaches the docblocks too, and "nothing reaches three today" was only ever measured
 against the copy.** Most of this repository's prose is in comments rather than in `report.json`, written
@@ -486,9 +523,9 @@ copy itself follows — say it once, outside the arms.
      src/lib/i18n/__tests__/conventionsCensus.test.ts. Re-run the block above and paste the whole set
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
-As of the Earth Shock Ascendance rule, it prints 1774 leaves, 839 prose, 27,870
-words; median 27, p75 45, p90 65, p95 79, p99 117, max 204; longest 9% carry 24%; report.json 761 prose
-leaves, 1,356 sentences, median 17, 292 past 25 (21.5%), 304 em-dashes in 259 sentences (19.1%);
+As of the wording sweep, it prints 1774 leaves, 839 prose, 26,808
+words; median 27, p75 43, p90 62, p95 74, p99 110, max 191; longest 9% carry 24%; report.json 761 prose
+leaves, 1,366 sentences, median 16, 255 past 25 (18.7%), 1 em-dash in 0 sentences (0.0%);
 71 / 30 / 1 / 2 on the quote lines.
 
 Eight leaves and three sentences, the smallest block to move this census in some time: six column
@@ -582,6 +619,46 @@ include the ones no single count held long enough to name. That is the signature
 rather than a feature: the leaf count is flat, the prose count is flat, and p99 moves seven words because
 three of the corpus's longest strings each took one more clause.
 
+Two words and nothing else in the pass after that, which is the smallest this census has ever moved.
+An unslop rewrite of `ui.json` repaired two defects and both cost a word: `app.moved.body` said the
+analyser "serves both" its addresses when `src/specs/` holds three, and `app.intro_protection` read
+"the attack power being hit paid you", which parses as a noun phrase until "paid" forces the sentence
+open again. No leaf, percentile or em-dash figure moves, because neither repair added a clause. It is
+the one shape this census can show that a feature never makes: prose changing without the corpus
+growing.
+
+**A deliberate compression pass, and the first entry here that removed prose rather than adding it.**
+The 45 `intent` strings were rewritten to fold their teaching sentence into the rule it supported:
+542 words out of the file, the leaf count untouched because no key moved. It shows up in three rows
+at once — p75, p90 and p95 all fall a word or three, while the median holds at 27 and `max` does not
+move at all, because the cut came out of the long middle rather than off either end. The em-dash
+count falls with it, 304 to 288, for the reason the row above gives: the clauses that carried the
+dashes were the ones folded away.
+
+**Three cuts were reverted by tests rather than by judgement, and that is the useful part.**
+`casts.intent` had to keep "the time you spent on a target" because a figure elsewhere reads
+"31.6 casts per minute of the time you spent on a target" and the two are quoted against each other.
+`lightningShield.intent` had to keep "both are hard numbers and not preferences" verbatim, because a
+softened version would still satisfy the assertion that names seven and six. `fistsOfFury.intent`
+lost the word "priority" from "priority list" and immediately tripped the guard against naming this
+project's own model to a reader. Compression finds the copy that other copy depends on, and only the
+guards know where it is.
+
+**A sweep for length across both files, and the row to read is `max`.** Fifty long strings were
+rewritten to fold their explanatory half into the rule it supported: the `intent` family, the rotation
+list's `why` rungs, the settings hints, the sampling notes and the per-boss measurement notes. It took
+about 1,100 words out. `max` falls 204 to 191 and p99 falls 117 to 110, which is the shape a length
+pass makes: the longest strings lose most, the median does not move at all, and the leaf count cannot
+move because no key was added or removed.
+
+**The yield was 4 to 22 percent, not the 35 to 45 the pass set out to find, and that is the finding.**
+The `intent` family gave 22%: those strings opened with a teaching sentence that could fold into the
+rule underneath it. The per-boss `fight.note.*` records gave 4%, because what looks like length there
+is a list of measurements a rejected rule was argued against, and the settings hints gave 4% because
+they are rules with their numbers attached. What remains in this corpus after the scaffolding comes
+out is facts, and the only way past that figure is to delete some. That is a product decision about how
+much the report explains, not a copy edit, and it is not recorded here as one.
+
 <!-- /census:figures -->
 
 **Those figures are checked now rather than trusted, because "re-run it" was an instruction and
@@ -607,8 +684,9 @@ the same instruction that failed here four times. The comment now says "about a 
 the paragraph above, which is the only place either number lives.
 
 **Comparisons come from inside the game.** Another ability, another spec's mechanic, another
-expansion. That is the entire domain, and it is what the audience's own writers do: no sport,
-cooking, money, machinery or weather picture appears anywhere in the corpus. "In the last second
+expansion. That is the entire domain: no sport, cooking, money, machinery or weather picture belongs
+in a report. Project decision, and the reason is that a reader who has to decode a metaphor before
+reading a number has been charged for nothing. "In the last second
 before the bell" is the standing failure, and the argument against it is not the register point but
 the string it lives in — `summary.takeaways.metric.fireElementalPrepull.fix` also says "was not out
 when the pull started". Same referent, two registers, one string.
@@ -621,14 +699,14 @@ A sentence that tells someone what to press names the game state, not the widget
 **No hedged interrupters, and a verb beats a nominalization.** "Every Fists of Fury channel and what,
 if anything, was wrong with its placement" carries one of each: a hedge wedged into the middle of the
 sentence, and a noun sitting where a verb belongs. That is the register of an audit form rather than
-of someone describing a pull. `if anything`, `what was wrong`, `placement` and `application` are all
-at zero across the corpus. **Labels are exempt** — a value in a table cell, an axis label or a KPI
+of someone describing a pull. `if anything`, `what was wrong`, `placement` and `application` are
+banned by project decision. **Labels are exempt** — a value in a table cell, an axis label or a KPI
 tile is not a sentence, so "First application" and "Late placement" stay noun phrases. That is what a
 label is.
 
-**`AoE`, not `area damage`.** `AoE` runs 121 per 100k across all six corpus authors; `area damage`
-runs 26 and every instance is one author's. It is a habit, not a sense distinction — an earlier
-two-author sample read it as one and was wrong. The related terms are safe in the same way:
+**`AoE`, not `area damage`.** `AoE` is the term players use for both senses, the mode and the output,
+and `area damage` is not. Project decision. An earlier reading treated the two as a sense
+distinction, mode versus output, and that was wrong. The related terms are safe in the same way:
 `single-target`, `multi-target` and `burst` are used by all six.
 
 **Density: the bloat is structural, and a fluff sweep will come back empty.** Verified across every
@@ -697,7 +775,8 @@ markdown pass and no `dangerouslySetInnerHTML` anywhere in the tree: a locale st
 React as text. `flameShockSnapshots.measurable` shipped `*is*` and `method.energy` shipped
 `` `classResources` `` and `` `resourcechange` ``, and all three printed their own asterisks and
 backticks at a reader. Emphasis is carried by word order, and a WCL field name is jargon this audience
-reads unglossed — the corpus never marks one up either.
+reads unglossed. `docs/report-register.md` §8 records the same habit in this project's own writing:
+`RoRo`, `TEB`, `CD` and `SEF` all go unexpanded, because glossing what the reader knows insults them.
 
 **Say the refusal once.** Where the log cannot answer something, the sentence that says so is the
 answer; a second sentence saying "the log does not contain enough data to report a figure" adds a

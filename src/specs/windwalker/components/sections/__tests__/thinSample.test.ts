@@ -331,7 +331,7 @@ describe('a Windwalker pull with presses and nothing to read them by', () => {
 
 			const sentence = verdictOf(render(RisingSunKick, thin));
 			expect(sentence, label).not.toContain(NEVER_CAST);
-			expect(sentence, label).toContain('Rising Sun Kick was cast in this pull — 20 in total');
+			expect(sentence, label).toContain('Rising Sun Kick was cast in this pull, 20 in total');
 			expect(sentence, label).toContain(NO_CONTACT);
 			// It claims nothing about the uptime, because there is none — and least of all a percentage.
 			expect(sentence, label).not.toMatch(/uptime across \d+ casts/);

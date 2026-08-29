@@ -205,7 +205,7 @@ describe('the greyed refresh rows say why they are grey', () => {
 		expect(bars.held[i]!.fillColor).toBe(THEME.track);
 		// The count off `band`, spelled out rather than described. The old wording for this press was
 		// 'early — a tick thrown away', which charged the reader for a press the share no longer counts.
-		expect(bars.held[i]!.meta.rows).toContainEqual(['reason', 'not measured \u2014 4 enemies up']);
+		expect(bars.held[i]!.meta.rows).toContainEqual(['reason', 'not measured, 4 enemies up']);
 		expect(bars.held[i]!.meta.rows).not.toContainEqual(['reason', 'early \u2014 a tick thrown away']);
 		// The tail keeps its own colour, because `rune` is the dot's last tick and never a grade.
 		expect(bars.lastTick[i]!.fillColor).toBe(THEME.rune);
@@ -245,8 +245,8 @@ describe('the greyed refresh rows say why they are grey', () => {
 		const drawn = eight.presses.filter((p) => p.remainingMs !== null);
 		const i = drawn.findIndex((p) => p.t === 57_499);
 		const rows = buildBars(eight, THEME).held[i]!.meta.rows;
-		expect(rows).toContainEqual(['reason', 'not measured \u2014 8 enemies up']);
-		expect(rows).not.toContainEqual(['reason', 'not measured \u2014 4 enemies up']);
+		expect(rows).toContainEqual(['reason', 'not measured, 8 enemies up']);
+		expect(rows).not.toContainEqual(['reason', 'not measured, 4 enemies up']);
 	});
 
 	/**

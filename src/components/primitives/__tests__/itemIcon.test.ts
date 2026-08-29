@@ -13,7 +13,7 @@ const render = (props: Partial<Parameters<typeof ItemIcon>[0]> = {}) =>
 			id: 95841,
 			icon: 'inv_helm_leather_raidmonk_j_01.jpg',
 			quality: 4,
-			label: 'Head — open item 95841 on Wowhead',
+			label: 'Head, open item 95841 on Wowhead',
 			...props,
 		}),
 	);

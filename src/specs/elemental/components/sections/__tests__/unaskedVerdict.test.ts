@@ -112,7 +112,7 @@ describe('a section whose only graded metric was never asked', () => {
 		expect(verdictOf(html)).toContain('nothing in the multi-target order asks for a fire totem');
 		expect(verdictOf(html)).toContain('no Searing Totem of yours went down while the Fire Elemental was holding it');
 		// The number stays, and the tile beside it says what it is.
-		expect(html).toContain(`Totem uptime — ${t('metric.notAsked')}`);
+		expect(html).toContain(`Totem uptime, ${t('metric.notAsked')}`);
 		expect(html).toContain('79.84%');
 		// And the sentence that used to be printed here is not.
 		expect(verdictOf(html)).not.toContain('and no press landed over a live totem');
@@ -132,7 +132,7 @@ describe('a section whose only graded metric was never asked', () => {
 		// 17.6s until the overcap clock stopped running through Ascendance, where the shock is not to be
 		// pressed and the charges the hold produces are not a fault.
 		expect(verdictOf(html)).toContain('12.4s');
-		expect(html).toContain(`Time at max stacks — ${t('metric.notAsked')}`);
+		expect(html).toContain(`Time at max stacks, ${t('metric.notAsked')}`);
 		expect(verdictOf(html)).not.toContain('The shield never sat at seven past the leeway');
 	});
 
