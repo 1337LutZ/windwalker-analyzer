@@ -365,8 +365,8 @@ it out of the sentence.
 what the player was doing and the consequence; the second offers what the findings are still good for
 and where the tool stops. Fill in the blanks and stop:
 
-> You were assigned _belt duty_, so nothing below is a fair read of how you played. You can use these
-> findings to improve your _belt play_, but the analyzer is not optimised for this.
+> You were assigned _belt duty_, so the analysis can't score you properly for optimal performance. You
+> can use these findings to improve your _belt play_, but the analyzer is not optimised for this.
 
 **A family of findings in one slot shares its closing sentence.** Different facts open differently and
 close identically. Three callouts written separately read as three voices — one naming the tool, one
@@ -713,6 +713,10 @@ words in front of every reader to 45, with the other 146 one click away; p99 fal
 longest string in the tree is now 158 rather than 191. Nothing was deleted. Prefer this shape over
 cutting whenever the length is evidence rather than scaffolding: the page gets shorter and the
 argument stays.
+
+The straight-apostrophe line is the only one that moved on the last edit: 71 to 74, from one contraction
+appearing three times. It is worth knowing which line a family lands on, and this one lands there because
+a refusal is the place the corpus talks to the reader most directly — _can't_, not _cannot_.
 
 <!-- /census:figures -->
 
