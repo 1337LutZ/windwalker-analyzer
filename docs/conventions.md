@@ -576,12 +576,12 @@ copy itself follows — say it once, outside the arms.
      src/lib/i18n/__tests__/conventionsCensus.test.ts. Re-run the block above and paste the whole set
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
-As of the split-group callout, it prints 1808 leaves, 822 prose, 24,988
+As of the split-group callout, it prints 1808 leaves, 822 prose, 24,981
 words; median 27, p75 40, p90 57, p95 66, p99 102, max 158; longest 9% carry 23%; report.json 744 prose
 leaves, 1,323 sentences, median 16, 212 past 25 (16.0%), 1 em-dash in 0 sentences (0.0%);
 73 / 25 / 1 / 2 on the quote lines.
 
-One leaf in and twenty words with it: the headline's middle arm gained a second sentence for the pull
+One leaf in and thirteen words with it: the headline's middle arm gained a second sentence for the pull
 where nothing graded solid, because the old one claimed a spread the weighted mean it was chosen by
 cannot see. That single leaf sits on top of the graded-verdict rewrite before it, which took 1,007 words
 out of the corpus across two commits: evidence first, one clause of mechanism, third clause dropped.

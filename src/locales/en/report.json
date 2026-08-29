@@ -2,7 +2,7 @@
   "overall": {
     "good": "You scored well, but the score is an average and whole parts of this page can be red under it. Start with anything flagged below.",
     "ok": "Some parts were solid and others lost damage. The cards below say which was which.",
-    "okFlat": "Nothing here came out solid. Work down the cards below from the top, the first one costs you the most.",
+    "okFlat": "Nothing here came out solid. The cards below show what to fix first.",
     "bad": "Several core habits of the spec are missing. Start with whatever is flagged below.",
     "none": "Too little of this pull could be read to call it either way. The cards below say what was measured and what was not."
   },
