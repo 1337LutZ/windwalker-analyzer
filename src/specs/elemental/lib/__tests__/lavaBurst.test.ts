@@ -32,7 +32,10 @@ describe('a surge that expired while the boss was away', () => {
 
 	it('finds the one surge no Lava Burst was spent inside', () => {
 		expect(lavaBurst.procs.filter((p) => !p.consumed)).toEqual([
-			{ start: 146_591, end: 157_147, consumed: false, wasted: false },
+			// `judged` is false for the same reason `wasted` is: the whole window falls inside the submerge
+			// below, so there was nothing to cast at for any of its ten seconds. The flag's other half, the
+			// enemy count, never gets a say on this pull, which is single-target throughout.
+			{ start: 146_591, end: 157_147, consumed: false, wasted: false, judged: false, exempt: 'unreachable' },
 		]);
 	});
 
@@ -417,9 +420,13 @@ describe('the three things a surge can come to', () => {
 
 	it('tells consumed, wasted and forgiven apart', () => {
 		expect(el.lavaBurst.procs).toEqual([
-			{ start: 10_000, end: 20_000, consumed: true, wasted: false },
-			{ start: 25_000, end: 35_000, consumed: false, wasted: true },
-			{ start: 50_000, end: 60_000, consumed: false, wasted: false },
+			// `judged` is the fourth state and it is orthogonal to the other three: this pull has one enemy
+			// throughout, so every proc inside the contact clock was one the list wanted spent. The proc at
+			// 50 000ms falls in the gap between the two contact segments, which is the same reason `wasted`
+			// is false on it: there was nothing to cast at, so there was nothing to judge either.
+			{ start: 10_000, end: 20_000, consumed: true, wasted: false, judged: true },
+			{ start: 25_000, end: 35_000, consumed: false, wasted: true, judged: true },
+			{ start: 50_000, end: 60_000, consumed: false, wasted: false, judged: false, exempt: 'unreachable' },
 		]);
 	});
 

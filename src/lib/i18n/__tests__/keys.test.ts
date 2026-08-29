@@ -1016,6 +1016,7 @@ describe('report copy with no reader', () => {
 				'gcdUtilisation',
 				'karmaCapShare',
 				'karmaEmpty',
+				'lavaSurgeWaste',
 				'lightningShieldFellOff',
 				'lightningShieldOvercap',
 				'potionsUsed',
@@ -1148,7 +1149,7 @@ describe('report copy with no reader', () => {
 		// advice. The third is `lightningShieldFellOff`'s `fix_neverUp`. A shield never worn grades on a
 		// mark standing for "the buff was never up" rather than on a count of drops, so the base card —
 		// which prints that mark as a number of drops — is the one wording it must never be handed.
-		'summary.takeaways.metric.*.label': 35,
+		'summary.takeaways.metric.*.label': 36,
 	};
 
 	/**

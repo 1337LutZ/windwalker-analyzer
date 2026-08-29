@@ -351,9 +351,13 @@ describe('the card, and the pair that has to move together', () => {
 		// reason `judged` exists at all: a verdict has to say how much of the card it is a verdict on.
 		for (const name of FIXTURES) {
 			const scored = scoreAnalysis(fx(name));
-			// Nineteen on the three pulls whose Ascendance presses could be judged, thirteen on
+			// Twenty-one on the three pulls whose Ascendance presses could be judged, fourteen on
 			// `addsThenBoss`, whose opener came back `nothing-to-hit` and whose later presses had no
 			// two-piece to pair with — it pays the four new rules' offered weight and collects none of it.
+			//
+			// **Both counts gained a point with `lavaSurgeWaste`,** which every one of the four pulls can
+			// answer: `addsThenBoss` has 21 judged procs and wastes none of them, so the rule the add waves
+			// exempt is still a rule this pull is measured on.
 			//
 			// **Fifteen until `gcdUtilisation` was anchored per encounter, and thirteen since.** That pull is
 			// Galakras, one of the three Siege fights `lib/reference/specProfile.ts` suppresses this metric on
@@ -362,8 +366,8 @@ describe('the card, and the pair that has to move together', () => {
 			// the denominator. The other three keep nineteen. Nothing in this file's own subject moved: the
 			// dot rules are as unasked, and as asked, as they were.
 			expect(scored.judged, name).toEqual({
-				measured: name === 'addsThenBoss' ? 13 : 20,
-				total: 25,
+				measured: name === 'addsThenBoss' ? 14 : 21,
+				total: 26,
 				unmeasurable: false,
 			});
 		}

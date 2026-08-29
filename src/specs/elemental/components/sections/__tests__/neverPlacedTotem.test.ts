@@ -125,7 +125,7 @@ describe('a pull that never laid a totem', () => {
 		// totem rule *gained* its point here by answering a question it used to decline, and the globals rule
 		// lost its two by being refused for a reason the player had no part in. 13 of 24 is still over
 		// `MIN_JUDGED_WEIGHT_SHARE`, so the header still prints a denominator rather than a refusal.
-		expect(card.judged).toEqual({ measured: 13, total: 25, unmeasurable: false });
+		expect(card.judged).toEqual({ measured: 14, total: 26, unmeasurable: false });
 	});
 
 	/**

@@ -79,7 +79,7 @@ export function wasteTone(wasted: number, generated: number): Grade | null {
  */
 export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Scorecard {
 	const el = analysis as ElementalAnalysis;
-	const { flameShock, earthShock, searingTotem, lightningShield, fireElemental, ascendance, cpm } = el;
+	const { flameShock, earthShock, lavaBurst, searingTotem, lightningShield, fireElemental, ascendance, cpm } = el;
 	// Bound once, so no metric below can be built outside the exemption. See `grader`.
 	/**
 	 * The lines this pull's globals figure is graded against, read off its own encounter.
@@ -299,6 +299,31 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 		'earthShockWaste',
 		shareOf(earthShock.judged - earthShock.good - 0.5 * earthShock.ok, earthShock.judged),
 	);
+
+	/**
+	 * The free casts thrown away, over the free casts a list actually asked for.
+	 *
+	 * **A wasted Lava Surge is invisible in every other figure on this page.** The proc makes one Lava
+	 * Burst instant and free; letting it expire costs a press that would have been the hardest-hitting
+	 * global available, and a cast count cannot show it because the cast that never happened is not in it.
+	 * The section has listed these since it was written and nothing on the summary ever said so.
+	 *
+	 * **The cut is in the numerator and the denominator is every proc, which is a deliberate asymmetry.**
+	 * `aoe.apl.json` carries no Lava Burst rung at all, so a surge that lived and died inside an add wave
+	 * was never a press the rotation wanted and charging it would score the player against a list nobody
+	 * follows: `LavaSurgeProc.judged` is what keeps those out of `wastedJudged`. What they are *not* kept
+	 * out of is the count they are measured against, at the user's call, and the reading is honest either
+	 * way you take it: every proc the fight handed out was a free cast on offer, and this is the share of
+	 * them the player threw away. A denominator cut to the judged procs would read a larger percentage off
+	 * a smaller pull and hide the total the section prints two tiles along, which is where this started.
+	 *
+	 * What the cut is worth on the committed pulls: `addsThenBoss` wastes five surges and **none** of them
+	 * is charged, since every one expired at three or more enemies, so the pull reads a clean 0 of 39
+	 * rather than 12.8%. `cleave` wastes three, all three charged, and reads 13.6% of 22. The two
+	 * single-target pulls waste none of 18 and none of 20. So the cut is the difference between faulting a
+	 * player for an add wave and faulting one for a habit, on the two pulls that have adds in them.
+	 */
+	const lavaSurgeWaste = metric('lavaSurgeWaste', shareOf(lavaBurst.wastedJudged ?? 0, lavaBurst.procs.length));
 
 	/**
 	 * The tier-16 two-piece debuff, as the uptime it actually is.
@@ -688,6 +713,7 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 		flameShockMultiDot,
 		earthShockWaste,
 		elementalDischargeUptime,
+		lavaSurgeWaste,
 		searingTotemUptime,
 		searingTotemOverlaps,
 		fireElementalPrepull,
@@ -725,6 +751,10 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 			// the metric instead, in `EarthShock.tsx` — the same move the Windwalker's snapshot section made
 			// for the same reason, and its `thinSample.test.ts` docblock is where that argument is written.
 			earthShock: section([earthShockWaste], [elementalDischargeUptime]),
+			// The button's own section, and one metric: the surges it threw away. The key is the page's
+			// section id, so the card links to the ledger that lists them, and the card's heading comes from
+			// `lavaBurst.title`, which the page already writes.
+			lavaBurst: section([lavaSurgeWaste]),
 			searingTotem: section([searingTotemUptime, searingTotemOverlaps]),
 			// The summon's own section, which carries one metric and gets no card link: the anchors map in
 			// `specSections.tsx` has no entry for it, so the takeaway renders without a jump the way the
@@ -931,6 +961,39 @@ export const THRESHOLDS = {
 	 * what each pull reads before and after.
 	 */
 	flameShockWaste: { good: 10, ok: 30, higherIsBetter: false, bands: [1], unit: 'percent' },
+
+	/**
+	 * The share of judged Lava Surge procs that expired with no Lava Burst in them.
+	 *
+	 * **Why a share and not a count.** Procs arrive on a haste-scaled trigger off Flame Shock's ticks, so
+	 * a nine-minute pull offers roughly twice the surges a four-minute one does and a count would grade
+	 * the fight's length. The denominator is already cut to the moments the list wanted the button
+	 * (`LavaSurgeProc.judged`), which is what makes the ratio a statement about the player.
+	 *
+	 * **3 and 10, and both lines are read off the mechanic rather than off a distribution.** A surge is a
+	 * ten-second window on a button that is free, instant and top of the single-target list. There is no
+	 * resource to hold it for and no rung above it to spend the global on, so the only honest excuse for
+	 * letting one expire is a window that opened during a movement or a target swap. One in thirty is
+	 * that; one in ten is a habit of not watching the buff.
+	 *
+	 * **Lower than a per-opportunity share would sit, because the denominator is wider than the
+	 * numerator's cut.** Every proc counts here and only the ones the rotation asked for can be charged,
+	 * so the same habit reads a smaller percentage on a pull with add waves in it than on a single-target
+	 * one. The lines are set for the wide denominator: `cleave`'s three wasted free casts are 13.6% of its
+	 * 22 procs and 25.0% of the 12 it could be charged for, and both readings are meant to be `bad`.
+	 *
+	 * **The sample this was set against is four pulls and it is stated rather than implied.** Three read
+	 * 0% (0 of 18, 0 of 20, 0 of 39) and `cleave` reads 13.6% of 22, so the committed set separates `good`
+	 * from `bad` and says nothing about where inside that gap the two lines belong. No Elemental reference
+	 * sweep exists yet (`.reference-cache` holds Windwalker pulls only), so unlike `gcdUtilisation` these
+	 * are not quantiles of anything, and the first sweep that does exist should re-cut them.
+	 *
+	 * **`bands: [1, 2]` is the ladder's own rung**, not a second judgement: `apl.ts` declares Lava Burst
+	 * at one and two enemies because `cleave.apl.json` carries two Lava Burst rungs and `aoe.apl.json`
+	 * carries none. The audit cuts the denominator to the same pair, so the declaration and the number
+	 * are one reading.
+	 */
+	lavaSurgeWaste: { good: 3, ok: 10, higherIsBetter: false, bands: [1, 2], unit: 'percent' },
 
 	/**
 	 * The dot's uptime on the secondary target while **two** enemies were up — the cleave preset's
@@ -1454,6 +1517,11 @@ export const WEIGHTS: Record<MetricKey, number> = {
 	flameShockWaste: 2,
 	flameShockMultiDot: 2,
 	earthShockWaste: 1,
+	// The same weight as the shock rule beside it, and for the same reason: a free cast let go is real
+	// damage and a habit rather than a decision, so it belongs in the light band with the other habits.
+	// Heavier would let a proc the fight hands out thirty times a pull outweigh the dot the whole
+	// rotation is built on.
+	lavaSurgeWaste: 1,
 	// The same weight as the rule it is the payoff of, deliberately and not by default. Heavier would let
 	// a bonus that only a geared shaman can score at all outweigh the habit that earns it, on a report
 	// whose headline is a weighted average — a player without the set would be scored out of a smaller

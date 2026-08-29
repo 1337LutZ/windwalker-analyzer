@@ -2301,6 +2301,17 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * buff is up, so keeping the shield up is right at every count and only *spending* it is banded.
 	 */
 	const gradedSpans = complementOf(exemptWindows, duration);
+	/**
+	 * The same array with contact on top of it: the stretches this pull was both **judgeable** and
+	 * **reachable**, which is the clock every single-target rule that needs a live enemy is cut to.
+	 *
+	 * Hoisted because two rules read it and a second `intersect(contact, gradedSpans)` written at the
+	 * second reader is the drift `exemptTrack.test.ts` exists to prevent, the same argument that made
+	 * `gradedSpans` itself one array with several readers rather than a `complementOf` apiece. The
+	 * shield's overcap clock is one of the two and carries the measured case for the contact cut
+	 * (`shieldSpans`); the Lava Surge waste is the other.
+	 */
+	const gradedContact = intersect(contact, gradedSpans);
 
 	// --------------------------------------------------------- Flame Shock
 	// The dot on the enemy the pull was about. Without a primary there is nothing to measure — the
@@ -3097,8 +3108,37 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * seconds; a press committed at 14.5s benefits from it and lands at 16.5s outside it.
 	 */
 	const lavaBurstCasts = castBeginTimes(LAVA_BURST);
+	/**
+	 * Whether the list wanted this button pressed at any point the surge was up.
+	 *
+	 * **`aoe.apl.json` has no Lava Burst rung at all**, so three enemies is not a relaxed demand but the
+	 * absence of one, and the ladder's own rung says it in the same currency (`bands: [1, 2]`). A surge
+	 * that ran its whole window inside an add wave is a free cast the fight offered at a moment the
+	 * rotation spends on Chain Lightning, and charging the player for not taking it would be scoring them
+	 * against a list nobody follows.
+	 *
+	 * Any overlap, and not the expiry instant. The buff makes Lava Burst instant, so one moment at one or
+	 * two enemies anywhere inside the window is a moment the surge could have been spent in. Reading the
+	 * band at `end` alone would excuse a surge that had nine single-target seconds and expired one second
+	 * into the adds, which is the fault this metric is for.
+	 *
+	 * `gradedContact` rather than a cut of its own: the aoe stretches and the contact clock are both
+	 * already answered once in this file, and the shield's overcap reads the same array.
+	 */
+	const surgeJudged = (w: Window): boolean => overlapMs(w.start, w.end, gradedContact) > 0;
+	/**
+	 * Which of the two clocks refused a proc, for the row that says so in words.
+	 *
+	 * Read off the same two arrays `gradedContact` is built from rather than from a third derivation, and
+	 * in this order: a window with nothing in range for any of its ten seconds is `unreachable` whatever
+	 * the enemy count was, because a count of enemies the player cannot reach is not the reason they did
+	 * not cast. What is left is a window that had contact and no moment under three enemies.
+	 */
+	const surgeExempt = (w: Window): 'aoe' | 'unreachable' =>
+		overlapMs(w.start, w.end, contact) > 0 ? 'aoe' : 'unreachable';
 	const lavaSurgeProcs = lavaSurgeWindows.map((w) => {
 		const consumed = lavaBurstCasts.some((t) => t >= w.start && t <= w.end);
+		const judged = surgeJudged(w);
 		return {
 			start: w.start,
 			end: w.end,
@@ -3106,6 +3146,8 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 			// A surge that expired while the player could not act — an intermission — is the fight
 			// taking the free cast back, not a cast the player threw away.
 			wasted: !consumed && contact.some(([s, e]) => w.end >= s && w.end < e),
+			judged,
+			...(judged ? {} : { exempt: surgeExempt(w) }),
 		};
 	});
 	/**
@@ -3705,7 +3747,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * `atCapWindowsIn` restarts the grace per segment, so a return from an empty phase to a target gets
 	 * its own press's worth — exactly the argument the aoe boundary already makes two paragraphs up.
 	 */
-	const shieldSpans = intersect(contact, gradedSpans);
+	const shieldSpans = gradedContact;
 	/**
 	 * The overcap clock, which is `shieldSpans` less Ascendance's own windows — and the two are two
 	 * arrays now rather than one.
@@ -5288,6 +5330,11 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 			procs: lavaSurgeProcs,
 			presses: lavaBurstPresses,
 			wasted: lavaSurgeProcs.filter((p) => p.wasted).length,
+			// The band-cut pair beside the raw count: what a rule existed at, and what went wrong inside it.
+			// Counted here rather than at `score.ts` so the two halves of the share come from one filter of
+			// one array. See `LavaBurstAudit.judged`.
+			judged: lavaSurgeProcs.filter((p) => p.judged).length,
+			wastedJudged: lavaSurgeProcs.filter((p) => p.wasted && p.judged).length,
 		},
 		earthShock: {
 			presses: esPresses,

@@ -571,17 +571,17 @@ copy itself follows — say it once, outside the arms.
      src/lib/i18n/__tests__/conventionsCensus.test.ts. Re-run the block above and paste the whole set
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
-As of the split-group callout, it prints 1788 leaves, 848 prose, 26,371
-words; median 27, p75 41, p90 61, p95 70, p99 102, max 158; longest 9% carry 23%; report.json 770 prose
-leaves, 1,367 sentences, median 16, 242 past 25 (17.7%), 1 em-dash in 0 sentences (0.0%);
+As of the split-group callout, it prints 1792 leaves, 851 prose, 26,460
+words; median 27, p75 41, p90 60, p95 70, p99 102, max 158; longest 9% carry 23%; report.json 773 prose
+leaves, 1,371 sentences, median 16, 243 past 25 (17.7%), 1 em-dash in 0 sentences (0.0%);
 75 / 30 / 1 / 2 on the quote lines.
 
-One leaf and no sentence, which is the smallest move this census can record: the cast log's tooltip
-gained a label for a mark that says when an aura went up or was renewed. A three-word label is not prose
-by this script's own test, so every figure below the leaf count is unchanged, and that is the shape a
-label should have. The block before it was eight leaves and three sentences: six column headings, a table
-caption and one line of prose, added when the Method section's per-encounter figures grew a give-or-take
-beside each fight.
+Four leaves and four sentences, all of them the Lava Burst section's: a summary card for the free casts a
+Lava Surge hands out, two rows naming the two reasons a surge that expired is not charged for, and the
+note that says why the tile counts fewer than the table lists. Three are prose and one is the card's own
+label, which is why the prose count moves by three and the leaf count by four. p90 came down a word with
+them, which is what four short strings do to a percentile taken over eight hundred. The block before it
+was one leaf and no sentence, the cast log's tooltip label for an aura going up or being renewed.
 
 Two leaves and no prose at all in the pass after that: `app.toCompare` and `app.toReport`, the header
 link each of a spec's two pages carries to the other. Both are three-word button labels, so they lift the

@@ -632,6 +632,9 @@ export const SPEC_TAKEAWAYS: Record<string, SpecTakeaways> = {
 			ascendance: 'ascendance',
 			flameShock: 'flame-shock',
 			earthShock: 'earth-shock',
+			// The Lava Surge card's evidence: the section lists every surge that expired unspent, at the
+			// timestamp it expired at.
+			lavaBurst: 'lava-burst',
 			searingTotem: 'searing-totem',
 			fireElemental: 'fire-elemental',
 			// Added with the scorecard grid, for the reason `karma` was on the Windwalker side: `#lightning-

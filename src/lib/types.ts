@@ -3486,6 +3486,35 @@ export interface LavaSurgeProc {
 	 * during an intermission is the fight taking the free cast back, not a cast the player threw away.
 	 */
 	wasted: boolean;
+	/**
+	 * Whether the pull ever offered a moment inside this window that the priority list wanted the button
+	 * pressed at: one or two enemies up, with something in contact.
+	 *
+	 * **Three enemies is a list with no Lava Burst rung at all.** `aoe.apl.json` carries none, not a
+	 * relaxed one, so a surge that ran its whole ten seconds inside an add wave was never a free cast the
+	 * player declined; it was a free cast the fight offered at a moment the rotation spends on Chain
+	 * Lightning. The ladder's own rung says the same thing in the same currency, `bands: [1, 2]`.
+	 *
+	 * False is "nothing to judge", never "spent": a wasted surge that was never judgeable stays `wasted`,
+	 * because it is still a free cast that expired and the section still lists it, and is left out of the
+	 * share the scorecard grades. Absent on any analysis captured before this existed, so read it for
+	 * truthiness rather than against null.
+	 */
+	judged?: boolean;
+	/**
+	 * Why a proc was not judged, when it was not: the fight's doing, in one word.
+	 *
+	 * `aoe` is three or more enemies for the whole of the window, the count `aoe.apl.json` has no Lava
+	 * Burst rung at. `unreachable` is a window with nothing in range for any of it, a submerge or a phase
+	 * the player could not act in. Absent on a judged proc, and absent on any analysis captured
+	 * before this existed.
+	 *
+	 * Published because the section says which, in words, on the row for a surge it declines to charge.
+	 * Deciding that at the reader would mean re-deriving two clocks the audit has already cut, which is
+	 * the drift `exemptTrack.test.ts` exists to prevent. The first version of that row said "three or more
+	 * enemies up" on every uncharged surge, including ones the boss had simply walked away from.
+	 */
+	exempt?: 'aoe' | 'unreachable';
 }
 
 /** One Lava Burst press, what made it free, and whether Flame Shock paid for it. */
@@ -3529,6 +3558,23 @@ export interface LavaBurstAudit {
 	presses: LavaBurstPress[];
 	/** Surges that expired with no Lava Burst inside — a free cast thrown away. */
 	wasted: number;
+	/**
+	 * The procs a rule exists at: `LavaSurgeProc.judged`, counted.
+	 *
+	 * The denominator the scorecard grades the waste over, published rather than left for `score.ts` to
+	 * rebuild by re-filtering the array. A second derivation of a band cut is what `earthShockAoeBand`
+	 * was written after, and this one would be a third reading of the same series.
+	 *
+	 * Absent on any analysis captured before this existed; read it for truthiness.
+	 */
+	judged?: number;
+	/**
+	 * The graded fault: procs that were both wasted and judged.
+	 *
+	 * Never larger than `wasted`, and the difference between the two is what the add waves excused. The
+	 * section lists every wasted surge and this is the half the headline is allowed to charge.
+	 */
+	wastedJudged?: number;
 }
 
 /** One shaman's Stormlash placements, so the raid's coordination can be read per player. */

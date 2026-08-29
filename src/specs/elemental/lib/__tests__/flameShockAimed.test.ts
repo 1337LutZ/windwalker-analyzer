@@ -568,6 +568,10 @@ describe('the dot’s own timeline, off the spawn the press was aimed at', () =>
 			// never buys. `phased`, which has no exempt stretch at all, is the only committed pull still
 			// carrying the fault, and overrides below.
 			ascendance: 'good',
+			// The surge's own section, one rule: the free casts that expired at a count the priority list
+			// wanted the button at. Three of the four pulls waste none: `addsThenBoss` wastes five and every
+			// one of them expired at three enemies or more, so none is charged. `cleave` overrides.
+			lavaBurst: 'good',
 		};
 		// `addsThenBoss` never laid a Searing Totem, so its totem letter is `bad` off nought per cent and
 		// its judged weight is one higher than the other three. Nothing here aimed a dot at either.
@@ -577,7 +581,7 @@ describe('the dot’s own timeline, off the spawn the press was aimed at', () =>
 		// is still a verdict and it is still `bad`.
 		expect(card(addsThenBoss)).toEqual({
 			overall: 'bad',
-			judged: { measured: 13, total: 25, unmeasurable: false },
+			judged: { measured: 14, total: 26, unmeasurable: false },
 			sections: {
 				...sections,
 				earthShock: 'bad',
@@ -594,11 +598,13 @@ describe('the dot’s own timeline, off the spawn the press was aimed at', () =>
 		});
 		expect(card(cleavePull)).toEqual({
 			overall: 'ok',
-			judged: { measured: 20, total: 25, unmeasurable: false },
+			judged: { measured: 21, total: 26, unmeasurable: false },
 			// Two letters moved with the exemption, both on this pull and neither under this file's change:
 			// `flameShock` because its uptime went 83.90% over 178.8s to 86.79% over 132.2s, and
 			// `lightningShield` because its overcap went 21 864ms to 14 275ms — back to the base `ok`.
-			sections: { ...sections, flameShock: 'ok', searingTotem: 'good', fireElemental: 'good' },
+			// `lavaBurst` is `bad` here and on no other committed pull: three of the twelve surges this pull was
+			// judged on expired unspent, which is 25.0% against a 15% `ok` line.
+			sections: { ...sections, flameShock: 'ok', searingTotem: 'good', fireElemental: 'good', lavaBurst: 'bad' },
 			flameShockWaste: 'ok',
 			gcdUtilisation: 'bad',
 		});
@@ -614,7 +620,7 @@ describe('the dot’s own timeline, off the spawn the press was aimed at', () =>
 		// still where it was; the whole-pull letter is the only thing that moved.
 		expect(card(phasedPull)).toEqual({
 			overall: 'good',
-			judged: { measured: 20, total: 25, unmeasurable: false },
+			judged: { measured: 21, total: 26, unmeasurable: false },
 			sections: {
 				...sections,
 				flameShock: 'ok',
@@ -631,7 +637,7 @@ describe('the dot’s own timeline, off the spawn the press was aimed at', () =>
 		});
 		expect(card(unbrokenPull)).toEqual({
 			overall: 'good',
-			judged: { measured: 20, total: 25, unmeasurable: false },
+			judged: { measured: 21, total: 26, unmeasurable: false },
 			// **The shield's four letters, now that the rule carries five seconds inside `good`.** These
 			// pulls read 4.5s, 9.6s, 17.6s and 21.9s past the per-window grace, so `unbroken` clears the
 			// `good` line outright, `addsThenBoss` sits between the two, and the other two stay `bad`.

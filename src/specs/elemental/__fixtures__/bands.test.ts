@@ -94,7 +94,7 @@ function panel(name: string, choice: TargetModeChoice): string[] {
 }
 
 /**
- * The seven rules that declare a scope, and the seven that deliberately do not.
+ * The eight rules that declare a scope, and the eleven that deliberately do not.
  *
  * **Both lists are checked against `THRESHOLDS` rather than only iterated**, because the version of this
  * guard that only iterated them was blind in the direction it claimed to cover. Its own docblock said "the
@@ -114,6 +114,10 @@ const BANDED = [
 	'elementalDischargeUptime',
 	'searingTotemUptime',
 	'lightningShieldOvercap',
+	// The surge's own rung is `bands: [1, 2]` because `aoe.apl.json` carries no Lava Burst rung at all, so
+	// a proc that expired inside an add wave was never a press to make. The audit cuts the denominator to
+	// the same pair, which is why the declaration here and the number are one reading rather than two.
+	'lavaSurgeWaste',
 ] as const;
 const UNBANDED = [
 	'gcdUtilisation',
@@ -356,7 +360,7 @@ describe('a declared scope is not asked of a pull outside it', () => {
 		for (const name of ALL) {
 			expect(card(name, 'multi').judged, name).toEqual({
 				measured: measured[name] ?? 11,
-				total: 25,
+				total: 26,
 				unmeasurable: true,
 			});
 			expect(card(name, 'multi').overall, name).toBe('ok');
@@ -437,7 +441,7 @@ describe('a declared scope is not asked of a pull outside it', () => {
 		// Seventeen of twenty-four: the twelve this test was written on, plus Ascendance's five, which no
 		// reading exempts. The narrowing this test is about — the spreading rule leaving a single-target
 		// reading — is the gap between this and the nineteen `auto` measures.
-		expect(card('cleave', 'single').judged).toEqual({ measured: 18, total: 25, unmeasurable: false });
+		expect(card('cleave', 'single').judged).toEqual({ measured: 19, total: 26, unmeasurable: false });
 		// **`ok`, and it has been round the houses.** It read `ok` before any of this, `bad` once
 		// `gcdUtilisation` went to 95/90, and `ok` again now that Ascendance's four rules are on the card:
 		// this pull's opener is clean on all three of the demands made of it and only its second press is
@@ -686,8 +690,8 @@ describe('the denominator travels with the verdict', () => {
 			// `fireElementalHasteUptime` already had on that pull, and for a similar reason. Two more of its
 			// points are `gcdUtilisation`'s, suppressed because the pull is Galakras — see the note above.
 			expect(card(name, 'auto').judged, name).toEqual({
-				measured: name === 'addsThenBoss' ? 13 : 20,
-				total: 25,
+				measured: name === 'addsThenBoss' ? 14 : 21,
+				total: 26,
 				unmeasurable: false,
 			});
 		}
