@@ -274,12 +274,12 @@ describe('the scorecard says how much of itself it judged', () => {
 	 * was written for and the one the two numbers still separate.
 	 */
 	it('publishes the denominator the headline was taken over', () => {
-		expect(scoreAnalysis(fixture('strong'), resolveBands(fixture('strong').targets, 'auto')).judged).toEqual({
+		expect(scoreAnalysis(fixture('strong'), resolveBands(fixture('strong').targets, 'auto')).judged).toMatchObject({
 			measured: 15,
 			total: 17,
 			unmeasurable: false,
 		});
-		expect(scoreAnalysis(fixture('strong'), resolveBands(fixture('strong').targets, 'multi')).judged).toEqual({
+		expect(scoreAnalysis(fixture('strong'), resolveBands(fixture('strong').targets, 'multi')).judged).toMatchObject({
 			measured: 11,
 			total: 16,
 			unmeasurable: false,

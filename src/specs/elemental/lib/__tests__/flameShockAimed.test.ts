@@ -579,9 +579,9 @@ describe('the dot’s own timeline, off the spawn the press was aimed at', () =>
 		// `casts` section parks at `ok` with nothing decided, exactly as `ascendance` does, and the two
 		// points leave the judged weight. 13 of 24 is still over `MIN_JUDGED_WEIGHT_SHARE`, so the headline
 		// is still a verdict and it is still `bad`.
-		expect(card(addsThenBoss)).toEqual({
+		expect(card(addsThenBoss)).toMatchObject({
 			overall: 'bad',
-			judged: { measured: 14, total: 26, unmeasurable: false },
+			judged: { measured: 14.5, total: 27.5, unmeasurable: false },
 			sections: {
 				...sections,
 				earthShock: 'bad',
@@ -596,9 +596,9 @@ describe('the dot’s own timeline, off the spawn the press was aimed at', () =>
 			flameShockWaste: 'bad',
 			gcdUtilisation: 'ok',
 		});
-		expect(card(cleavePull)).toEqual({
+		expect(card(cleavePull)).toMatchObject({
 			overall: 'ok',
-			judged: { measured: 21, total: 26, unmeasurable: false },
+			judged: { measured: 22.5, total: 27.5, unmeasurable: false },
 			// Two letters moved with the exemption, both on this pull and neither under this file's change:
 			// `flameShock` because its uptime went 83.90% over 178.8s to 86.79% over 132.2s, and
 			// `lightningShield` because its overcap went 21 864ms to 14 275ms — back to the base `ok`.
@@ -618,9 +618,9 @@ describe('the dot’s own timeline, off the spawn the press was aimed at', () =>
 		// 65.80% of it against 90/80 — one `bad` at weight 1, which is what takes twenty measured points back
 		// under the 75% a `good` headline needs. `casts` is still `good` and every letter this file pins is
 		// still where it was; the whole-pull letter is the only thing that moved.
-		expect(card(phasedPull)).toEqual({
+		expect(card(phasedPull)).toMatchObject({
 			overall: 'good',
-			judged: { measured: 21, total: 26, unmeasurable: false },
+			judged: { measured: 22.5, total: 27.5, unmeasurable: false },
 			sections: {
 				...sections,
 				flameShock: 'ok',
@@ -635,9 +635,9 @@ describe('the dot’s own timeline, off the spawn the press was aimed at', () =>
 			flameShockWaste: 'ok',
 			gcdUtilisation: 'good',
 		});
-		expect(card(unbrokenPull)).toEqual({
+		expect(card(unbrokenPull)).toMatchObject({
 			overall: 'good',
-			judged: { measured: 21, total: 26, unmeasurable: false },
+			judged: { measured: 22.5, total: 27.5, unmeasurable: false },
 			// **The shield's four letters, now that the rule carries five seconds inside `good`.** These
 			// pulls read 4.5s, 9.6s, 17.6s and 21.9s past the per-window grace, so `unbroken` clears the
 			// `good` line outright, `addsThenBoss` sits between the two, and the other two stay `bad`.

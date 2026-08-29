@@ -198,6 +198,22 @@ export interface Judged {
 	/** Summed weight of every metric offered, judged or not. */
 	total: number;
 	/**
+	 * The same coverage counted in *checks* rather than in weight, which is the pair a reader is shown.
+	 *
+	 * **Weight is the wrong currency to print and it took a reader to notice.** Two pulls whose verdicts
+	 * were 11 and 89 both printed "Scored on 21 of 26 points", because 21 of 26 is how much of the weight
+	 * each could measure and not how either of them did. A ratio under the verb "scored" reads as a mark
+	 * out of 26, which is the failure `docs/labels-and-figures.md` names: a ratio under an imperative
+	 * reads as a grade.
+	 *
+	 * So the line counts the checks the report ran, one per metric, where the weights stay inside the
+	 * letter. It is also the honest denominator for the sentence: "16 of 19 checks" is a fact about how
+	 * much of the spec this pull could answer, and it cannot be read as a score out of 19.
+	 *
+	 * Absent on a scorecard captured before this existed, so read it for truthiness.
+	 */
+	checks?: { measured: number; total: number };
+	/**
 	 * True when too little of that weight survived for the grade to be a claim about the pull.
 	 *
 	 * The generalisation of the old `no measurable metric at all → 'ok'` clause: that was this

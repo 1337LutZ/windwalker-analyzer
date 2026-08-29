@@ -285,25 +285,30 @@ export function overallOf(
 	let points = 0;
 	let measured = 0;
 	let total = 0;
+	// The same coverage in the currency a reader is shown: one check per metric, weights left to the
+	// letter. See `Judged.checks` for why the line under the headline cannot be denominated in weight.
+	let checked = 0;
 	for (const m of metrics) {
 		const weight = weights[m.key] ?? 1;
 		total += weight;
 		if (m.unmeasurable) continue;
 		measured += weight;
+		checked += 1;
 		points += POINTS[m.grade] * weight;
 	}
+	const checks = { measured: checked, total: metrics.length };
 	// A metric can carry weight zero — see the Windwalker's `snapshotDepth` — so a pull whose only
 	// measurable metric is one of those has nothing to average and must say so rather than divide by
 	// nothing. `total` of zero is the same case seen from the other side, and both are the degenerate
 	// end of the share test below rather than special cases of their own.
 	const share = total > 0 ? measured / total : 0;
 	if (measured === 0 || share < MIN_JUDGED_WEIGHT_SHARE) {
-		return { grade: 'ok', judged: { measured, total, unmeasurable: true } };
+		return { grade: 'ok', judged: { measured, total, checks, unmeasurable: true } };
 	}
 	const pct = (points / measured) * 100;
 	return {
 		grade: pct >= 75 ? 'good' : pct >= 45 ? 'ok' : 'bad',
-		judged: { measured, total, unmeasurable: false },
+		judged: { measured, total, checks, unmeasurable: false },
 	};
 }
 

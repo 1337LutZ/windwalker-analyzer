@@ -365,9 +365,9 @@ describe('the card, and the pair that has to move together', () => {
 			// or better on the other eleven — so the figure prints without a letter and its two points leave
 			// the denominator. The other three keep nineteen. Nothing in this file's own subject moved: the
 			// dot rules are as unasked, and as asked, as they were.
-			expect(scored.judged, name).toEqual({
-				measured: name === 'addsThenBoss' ? 14 : 21,
-				total: 26,
+			expect(scored.judged, name).toMatchObject({
+				measured: name === 'addsThenBoss' ? 14.5 : 22.5,
+				total: 27.5,
 				unmeasurable: false,
 			});
 		}

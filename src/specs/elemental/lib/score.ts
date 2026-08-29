@@ -1541,7 +1541,13 @@ export const WEIGHTS: Record<MetricKey, number> = {
 	// `MIN_GRADED_SAMPLE` with a sample of one. It is gone with its section — the proc windows it scored
 	// are the dot's own payoff, and `FlameShock` already draws them press by press.
 	flameShockUptime: 3,
-	gcdUtilisation: 2,
+	/**
+	 * **Three, level with the dot, at the user's call.** Filling globals is the habit every other rule on
+	 * this card is spent through: a dot kept up over a rotation that stood still is worth less than the
+	 * uptime figure suggests, and the encounter-fit lines below mean the number is read against what this
+	 * fight allows rather than against a flat bar. It sits above the free casts and far above the totem.
+	 */
+	gcdUtilisation: 3,
 	flameShockWaste: 2,
 	flameShockMultiDot: 2,
 	earthShockWaste: 1,
@@ -1549,13 +1555,29 @@ export const WEIGHTS: Record<MetricKey, number> = {
 	// damage and a habit rather than a decision, so it belongs in the light band with the other habits.
 	// Heavier would let a proc the fight hands out thirty times a pull outweigh the dot the whole
 	// rotation is built on.
-	lavaSurgeWaste: 1,
+	// Two, and above the shock beside it: a wasted surge is a free instant Lava Burst thrown away, which
+	// is the largest single press this spec gets for nothing. Raised with the totem's cut so the three
+	// buttons rank the way a reader would rank them.
+	lavaSurgeWaste: 2,
 	// The same weight as the rule it is the payoff of, deliberately and not by default. Heavier would let
 	// a bonus that only a geared shaman can score at all outweigh the habit that earns it, on a report
 	// whose headline is a weighted average — a player without the set would be scored out of a smaller
 	// denominator against one whose set did half the work. Lighter would say the +4% did not matter.
 	elementalDischargeUptime: 1,
-	searingTotemUptime: 1,
+	/**
+	 * **Half a point, and the only fraction in this table.** The totem is a fire-and-forget global whose
+	 * damage share sits at the bottom of the table on every committed pull, and at a whole point the
+	 * button was worth as much as GCD utilisation and twice any single Ascendance demand. Keeping the
+	 * totem up is a habit worth naming and not one worth moving a headline.
+	 *
+	 * The overlap rule beside it keeps its whole point, and the asymmetry is deliberate: laying a totem
+	 * under the Fire Elemental destroys it outright, so that global bought nothing at all, where a lapse
+	 * in uptime costs the ticks of the gap and no more.
+	 *
+	 * Weights are summed rather than counted, so a fraction is arithmetic rather than a special case.
+	 * Nothing a reader sees is denominated in them: the line under the headline counts checks.
+	 */
+	searingTotemUptime: 0.5,
 	searingTotemOverlaps: 1,
 	// The lightest weight there is, and it cannot grade worse than `ok` — so the most this can take off
 	// a headline is half of one part in thirteen. Deliberate: what it measures is real, and what it can

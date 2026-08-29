@@ -147,8 +147,13 @@ export default function ReportHeader({ analysis }: { analysis: Analysis }) {
 					<p className="mt-2 mb-0 font-mono text-sm leading-snug text-muted">
 						{t('summary.judged', {
 							context: judged.unmeasurable ? 'partial' : undefined,
-							measured: judged.measured,
-							total: judged.total,
+							// Checks and not weight. Two pulls whose verdicts were 11 and 89 both read "Scored on 21 of
+							// 26 points", because that pair is how much of the *weight* each could measure and not how
+							// either of them did, and a ratio under "scored" reads as a mark. The weights stay inside
+							// the letter; the line counts the questions this pull could answer. A scorecard captured
+							// before `checks` existed falls back to the weight it was published with.
+							measured: judged.checks?.measured ?? judged.measured,
+							total: judged.checks?.total ?? judged.total,
 						})}
 					</p>
 				)}

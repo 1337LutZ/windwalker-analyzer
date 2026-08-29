@@ -188,7 +188,10 @@ describe('the reported bug, on the pull it was reported from', () => {
 		// fills 89.18% of its globals, and `elementalDischargeUptime` is the tier-16 debuff at 65.57%.
 		// `lightningShieldOvercap` is no longer among them — 14 275ms over the segmented clock is `ok`,
 		// where 21 864ms over the counted one was `bad`.
-		expect(panel('cleave', 'auto')).toEqual(['gcdUtilisation', 'flameShockMultiDot', 'elementalDischargeUptime']);
+		// `lavaSurgeWaste` takes the third slot from `elementalDischargeUptime` with the reweight: the free
+		// casts went to weight two beside the globals at three, which is the ordering a reader would give
+		// these three buttons and the reason the totem came down to half a point.
+		expect(panel('cleave', 'auto')).toEqual(['gcdUtilisation', 'flameShockMultiDot', 'lavaSurgeWaste']);
 		// **`ok` since the tier-16 remaining check stopped reading a merged window's end.** That check
 		// charged nearly every shock taken inside a long Elemental Discharge run — see `dischargeExpiry` —
 		// and dropping the false faults lifts this pull's Earth Shock letter and the headline with it.
@@ -358,9 +361,9 @@ describe('a declared scope is not asked of a pull outside it', () => {
 		// `gcdUtilisation` as well, which is a fact about the encounter rather than about either.
 		const measured: Record<string, number> = { addsThenBoss: 3 };
 		for (const name of ALL) {
-			expect(card(name, 'multi').judged, name).toEqual({
-				measured: measured[name] ?? 11,
-				total: 26,
+			expect(card(name, 'multi').judged, name).toMatchObject({
+				measured: measured[name] ?? 12,
+				total: 27.5,
 				unmeasurable: true,
 			});
 			expect(card(name, 'multi').overall, name).toBe('ok');
@@ -441,7 +444,7 @@ describe('a declared scope is not asked of a pull outside it', () => {
 		// Seventeen of twenty-four: the twelve this test was written on, plus Ascendance's five, which no
 		// reading exempts. The narrowing this test is about — the spreading rule leaving a single-target
 		// reading — is the gap between this and the nineteen `auto` measures.
-		expect(card('cleave', 'single').judged).toEqual({ measured: 19, total: 26, unmeasurable: false });
+		expect(card('cleave', 'single').judged).toMatchObject({ measured: 20.5, total: 27.5, unmeasurable: false });
 		// **`ok`, and it has been round the houses.** It read `ok` before any of this, `bad` once
 		// `gcdUtilisation` went to 95/90, and `ok` again now that Ascendance's four rules are on the card:
 		// this pull's opener is clean on all three of the demands made of it and only its second press is
@@ -689,9 +692,9 @@ describe('the denominator travels with the verdict', () => {
 			// opener came back `nothing-to-hit` and every later press `no-two-piece-evidence`. The same shape
 			// `fireElementalHasteUptime` already had on that pull, and for a similar reason. Two more of its
 			// points are `gcdUtilisation`'s, suppressed because the pull is Galakras — see the note above.
-			expect(card(name, 'auto').judged, name).toEqual({
-				measured: name === 'addsThenBoss' ? 14 : 21,
-				total: 26,
+			expect(card(name, 'auto').judged, name).toMatchObject({
+				measured: name === 'addsThenBoss' ? 14.5 : 22.5,
+				total: 27.5,
 				unmeasurable: false,
 			});
 		}

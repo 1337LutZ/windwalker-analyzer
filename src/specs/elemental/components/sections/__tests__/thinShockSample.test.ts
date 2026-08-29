@@ -130,7 +130,7 @@ describe('a pull whose shocks are too few to read', () => {
 	it('is a floor no committed pull is under, on a metric that publishes its sample', () => {
 		expect(MIN_GRADED_SAMPLE).toBe(3);
 		const judged = Object.fromEntries(FIXTURES.map((name) => [name, analysed(name).earthShock.judged]));
-		expect(judged).toEqual({ addsThenBoss: 20, cleave: 7, phased: 12, unbroken: 13 });
+		expect(judged).toMatchObject({ addsThenBoss: 20, cleave: 7, phased: 12, unbroken: 13 });
 		for (const [name, count] of Object.entries(judged)) {
 			expect(count, `${name} judges fewer shocks than the floor`).toBeGreaterThanOrEqual(MIN_GRADED_SAMPLE);
 		}

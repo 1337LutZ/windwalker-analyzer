@@ -180,7 +180,7 @@ const at = (key: string, grade: Metric['grade'], unmeasurable = false): Metric =
 describe('the judged denominator', () => {
 	it('says how much weight the verdict was actually taken over', () => {
 		const all = Object.keys(WEIGHTS).map((key) => at(key, 'good'));
-		expect(overallOf(all, WEIGHTS).judged).toEqual({ measured: 22, total: 22, unmeasurable: false });
+		expect(overallOf(all, WEIGHTS).judged).toMatchObject({ measured: 22, total: 22, unmeasurable: false });
 	});
 
 	/**
@@ -192,7 +192,7 @@ describe('the judged denominator', () => {
 		const silent = new Set(['snapshots', 'thunderstorm', 'rage']);
 		const metrics = Object.keys(WEIGHTS).map((key) => at(key, 'bad', silent.has(key)));
 		const { grade, judged } = overallOf(metrics, WEIGHTS);
-		expect(judged).toEqual({ measured: 15, total: 22, unmeasurable: false });
+		expect(judged).toMatchObject({ measured: 15, total: 22, unmeasurable: false });
 		expect(grade).toBe('bad');
 	});
 
@@ -207,7 +207,7 @@ describe('the judged denominator', () => {
 		const { grade, judged } = overallOf(metrics, WEIGHTS);
 		// Not `good`, which is what a mean over the seven surviving points comes to.
 		expect(grade).toBe('ok');
-		expect(judged).toEqual({ measured: 7, total: 22, unmeasurable: true });
+		expect(judged).toMatchObject({ measured: 7, total: 22, unmeasurable: true });
 		expect(MIN_JUDGED_WEIGHT_SHARE).toBe(0.5);
 	});
 
@@ -215,7 +215,7 @@ describe('the judged denominator', () => {
 	it('grades at exactly the floor', () => {
 		const metrics = [at('a', 'good'), at('b', 'good', true)];
 		const { grade, judged } = overallOf(metrics, { a: 1, b: 1 });
-		expect(judged).toEqual({ measured: 1, total: 2, unmeasurable: false });
+		expect(judged).toMatchObject({ measured: 1, total: 2, unmeasurable: false });
 		expect(grade).toBe('good');
 	});
 
@@ -228,7 +228,7 @@ describe('the judged denominator', () => {
 	it('keeps the old answer when nothing at all could be measured', () => {
 		const metrics = [at('a', 'good', true), at('b', 'good', true)];
 		expect(overall(metrics, { a: 1, b: 1 })).toBe('ok');
-		expect(overallOf(metrics, { a: 1, b: 1 }).judged).toEqual({ measured: 0, total: 2, unmeasurable: true });
+		expect(overallOf(metrics, { a: 1, b: 1 }).judged).toMatchObject({ measured: 0, total: 2, unmeasurable: true });
 	});
 
 	/** Deliberate no-change guard: a set of weight-zero metrics still divides by nothing and says so. */

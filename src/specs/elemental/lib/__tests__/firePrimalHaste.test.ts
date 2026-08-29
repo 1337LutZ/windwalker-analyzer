@@ -241,15 +241,15 @@ describe('what the committed pulls can say about rule 5', () => {
 		// unchanged at 11 measured: the rule is `bands: [1, 2]`, so a reading declared multi-target exempts
 		// it and it joins the denominator without ever joining the numerator. Nine denominators, all +1.
 		expect(cards).toEqual([
-			'phased/auto good 21/26',
-			'phased/single good 21/26',
-			'phased/multi ok 11/26',
-			'unbroken/auto good 21/26',
-			'unbroken/single good 21/26',
-			'unbroken/multi ok 11/26',
-			'cleave/auto ok 21/26',
-			'cleave/single ok 19/26',
-			'cleave/multi ok 11/26',
+			'phased/auto good 22.5/27.5',
+			'phased/single good 22.5/27.5',
+			'phased/multi ok 12/27.5',
+			'unbroken/auto good 22.5/27.5',
+			'unbroken/single good 22.5/27.5',
+			'unbroken/multi ok 12/27.5',
+			'cleave/auto ok 22.5/27.5',
+			'cleave/single ok 20.5/27.5',
+			'cleave/multi ok 12/27.5',
 		]);
 		expect(WEIGHTS.fireElementalHasteUptime).toBe(1);
 	});

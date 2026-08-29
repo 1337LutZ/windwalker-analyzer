@@ -1187,8 +1187,8 @@
     "title": "Summary",
     "parse": "{{value, integer}}",
     "openInLogs": "Open in Warcraft Logs",
-    "judged": "Scored on {{measured}} of {{total}} points.",
-    "judged_partial": "Scored on only {{measured}} of {{total}} points, too little of this pull to call.",
+    "judged": "Measured {{measured}} of {{total}} checks on this pull.",
+    "judged_partial": "Measured only {{measured}} of {{total}} checks, too little of this pull to call.",
     "warning": {
       "runeMissing": {
         "title": "Rune of Re-Origination not detected",

@@ -157,9 +157,9 @@ describe('a pull whose shield went on late', () => {
 		expect(shieldMetric(late, 'lightningShieldFellOff')?.grade).toBe('ok');
 		// And the headline is taken over the same denominator every committed pull is scored on: nothing
 		// about a late application narrows what the report may claim.
-		expect(ELEMENTAL_SPEC.score(late, resolveBands(late.targets, 'auto')).judged).toEqual({
-			measured: 21,
-			total: 26,
+		expect(ELEMENTAL_SPEC.score(late, resolveBands(late.targets, 'auto')).judged).toMatchObject({
+			measured: 22.5,
+			total: 27.5,
 			unmeasurable: false,
 		});
 	});

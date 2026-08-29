@@ -189,7 +189,7 @@ describe('a pull that never wore the shield', () => {
 		// Eighteen and not nineteen of the twenty-five: this pull carries no Elemental Discharge either, by
 		// the same premise that takes the shield away, so that metric offers its weight and collects none of
 		// it. See `ELEMENTAL_DISCHARGE` for why the fixture strips both.
-		expect(card.judged).toEqual({ measured: 19, total: 26, unmeasurable: false });
+		expect(card.judged).toMatchObject({ measured: 20.5, total: 27.5, unmeasurable: false });
 	});
 
 	/**
@@ -260,7 +260,9 @@ describe('a pull that never wore the shield', () => {
 		expect(html).not.toContain('came off you');
 		expect(html).toContain(t('summary.takeaways.metric.lightningShieldFellOff.label'));
 		expect(html).toContain(t('summary.scorecard.state', { context: 'neverUp' }));
-		expect(html).toContain('Scored on 19 of 26 points.');
+		// The coverage line counts checks and not weight, since a ratio under "scored" read as a mark out of
+		// the weight: see `Judged.checks`.
+		expect(html).toContain('Measured 14 of 19 checks on this pull.');
 		// And it leads *the sections `headroom` orders*, which is what "leads the summary" means now that
 		// the grid has a spec-declared lead order in front of that key. Ascendance and Fire Elemental sit
 		// above their group by declaration — see `SpecTakeaways.lead` — so the claim this test can still

@@ -75,10 +75,12 @@ describe('the headline says how much of the pull it judged', () => {
 	it('prints the whole denominator on a pull it could judge in full', () => {
 		const poor = fx('poor');
 		const judged = scoreAnalysis(poor, resolveBands(poor.targets, 'auto')).judged!;
-		expect(judged).toEqual({ measured: 15, total: 17, unmeasurable: false });
+		expect(judged).toMatchObject({ measured: 15, total: 17, unmeasurable: false });
 
+		// The line counts checks and not weight: `judged.checks` is the pair a reader is shown, because a
+		// ratio under "scored" read as a mark out of the weight. See `Judged.checks`.
 		const html = render(poor);
-		expect(html).toContain(t('summary.judged', { measured: 15, total: 17 }));
+		expect(html).toContain(t('summary.judged', { measured: judged.checks!.measured, total: judged.checks!.total }));
 		// And it is still a verdict: this pull is judged, so the grade's own sentence stands.
 		expect(html).toContain(t('overall.bad'));
 	});
@@ -104,11 +106,11 @@ describe('the headline says how much of the pull it judged', () => {
 	it('prints a short denominator on a pull part of which went unjudged', () => {
 		const weave = fx('weave');
 		const judged = scoreAnalysis(weave, resolveBands(weave.targets, 'auto')).judged!;
-		expect(judged).toEqual({ measured: 14, total: 17, unmeasurable: false });
+		expect(judged).toMatchObject({ measured: 14, total: 17, unmeasurable: false });
 
 		const html = render(weave);
-		expect(html).toContain(t('summary.judged', { measured: 14, total: 17 }));
-		expect(html).not.toContain(t('summary.judged', { measured: 17, total: 17 }));
+		expect(html).toContain(t('summary.judged', { measured: judged.checks!.measured, total: judged.checks!.total }));
+		expect(html).not.toContain(t('summary.judged', { measured: judged.checks!.total, total: judged.checks!.total }));
 	});
 
 	/**
@@ -144,14 +146,20 @@ describe('the headline says how much of the pull it judged', () => {
 		// synthetic contradicting itself rather than the metric refusing to go quiet.
 		quiet.brew.stacksGained = 0;
 		const card = scoreAnalysis(quiet, resolveBands(quiet.targets, 'multi'));
-		expect(card.judged).toEqual({ measured: 4, total: 16, unmeasurable: true });
+		expect(card.judged).toMatchObject({ measured: 4, total: 16, unmeasurable: true });
 		expect(card.overall).toBe('ok');
 
 		const html = render(quiet, 'multi');
 		// The parked grade must not reach the reader as a reading of the pull.
 		expect(html).not.toContain(t('overall.ok'));
 		expect(html).toContain(t('overall.none'));
-		expect(html).toContain(t('summary.judged', { context: 'partial', measured: 4, total: 16 }));
+		expect(html).toContain(
+			t('summary.judged', {
+				context: 'partial',
+				measured: card.judged!.checks!.measured,
+				total: card.judged!.checks!.total,
+			}),
+		);
 		// Neutral rather than amber: the panel's rule is the grade's colour, and there is no grade.
 		expect(html).toContain('border-line');
 		expect(html).not.toContain('border-brew');
@@ -215,7 +223,7 @@ describe('the good headline does not deny the faults under it', () => {
 		// Nothing here is excused by a thin denominator: 14 of 16 is 87.5% of the weight the spec offered,
 		// and the two it could not read are the weave rule this capture predates. It is not the *worst*
 		// case, which is measured in the block at the foot of this file.
-		expect(card.judged).toEqual({ measured: 14, total: 16, unmeasurable: false });
+		expect(card.judged).toMatchObject({ measured: 14, total: 16, unmeasurable: false });
 		const bad = Object.entries(card.sections)
 			.filter(([, score]) => !score.unmeasurable && score.grade === 'bad')
 			.map(([key]) => key)
@@ -356,7 +364,7 @@ describe('the worst case a good letter permits', () => {
 				potionsUsed: 'ok',
 			}),
 		);
-		expect(floor.judged).toEqual({ measured: 16, total: 17, unmeasurable: false });
+		expect(floor.judged).toMatchObject({ measured: 16, total: 17, unmeasurable: false });
 		expect(floor.grade).toBe('good');
 
 		// Half a point down from there is 11.5 of 16 — 71.9%, the nearest step these weights can express
@@ -370,7 +378,7 @@ describe('the worst case a good letter permits', () => {
 				potionsUsed: 'bad',
 			}),
 		);
-		expect(under.judged).toEqual({ measured: 16, total: 17, unmeasurable: false });
+		expect(under.judged).toMatchObject({ measured: 16, total: 17, unmeasurable: false });
 		expect(under.grade).toBe('ok');
 	});
 
@@ -383,13 +391,13 @@ describe('the worst case a good letter permits', () => {
 		};
 		// 9 of 17 — 52.9%, the least these weights can leave standing and still be over half.
 		const half = letterOver(allBut(unread));
-		expect(half.judged).toEqual({ measured: 9, total: 17, unmeasurable: false });
+		expect(half.judged).toMatchObject({ measured: 9, total: 17, unmeasurable: false });
 		expect(half.grade).toBe('good');
 
 		// 8 of 17 is 47.1%, and the letter is withdrawn rather than lowered: `unmeasurable`, which is
 		// what makes the header print `overall.none` instead of any of the three grades.
 		const tooLittle = letterOver(allBut({ ...unread, brewCapWaste: null }));
-		expect(tooLittle.judged).toEqual({ measured: 8, total: 17, unmeasurable: true });
+		expect(tooLittle.judged).toMatchObject({ measured: 8, total: 17, unmeasurable: true });
 	});
 
 	it('lets a section letter bad for nothing at all', () => {
@@ -401,7 +409,7 @@ describe('the worst case a good letter permits', () => {
 		expect(section([at('karmaEmpty', 'bad'), at('karmaCapShare', 'good')]).grade).toBe('bad');
 
 		const withRedKarma = letterOver(allBut({ karmaEmpty: 'bad' }));
-		expect(withRedKarma.judged).toEqual({ measured: 17, total: 17, unmeasurable: false });
+		expect(withRedKarma.judged).toMatchObject({ measured: 17, total: 17, unmeasurable: false });
 		expect(withRedKarma.grade).toBe('good');
 
 		// And the brew section's worst-of-three fold puts a second red section on the page for one point,
@@ -410,7 +418,7 @@ describe('the worst case a good letter permits', () => {
 			'bad',
 		);
 		const three = letterOver(allBut({ karmaEmpty: 'bad', brewShortUses: 'bad', potionsUsed: 'bad' }));
-		expect(three.judged).toEqual({ measured: 17, total: 17, unmeasurable: false });
+		expect(three.judged).toMatchObject({ measured: 17, total: 17, unmeasurable: false });
 		expect(three.grade).toBe('good');
 	});
 });

@@ -576,20 +576,21 @@ copy itself follows — say it once, outside the arms.
      src/lib/i18n/__tests__/conventionsCensus.test.ts. Re-run the block above and paste the whole set
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
-As of the split-group callout, it prints 1808 leaves, 822 prose, 24,981
-words; median 27, p75 40, p90 57, p95 66, p99 102, max 158; longest 9% carry 23%; report.json 744 prose
-leaves, 1,323 sentences, median 16, 212 past 25 (16.0%), 1 em-dash in 0 sentences (0.0%);
+As of the split-group callout, it prints 1808 leaves, 823 prose, 24,988
+words; median 27, p75 40, p90 57, p95 66, p99 102, max 158; longest 9% carry 23%; report.json 745 prose
+leaves, 1,324 sentences, median 16, 212 past 25 (16.0%), 1 em-dash in 0 sentences (0.0%);
 73 / 25 / 1 / 2 on the quote lines.
 
-One leaf in and thirteen words with it: the headline's middle arm gained a second sentence for the pull
-where nothing graded solid, because the old one claimed a spread the weighted mean it was chosen by
-cannot see. That single leaf sits on top of the graded-verdict rewrite before it, which took 1,007 words
-out of the corpus across two commits: evidence first, one clause of mechanism, third clause dropped.
-"You kept Flame Shock up for 89% of the pull, which is the number this rotation is built on" is now "89%
-uptime across 21 casts, and every refresh bought something." What the guards hold survived the cut rather
-than going with it, from the mana arms naming the half they do not speak for to the casts rate naming
-the span it is measured over. Every percentile below p99 fell and the past-25 share went from 17.9% to
-16.0%. The block before that was the shared tagging pass: three leaves in, three prose leaves out.
+One leaf in and one prose string with it, and the line under the headline changed what it counts. It
+read "Scored on 21 of 26 points", which is how much of the *weight* a pull could measure and not how it
+did, and two pulls whose verdicts were 11 and 89 printed the same pair. A ratio under "scored" reads as
+a mark, which `labels-and-figures.md` names as its first failure mode, so the line now counts checks:
+one per metric, weights left inside the letter. The leaf beside it is the headline's second middle arm,
+for the pull where nothing came out solid, because the old sentence claimed a spread the mean it was
+chosen by cannot see. Before those two, the graded-verdict rewrite took 1,007 words out of the corpus
+across two commits: evidence first, one clause of mechanism, third clause dropped. Every percentile
+below p99 fell with it and the past-25 share went from 17.9% to 16.0%. The block before that was the
+shared tagging pass: three leaves in, three prose leaves out.
 
 Two leaves and no prose at all in the pass after that: `app.toCompare` and `app.toReport`, the header
 link each of a spec's two pages carries to the other. Both are three-word button labels, so they lift the
