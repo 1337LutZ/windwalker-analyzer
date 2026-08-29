@@ -576,18 +576,21 @@ copy itself follows — say it once, outside the arms.
      src/lib/i18n/__tests__/conventionsCensus.test.ts. Re-run the block above and paste the whole set
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
-As of the split-group callout, it prints 1808 leaves, 823 prose, 24,988
+As of the split-group callout, it prints 1808 leaves, 823 prose, 24,992
 words; median 27, p75 40, p90 57, p95 66, p99 102, max 158; longest 9% carry 23%; report.json 745 prose
 leaves, 1,324 sentences, median 16, 212 past 25 (16.0%), 1 em-dash in 0 sentences (0.0%);
 73 / 25 / 1 / 2 on the quote lines.
 
-One leaf in and one prose string with it, and the line under the headline changed what it counts. It
+One leaf in, one prose string with it, and three of the five headlines reworded. The line under them
+changed what it counts, too. It
 read "Scored on 21 of 26 points", which is how much of the *weight* a pull could measure and not how it
 did, and two pulls whose verdicts were 11 and 89 printed the same pair. A ratio under "scored" reads as
 a mark, which `labels-and-figures.md` names as its first failure mode, so the line now counts checks:
-one per metric, weights left inside the letter. The leaf beside it is the headline's second middle arm,
-for the pull where nothing came out solid, because the old sentence claimed a spread the mean it was
-chosen by cannot see. Before those two, the graded-verdict rewrite took 1,007 words out of the corpus
+one per metric, weights left inside the letter. The leaf beside it is the headline's second middle arm, for the
+pull where nothing came out solid, because the old sentence claimed a spread the mean it was chosen by
+cannot see. Two of its neighbours lost claims of their own in the same pass: "others lost damage" is a
+damage reading nothing here takes, and "several core habits are missing" counts something a weighted
+mean cannot count. Before those two, the graded-verdict rewrite took 1,007 words out of the corpus
 across two commits: evidence first, one clause of mechanism, third clause dropped. Every percentile
 below p99 fell with it and the past-25 share went from 17.9% to 16.0%. The block before that was the
 shared tagging pass: three leaves in, three prose leaves out.
