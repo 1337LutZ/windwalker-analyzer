@@ -130,8 +130,8 @@ describe('a good totem section that clipped a totem', () => {
 		const sentence = verdictOf(render(SearingTotem, cleave));
 		expect(sentence).not.toContain(NO_CLIP);
 		expect(sentence).toContain('89.26% uptime');
-		expect(sentence).toContain('no Searing Totem of yours went down while the Fire Elemental was holding the slot');
-		expect(sentence).toContain('One press did land over a live totem, throwing away 10.8s');
+		expect(sentence).toContain('the Fire Elemental never ate one of yours');
+		expect(sentence).toContain('One press did land over a live totem and threw away 10.8s');
 		noRawKey(sentence);
 	});
 
@@ -145,7 +145,7 @@ describe('a good totem section that clipped a totem', () => {
 	 */
 	it('sends the reader to the press it is no longer claiming does not exist', () => {
 		const html = render(SearingTotem, cleave);
-		expect(verdictOf(html)).toContain('the table gives you the moment');
+		expect(verdictOf(html)).toContain('the global went all the same');
 		expect(html).toContain(formatClock(135_481));
 		expect(html).toContain(t('searingTotem.state.clip'));
 		expect(html).toContain(t('searingTotem.kpi.clipped'));
@@ -155,8 +155,8 @@ describe('a good totem section that clipped a totem', () => {
 	it('says how many at more than one', () => {
 		const twice = { ...cleave, searingTotem: { ...cleave.searingTotem, clipped: 2, wastedMs: 21_000 } } as El;
 		const sentence = verdictOf(render(SearingTotem, twice));
-		expect(sentence).toContain('2 presses landed over a live totem, throwing away 21s');
-		expect(sentence).toContain('the table gives you the moments');
+		expect(sentence).toContain('2 presses landed over a live totem and threw away 21s');
+		expect(sentence).toContain('the globals went all the same');
 		expect(sentence).not.toContain(NO_CLIP);
 		noRawKey(sentence);
 	});
@@ -185,14 +185,14 @@ describe('a good totem section that clipped a totem', () => {
 		expect(unbroken.targets?.counts.max).toBe(1);
 		expect(verdictOf(render(SearingTotem, phased))).toContain(`79.84% uptime, and ${NO_CLIP}`); // no-change guard
 		expect(verdictOf(render(SearingTotem, unbroken))).toContain(`61.57% uptime, and ${NO_CLIP}`); // no-change guard
-		expect(verdictOf(render(SearingTotem, phased, 'multi'))).toContain(
-			'no Searing Totem of yours went down while the Fire Elemental was holding it',
-		); // no-change guard
+		expect(verdictOf(render(SearingTotem, phased, 'multi'))).toContain('You kept the slot clear'); // no-change guard
 		// The never-cast pull still reads the plain sentence and still names no clip, which is the half of
 		// this claim that had to survive its letter moving. The sentence itself was rewritten when the
 		// uptime started grading that pull, so it opens on the same clause and no longer stops there.
 		expect(verdictOf(render(SearingTotem, addsThenBoss))).toBe(t('searingTotem.verdict_none'));
-		expect(verdictOf(render(SearingTotem, addsThenBoss))).toMatch(/^Searing Totem was never cast in this pull\./);
+		expect(verdictOf(render(SearingTotem, addsThenBoss))).toMatch(
+			/^Searing Totem was never cast, and the slot stood empty all pull\./,
+		);
 		expect(verdictOf(render(SearingTotem, addsThenBoss))).not.toContain('clip');
 	});
 

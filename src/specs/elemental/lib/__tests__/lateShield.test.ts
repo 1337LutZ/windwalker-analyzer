@@ -185,10 +185,10 @@ describe('a pull whose shield went on late', () => {
 		expect(committed.lightningShield.fellOff).toBe(1);
 
 		const sentence = verdictOf(render(late));
-		expect(sentence).toBe('The shield sat at seven for 11.7s past the leeway, and came all the way off once.');
+		expect(sentence).toBe('The shield sat at seven for 11.7s past the leeway, and came off once.');
 		// The clause under discussion, named rather than left inside the equality above: it says a removal,
 		// and this pull had none. If it is ever reworded, this is the line that should go red.
-		expect(sentence).toContain('came all the way off once');
+		expect(sentence).toContain('came off once');
 	});
 
 	/**
@@ -203,7 +203,7 @@ describe('a pull whose shield went on late', () => {
 		expect(shieldMetric(late, 'lightningShieldFellOff', 'multi')?.unmeasurable).toBe(false);
 		const sentence = verdictOf(render(late, 'multi'));
 		expect(sentence).toContain('Your shield came off once');
-		expect(sentence).toContain('Rolling Thunder returns 2% of your maximum mana per charge');
+		expect(sentence).toContain('Rolling Thunder hands back 2% of your maximum mana per charge');
 	});
 
 	/**

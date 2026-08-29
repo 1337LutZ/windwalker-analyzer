@@ -19,7 +19,7 @@
 // Thunderstorm's clock alone. Both now have a nought arm that says what the Rage actually did.
 //
 // This is the same defect, in the same shape, that `searingTotem` and `lightningShield` were both given
-// nought arms for — *"0 presses clipped a healthy totem"*, *"came all the way off 0 times"*. Only this
+// nought arms for — *"0 presses clipped a healthy totem"*, *"came off 0 times"*. Only this
 // section had it judged the other way, on the reading that English takes the plural arm at nought. It
 // does; the sentence still faults you.
 //
@@ -212,7 +212,7 @@ describe('a totem laid under the Fire Elemental', () => {
 
 	it('says one totem in words at exactly one', () => {
 		const sentence = verdictOf(render(SearingTotem, withOverlaps(1), 'multi'));
-		expect(sentence).toContain('One Searing Totem went down while the Fire Elemental was holding the slot');
+		expect(sentence).toContain('One Searing Totem went down under the Fire Elemental');
 		expect(sentence).toContain('that global bought nothing');
 		expect(sentence).not.toContain('1 Searing Totems');
 		noRawKey(sentence);
@@ -220,7 +220,7 @@ describe('a totem laid under the Fire Elemental', () => {
 
 	it('and takes the plural at two, with the plural noun and the plural globals', () => {
 		const sentence = verdictOf(render(SearingTotem, withOverlaps(2), 'multi'));
-		expect(sentence).toContain('2 Searing Totems went down while the Fire Elemental was holding the slot');
+		expect(sentence).toContain('2 Searing Totems went down under the Fire Elemental');
 		expect(sentence).toContain('those globals bought nothing');
 		noRawKey(sentence);
 	});

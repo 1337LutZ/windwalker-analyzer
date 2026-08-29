@@ -115,7 +115,7 @@ describe('Flame Shock verdict', () => {
 		expect(html).toContain(
 			t('flameShock.verdict', { context: 'bad_full', casts: CASTS, wasted: unbroken.flameShock.refreshes }),
 		);
-		expect(html).toContain('The grade is about the refreshes, not the uptime');
+		expect(html).toContain('The mark is about the refreshes');
 		expect(html).not.toContain('off the target for the rest');
 		expect(html).not.toContain('much of the pull down');
 	});
@@ -128,7 +128,7 @@ describe('Flame Shock verdict', () => {
 	it('has its own wording for a middling refresh share on a perfect keep-up', () => {
 		const html = render(withFlameShock({ windowed: 5 }));
 		expect(html).toContain(t('flameShock.verdict', { context: 'ok_full', casts: CASTS, wasted: 1 }));
-		expect(html).toContain('1 of the refreshes threw away a tick of the running dot with no stronger snapshot');
+		expect(html).toContain('1 refreshes clipped a live tick for nothing');
 	});
 
 	/**
@@ -208,8 +208,8 @@ describe('a good Flame Shock verdict claims only what the share can support', ()
 		// The number, and something to do about it — not a hedge in place of the claim.
 		expect(html).toContain('96% uptime across 11 casts');
 		expect(html).toContain('the dot is not what is holding this pull back');
-		expect(html).toContain('1 of the refreshes still threw away a tick of the running dot');
-		expect(html).toContain('hold Flame Shock until the dot’s last tick');
+		expect(html).toContain('1 refreshes still clipped a live tick');
+		expect(html).toContain('Hold to the last tick');
 	});
 
 	/**
@@ -233,7 +233,7 @@ describe('a good Flame Shock verdict claims only what the share can support', ()
 		expect(card.sections['flameShock']?.grade).toBe('good');
 		const html = render(spread);
 		expect(html).not.toContain('casts, and every refresh bought something');
-		expect(html).toContain('3 of the refreshes still threw away a tick of the running dot');
+		expect(html).toContain('3 refreshes still clipped a live tick for nothing');
 		// And the clause that says how much of that three was counted still follows it.
 		expect(html).toContain('3 of those came with more than one enemy up');
 	});
@@ -242,11 +242,11 @@ describe('a good Flame Shock verdict claims only what the share can support', ()
 	it('does not call a pull perfect over a refresh that threw away a tick', () => {
 		const html = render(withFlameShock(AT_THE_TOP));
 		expect(html).toContain(t('flameShock.verdict', { context: 'goodSome_full', casts: TOP_CASTS, wasted: 1 }));
-		expect(html).toContain('The dot was up for every second you had something to hit');
-		expect(html).toContain('1 of the refreshes still threw away a tick of the running dot');
+		expect(html).toContain('The dot never dropped');
+		expect(html).toContain('1 refreshes still clipped a live tick');
 		// The keep-up really was perfect and the sentence still says so — the correction is to the silence
 		// about the refresh, not to the praise.
-		expect(html).toContain('a perfect keep-up');
+		expect(html).toContain('A perfect keep-up');
 	});
 
 	/**
@@ -259,7 +259,7 @@ describe('a good Flame Shock verdict claims only what the share can support', ()
 		expect(clean).toContain('96% uptime across 11 casts, and every refresh bought something.');
 		const cleanFull = render(withFlameShock({ ...PERFECT_KEEPUP }));
 		expect(cleanFull).toContain(t('flameShock.verdict', { context: 'good_full', casts: CASTS }));
-		expect(cleanFull).toContain('a perfect keep-up.');
+		expect(cleanFull).toContain('A perfect keep-up.');
 		expect(cleanFull).not.toContain('threw away a tick');
 	});
 });

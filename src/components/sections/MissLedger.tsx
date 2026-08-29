@@ -4,7 +4,7 @@ import { useReportCopy } from '~/hooks/useReportCopy';
 import { formatClock } from '~/lib/format';
 import type { Analysis, Miss } from '~/lib/types';
 
-import { DataGrid, Prose, Section, type GridRow } from '../primitives';
+import { CauseLegend, CauseTag, DataGrid, Prose, Section, type GridRow } from '../primitives';
 import LogLink from './LogLink';
 
 /**
@@ -43,7 +43,16 @@ export default function MissLedger({ analysis }: { analysis: Analysis }) {
 			groups.map(([kind, list]) => ({
 				key: kind,
 				cells: {
-					kind,
+					// This ledger is the fault list by definition, so every row is the player's and the tag says so
+					// on all of them. Uniform and drawn anyway: the column that answers "whose was this" is the same
+					// column on every table in this report, and one that goes blank where the answer happens not to
+					// vary reads as one that stopped working.
+					kind: (
+						<span className="inline-flex items-baseline">
+							<CauseTag cause="player" />
+							<span>{kind}</span>
+						</span>
+					),
 					count: list.length,
 					when: (
 						<span className="flex flex-wrap">
@@ -78,6 +87,11 @@ export default function MissLedger({ analysis }: { analysis: Analysis }) {
 				rows={rows}
 				empty={t('misses.none')}
 			/>
+			{analysis.misses.length > 0 ? (
+				<div className="mt-3.5">
+					<CauseLegend causes={['player']} />
+				</div>
+			) : null}
 		</Section>
 	);
 }

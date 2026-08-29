@@ -576,20 +576,18 @@ copy itself follows — say it once, outside the arms.
      src/lib/i18n/__tests__/conventionsCensus.test.ts. Re-run the block above and paste the whole set
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
-As of the split-group callout, it prints 1807 leaves, 821 prose, 25,975
-words; median 27, p75 42, p90 61, p95 71, p99 102, max 158; longest 9% carry 23%; report.json 743 prose
-leaves, 1,335 sentences, median 16, 239 past 25 (17.9%), 1 em-dash in 0 sentences (0.0%);
-72 / 28 / 1 / 2 on the quote lines.
+As of the split-group callout, it prints 1807 leaves, 821 prose, 25,362
+words; median 27, p75 41, p90 59, p95 68, p99 102, max 158; longest 9% carry 23%; report.json 743 prose
+leaves, 1,334 sentences, median 16, 225 past 25 (16.9%), 1 em-dash in 0 sentences (0.0%);
+72 / 26 / 1 / 2 on the quote lines.
 
-Three leaves in, three prose leaves out, and three words back with the tier sweep. The shared half of
-the cause pass tags Rushing Jade Wind, the raid buff table, the externals table and the four scorecard
-states, so those rows stop explaining themselves in prose: "This fight puts you out of reach by design,
-so the time this figure is measured over is the fight's doing rather than yours" becomes a Fight tag over
-"Out of reach by design". The three arriving leaves are the two notes naming what the Raid tag asks for,
-one per table, and the plural arm one of them needs. The word total then ticks back up three because
-`T16 2P` is two words where `tier-16 two-piece` was one hyphenated token, which is the one place this
-pass makes the corpus longer. The block before it was the Elemental sweep: no leaves either way,
-twenty-four sentences gone.
+No leaves either way and 613 words gone, the largest single fall this census has recorded. Forty-four
+graded verdicts were rewritten to the register the tags left them in: evidence first, one clause of
+mechanism, and the third clause dropped. "You kept Flame Shock up for 89% of the pull, which is the
+number this rotation is built on" is now "89% uptime across 21 casts, and every refresh bought
+something." Every percentile below p99 comes down with them, and the past-25 share falls a full point to
+16.9%, which is the shape of a corpus losing its longest strings rather than its shortest. The block
+before it was the shared tagging pass: three leaves in, three prose leaves out.
 
 Two leaves and no prose at all in the pass after that: `app.toCompare` and `app.toReport`, the header
 link each of a spec's two pages carries to the other. Both are three-word button labels, so they lift the

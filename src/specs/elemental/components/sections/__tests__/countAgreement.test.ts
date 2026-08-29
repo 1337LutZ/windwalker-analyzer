@@ -15,8 +15,8 @@
 //
 // **Nought is here too, and it is not the same defect.** Three of these sentences report a fault the
 // section does not grade, so they can be handed a nought by a pull that has none of it: `phased` printed
-// *"0 presses clipped a healthy totem, throwing away 0s of its dot"* and three of the four fixtures
-// printed *"came all the way off 0 times"*. Those are false faults rather than bad grammar, and where the
+// *"0 presses clipped a healthy totem and threw away 0s of its dot"* and three of the four fixtures
+// printed *"came off 0 times"*. Those are false faults rather than bad grammar, and where the
 // key can reach nought it now has an arm that says so.
 //
 // **Two of the five families take the other road, and the reason is the render site rather than the
@@ -245,11 +245,11 @@ describe('the exempt shock count agrees with itself', () => {
 
 	it('names no plural noun in front of the number, at one shock or at none', () => {
 		for (const [n, total] of [
-			[1, 'That is 1 in total'],
-			[0, 'That is 0 in total'],
+			[1, 'none of your 1 presses'],
+			[0, 'none of your 0 presses'],
 		] as const) {
 			const sentence = verdictOf(render(EarthShock, withPresses(n), 'multi'));
-			expect(sentence).toContain('none of your shocks is right or wrong on this reading');
+			expect(sentence).toContain('is right or wrong here');
 			expect(sentence).toContain(total);
 			expect(sentence).not.toContain(`${n} shocks`);
 			noRawKey(sentence);
@@ -258,8 +258,8 @@ describe('the exempt shock count agrees with itself', () => {
 
 	it('reads the same way at twelve, on the committed pull', () => {
 		const sentence = verdictOf(render(EarthShock, cleave, 'multi'));
-		expect(sentence).toContain('none of your shocks is right or wrong on this reading');
-		expect(sentence).toContain('That is 12 in total');
+		expect(sentence).toContain('is right or wrong here');
+		expect(sentence).toContain('none of your 12 presses');
 		noRawKey(sentence);
 	});
 
@@ -286,7 +286,7 @@ describe('the exempt shock count agrees with itself', () => {
 		}
 		// And three of them do grade, so the assertion above is about the floor and not about the edit.
 		const three = { ...cleave, earthShock: { ...cleave.earthShock, judged: 3, good: 2 } } as El;
-		expect(verdictOf(render(EarthShock, three))).toContain('2 of 3 shocks were spent');
+		expect(verdictOf(render(EarthShock, three))).toContain('2 of 3 shocks spent');
 	});
 });
 
@@ -328,7 +328,7 @@ describe('the clipped-press count agrees with itself', () => {
 
 	it('says one press at one, in both letters', () => {
 		const ok = verdictOf(render(SearingTotem, withClipped(phased, 1, 6000)));
-		expect(ok).toContain('One press clipped a healthy totem, throwing away 6s of its dot');
+		expect(ok).toContain('One press clipped a healthy totem and threw away 6s of its dot');
 		expect(ok).not.toContain('1 presses');
 		const bad = verdictOf(render(SearingTotem, withClipped(unbroken, 1, 6000)));
 		expect(bad).toContain('one press clipped a healthy totem');
@@ -339,7 +339,7 @@ describe('the clipped-press count agrees with itself', () => {
 
 	it('and presses at more than one, in both letters', () => {
 		expect(verdictOf(render(SearingTotem, withClipped(phased, 2, 9000)))).toContain(
-			'2 presses clipped a healthy totem, throwing away 9s of its dot',
+			'2 presses clipped a healthy totem and threw away 9s of its dot',
 		);
 		expect(verdictOf(render(SearingTotem, withClipped(unbroken, 3, 9000)))).toContain(
 			'3 presses clipped a healthy totem',
@@ -352,8 +352,8 @@ describe('the clipped-press count agrees with itself', () => {
 /**
  * The drop count, which reaches one and nought on committed pulls both.
  *
- * `cleave` drops the shield once and printed *"came all the way off 1 times"*; the other three never drop
- * it and printed *"came all the way off 0 times"* — a fault sentence for a fault none of them had, under a
+ * `cleave` drops the shield once and printed *"came off 1 times"*; the other three never drop
+ * it and printed *"came off 0 times"* — a fault sentence for a fault none of them had, under a
  * letter the overcap earned on its own.
  *
  * The narrowed arms need none of this and the reason is worth the sentence: with the overcap out of scope
@@ -386,13 +386,13 @@ describe('the shield drop count agrees with itself', () => {
 
 	it('says once at one drop, and never at none, on the committed pulls', () => {
 		const one = verdictOf(render(LightningShield, cleave));
-		expect(one).toContain('came all the way off once');
+		expect(one).toContain('came off once');
 		expect(one).not.toContain('1 times');
 		// The tail belongs to the `bad` arms alone, and `cleave` is `ok` now — see the premise above. It is
 		// asserted on `phased` below, which is still `bad` and still has only the one fault to name.
 		expect(one).not.toContain('both are charges the next spend lost');
 		const none = verdictOf(render(LightningShield, phased));
-		expect(none).toContain('never came all the way off');
+		expect(none).toContain('never came off');
 		expect(none).not.toContain('0 times');
 		// The tail is a claim about two faults and there was only one, so it goes with the count.
 		expect(none).not.toContain('both are charges the next spend lost');
@@ -403,7 +403,7 @@ describe('the shield drop count agrees with itself', () => {
 	it('keeps the plural at more than one drop', () => {
 		const many = { ...cleave, lightningShield: { ...cleave.lightningShield, fellOff: 3 } } as El;
 		const sentence = verdictOf(render(LightningShield, many));
-		expect(sentence).toContain('came all the way off 3 times');
+		expect(sentence).toContain('came off 3 times');
 		noRawKey(sentence);
 	});
 
@@ -424,13 +424,13 @@ describe('the shield drop count agrees with itself', () => {
 			expect(ELEMENTAL_SPEC.score(okPull(fellOff)).sections['lightningShield']?.grade).toBe('ok');
 		}
 		const none = verdictOf(render(LightningShield, okPull(0)));
-		expect(none).toContain('sat at seven for 8s past the leeway, and never came all the way off');
+		expect(none).toContain('sat at seven for 8s past the leeway, and never came off');
 		expect(none).not.toContain('0 times');
 		const one = verdictOf(render(LightningShield, okPull(1)));
-		expect(one).toContain('sat at seven for 8s past the leeway, and came all the way off once');
+		expect(one).toContain('sat at seven for 8s past the leeway, and came off once');
 		expect(one).not.toContain('1 times');
 		expect(t('lightningShield.verdict', { context: 'ok', count: 4, overcap: 8000, fellOff: 4 })).toContain(
-			'came all the way off 4 times',
+			'came off 4 times',
 		);
 	});
 });

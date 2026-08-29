@@ -110,7 +110,7 @@ describe('a section whose only graded metric was never asked', () => {
 	it('says which figure the letter is about, and keeps the one it is not', () => {
 		const html = render(SearingTotem, phased, 'multi');
 		expect(verdictOf(html)).toContain('nothing in the multi-target order asks for a fire totem');
-		expect(verdictOf(html)).toContain('no Searing Totem of yours went down while the Fire Elemental was holding it');
+		expect(verdictOf(html)).toContain('You kept the slot clear');
 		// The number stays, and the tile beside it says what it is.
 		expect(html).toContain(`Totem uptime, ${t('metric.notAsked')}`);
 		expect(html).toContain('79.84%');
@@ -127,7 +127,7 @@ describe('a section whose only graded metric was never asked', () => {
 		expect(phased.lightningShield.overcapMs).toBeGreaterThan(0);
 		const html = render(LightningShield, phased, 'multi');
 		expect(verdictOf(html)).toContain('nothing in the multi-target order spends the shield');
-		expect(verdictOf(html)).toContain('Rolling Thunder returns 2% of your maximum mana per charge');
+		expect(verdictOf(html)).toContain('Rolling Thunder hands back 2% of your maximum mana per charge');
 		// 12.4s of it, still printed and still named — an unmeasured figure is not a deleted one. It was
 		// 17.6s until the overcap clock stopped running through Ascendance, where the shock is not to be
 		// pressed and the charges the hold produces are not a fault.
@@ -144,7 +144,7 @@ describe('a section whose only graded metric was never asked', () => {
 		// `phased` grades `ok` on the totem and on the shield under its own reading, so the guards are
 		// against those two sentences rather than against the `good` ones the forced reading produced above.
 		// `phased` clips nothing, so its own reading takes the totem's `ok` sentence at a count of nought —
-		// the arm that stopped saying "0 presses clipped a healthy totem, throwing away 0s of its dot". The
+		// the arm that stopped saying "0 presses clipped a healthy totem and threw away 0s of its dot". The
 		// second assertion is what keeps this a guard on the `ok` arm rather than on either arm that reads
 		// nought, since `bad` at nought opens on the same clause and then asks for the totem back.
 		expect(verdictOf(render(SearingTotem, phased, 'auto'))).toContain(
@@ -175,15 +175,15 @@ describe('a section none of whose rules were asked', () => {
 
 		const fs = verdictOf(render(FlameShock, cleave, 'multi'));
 		expect(fs).toContain('asks only that Flame Shock go back up when it is off the enemy in front of you');
-		expect(fs).toContain('86.79% uptime across 10 casts is drawn above');
+		expect(fs).toContain('86.79% across 10 casts is drawn above');
 		expect(fs).not.toContain('Flame Shock was never cast in this pull');
 
 		const es = verdictOf(render(EarthShock, cleave, 'multi'));
 		expect(es).toContain('has no Earth Shock in it at all');
-		expect(es).toContain('none of your shocks is right or wrong on this reading');
+		expect(es).toContain('is right or wrong here');
 		// The total moved into a clause of its own when this sentence was reworded to read correctly at one
 		// shock and at none — see `countAgreement.test.ts` for the measurement behind that.
-		expect(es).toContain('That is 12 in total');
+		expect(es).toContain('none of your 12 presses');
 		expect(es).not.toContain('Earth Shock was never cast in this pull');
 
 		// The Snapshots section was the third reading checked here. It is gone — the proc windows it
@@ -223,13 +223,11 @@ describe('a section none of whose rules were asked', () => {
 	it('leaves all three alone on the reading nobody forced', () => {
 		expect(verdictOf(render(FlameShock, cleave, 'auto'))).toContain('86.79% uptime across 10 casts'); // no-change guard
 		expect(verdictOf(render(EarthShock, cleave, 'auto'))).toContain(
-			'shocks were spent with the shield charged up and the Flame Shock dot still long',
+			'shocks spent on a full shield with the dot still long',
 		); // no-change guard, reworded with the string itself
 		// And the `_full` wording is still chosen where it belongs, so the guard above did not close the raw
 		// key by taking that variant off every pull.
-		expect(verdictOf(render(FlameShock, unbroken, 'auto'))).toContain(
-			'The dot was up for every second you had something to hit',
-		); // no-change guard
+		expect(verdictOf(render(FlameShock, unbroken, 'auto'))).toContain('The dot never dropped'); // no-change guard
 	});
 });
 

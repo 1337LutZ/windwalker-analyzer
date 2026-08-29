@@ -4,7 +4,7 @@
 // this pull" over a table of shocks; this one printed a shield's two habits over a chart that says the
 // shield was never there. The section's own words, before this file:
 //
-//   > The shield sat at seven for 0s past the leeway, and came all the way off once.
+//   > The shield sat at seven for 0s past the leeway, and came off once.
 //   > *(and, in the chart's place, twenty lines above)* No charges to draw.
 //
 // Both clauses are false of a buff that was never applied, and the section stated them beside their own
@@ -236,7 +236,7 @@ describe('a pull that never wore the shield', () => {
 	 * The summary was leading with the fault, which is the reach of this defect nobody had measured.
 	 *
 	 * `lightningShieldFellOff` carries a takeaway card, and on this pull the card came top of *Key
-	 * improvements*: *"Keep the shield up — The shield came all the way off you — 1 in a pull where it
+	 * improvements*: *"Keep the shield up — The shield came off you — 1 in a pull where it
 	 * should be none."* A refused metric leads nothing, so for one change the card was gone altogether.
 	 *
 	 * **It is back, and it must be — the summary is exactly where the worst thing on a pull belongs.**
@@ -257,7 +257,7 @@ describe('a pull that never wore the shield', () => {
 		const html = renderToStaticMarkup(
 			createElement(Report, { analysis: pull as Analysis, targetChoice: 'auto', spec: ELEMENTAL_SPEC }),
 		);
-		expect(html).not.toContain('came all the way off you');
+		expect(html).not.toContain('came off you');
 		expect(html).toContain(t('summary.takeaways.metric.lightningShieldFellOff.label'));
 		expect(html).toContain(t('summary.scorecard.state', { context: 'neverUp' }));
 		expect(html).toContain('Scored on 19 of 26 points.');
@@ -282,7 +282,7 @@ describe('a pull that never wore the shield', () => {
 		// The two false clauses, named rather than left to the equality above — if the plain arm is ever
 		// reworded, these are the words that must not come back.
 		expect(sentence).not.toContain('sat at seven');
-		expect(sentence).not.toContain('came all the way off');
+		expect(sentence).not.toContain('came off');
 		// And not a dotted key, which is what an arm reached by name gets wrong when the arm is misspelt.
 		expect(sentence).not.toMatch(/lightningShield\.verdict/);
 	});

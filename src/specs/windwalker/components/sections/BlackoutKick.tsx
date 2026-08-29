@@ -6,7 +6,18 @@ import type { Analysis, TargetMode } from '~/lib/types';
 import { readBlackoutKick, BLACKOUT_KICK_CAST_ID } from '~/specs/windwalker/lib/view/blackoutKick';
 import { bandForMode } from '~/lib/view/targetMode';
 
-import { DataGrid, Note, Prose, Section, SpellIcon, StatTile, StatTiles, type GridRow } from '~/components/primitives';
+import {
+	CauseLegend,
+	CauseTag,
+	DataGrid,
+	Note,
+	Prose,
+	Section,
+	SpellIcon,
+	StatTile,
+	StatTiles,
+	type GridRow,
+} from '~/components/primitives';
 import LogLink from '~/components/sections/LogLink';
 
 /**
@@ -67,6 +78,11 @@ export default function BlackoutKick({ analysis, forcedMode }: { analysis: Analy
 				cells: {
 					button: (
 						<span className="flex items-center gap-2">
+							{/* Every row of this table is one press the ladder wanted and did not get, so the tag is the
+							    same on all of them and is drawn anyway: a reader who has just met `Rotation` on a
+							    forgiven row two sections up needs the same column to answer here, and a column that
+							    goes blank when the answer is uniform reads as a column that stopped working. */}
+							<CauseTag cause="player" />
 							<SpellIcon id={row.id} size="sm" />
 							{/* The priority section's own labels, not a second set: a reader sent from a row here to
 							    the reference has to meet the same words. */}
@@ -85,7 +101,15 @@ export default function BlackoutKick({ analysis, forcedMode }: { analysis: Analy
 				key: `${row.at}`,
 				band: 'warn' as const,
 				cells: {
-					at: <LogLink href={row.link}>{formatClock(row.at)}</LogLink>,
+					// The tag leads the row, in the column the reader's eye starts in. Every row here is a global
+					// spent waiting on chi, so the answer is the same on all of them and is still worth drawing:
+					// the column answers "whose was this" wherever a reader looks, or it answers nowhere.
+					at: (
+						<span className="inline-flex items-baseline">
+							<CauseTag cause="player" />
+							<LogLink href={row.link}>{formatClock(row.at)}</LogLink>
+						</span>
+					),
 					waited: <b className="font-semibold text-ink-2">{formatSeconds(row.ms)}</b>,
 					// The evidence the row rests on, printed rather than summarised — and the number the
 					// tier-bonus caveat below turns on.
@@ -198,6 +222,9 @@ export default function BlackoutKick({ analysis, forcedMode }: { analysis: Analy
 						rows={wantedRows}
 						empty={t('blackoutKick.wantedNone')}
 					/>
+					<div className="mt-3.5">
+						<CauseLegend causes={['player']} />
+					</div>
 				</div>
 			)}
 
@@ -253,6 +280,9 @@ export default function BlackoutKick({ analysis, forcedMode }: { analysis: Analy
 						rows={starveRows}
 						empty={t('blackoutKick.starveNone')}
 					/>
+					<div className="mt-3.5">
+						<CauseLegend causes={['player']} />
+					</div>
 				</div>
 			)}
 

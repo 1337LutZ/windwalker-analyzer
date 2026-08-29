@@ -178,11 +178,10 @@ describe('a pull whose shocks are too few to read', () => {
 	 */
 	it('names the presses it counted and the presses it could not read', () => {
 		for (const [judged, counted] of [
-			[1, 'only 1 of those came with one or two enemies up'],
-			[2, 'only 2 of those came with one or two enemies up'],
+			[1, 'Only 1 of 12 shocks came with one or two enemies up'],
+			[2, 'Only 2 of 12 shocks came with one or two enemies up'],
 		] as const) {
 			const sentence = verdictOf(render(EarthShock, withJudged(judged)));
-			expect(sentence).toContain('Earth Shock was pressed in this pull, 12 in total');
 			expect(sentence).toContain(counted);
 			expect(sentence).toContain('too few to tell a habit from a coincidence');
 			// The reader is sent to the table rather than left with a fraction, which is the whole difference
@@ -206,8 +205,7 @@ describe('a pull whose shocks are too few to read', () => {
 	it('holds at no judged shocks at all, while the presses are still on the page', () => {
 		const sentence = verdictOf(render(EarthShock, withJudged(0)));
 		expect(sentence).not.toContain(NEVER_PRESSED);
-		expect(sentence).toContain('Earth Shock was pressed in this pull, 12 in total');
-		expect(sentence).toContain('only 0 of those came with one or two enemies up');
+		expect(sentence).toContain('Only 0 of 12 shocks came with one or two enemies up');
 		noRawKey(sentence);
 	});
 
@@ -235,7 +233,7 @@ describe('a pull whose shocks are too few to read', () => {
 	it('leaves the exempt sentence in front of the thin one', () => {
 		const sentence = verdictOf(render(EarthShock, withJudged(1), 'multi'));
 		expect(sentence).toContain('has no Earth Shock in it at all');
-		expect(sentence).toContain('That is 12 in total');
+		expect(sentence).toContain('none of your 12 presses');
 		expect(sentence).not.toContain('too few to tell a habit from a coincidence');
 		noRawKey(sentence);
 	});
@@ -248,13 +246,13 @@ describe('a pull whose shocks are too few to read', () => {
 	 */
 	it('leaves every committed pull alone', () => {
 		const expected: Record<string, string> = {
-			addsThenBoss: 'Only 9 of 20 shocks were spent',
-			cleave: '5 of 7 shocks were spent',
+			addsThenBoss: 'Only 9 of 20 shocks spent',
+			cleave: '5 of 7 shocks spent',
 			// No "Only" on these two any more: dropping the false tier-16 charges takes `phased` to `good` and
 			// `unbroken` to `ok`, and that prefix belongs to `verdict_bad` alone. `phased` has since gone to
 			// `ok` on the Ascendance rule and keeps the prefix-free arm; its count is the one that moved.
-			phased: '10 of 12 shocks were spent',
-			unbroken: '10 of 13 shocks were spent',
+			phased: '10 of 12 shocks spent',
+			unbroken: '10 of 13 shocks spent',
 		};
 		// Every discovered pull has a sentence written down for it, so a fifth fixture has to be read and
 		// pinned rather than skipped by a loop that never reaches it.
