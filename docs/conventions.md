@@ -734,8 +734,8 @@ argument with its size instead of being read.
 **The straight-apostrophe row moves 72 to 75, and chasing it is how a bad rule got caught.** Three
 `can't`s put it there. The row sent this pass to `report-register.md` §6, which said to write expanded
 by default; the copy was expanded, the row went back to 72, and the reading looked tidy. It was wrong.
-§6 was measured from a machine-written corpus, and a model declining a contraction is the most
-reliable tell there is that prose was generated. The rule is retracted, the copy contracts again, and
+§6 read "expanded by default" off 326 words too small to contain a contraction, and enforced it
+against shipped copy that contracts 95 times. The rule is retracted, the copy contracts again, and
 the row stands at 75.
 
 **What this census is for, on the evidence of that round trip.** A row moving is a question, not a

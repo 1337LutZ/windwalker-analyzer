@@ -28,19 +28,20 @@ verdict and the fix behind it.
 calibration. Every rule below either held across every piece in the corpus or is quoted verbatim
 from it.
 
-> **Correction, 2026-08-29: the corpus is machine-written, not the author's own prose.** This file
-> opened by calling it "written by this project's author" and every rule below was derived on that
-> footing. It is wrong. What the corpus records is what a model produces when asked to write like
-> this project, which is a different thing and in places the opposite of it.
+> **Correction, 2026-08-29, and it retracts a correction made the same day.** An earlier note here
+> said the corpus was machine-written. That was wrong, and §9 is the disproof: the pieces contain
+> `it's` for the possessive, `a Elixir` for `an`, and `you accidentally overwritten` for `overwrote`.
+> No model produces those. The corpus is human.
 >
-> **This does not void the file, and it does not bless it either.** A rule that only ever rested on
-> a habit of the corpus is now evidence of nothing — it is measuring the model. A rule the shipped
-> copy corroborates stands on the corroboration and never needed the corpus. The evidence bar below
-> already draws exactly that line, so apply it again, per rule, before trusting one. §6 has been
-> retracted under it; §7's em dash keeps its enforcement because both locale files corroborate it.
+> **What is machine-written is this file.** The corpus is 326 words; the rules derived from it run to
+> ten sections, and they were derived by a model reading absence as intent. That is the failure mode
+> to watch for here, and it has now produced one rule that inverted the author's actual voice — see
+> §6, where "write expanded by default" was read off a corpus too small to contain a contraction and
+> then enforced against copy that contracts 95 times.
 >
-> Where a rule reads as an AI tell rather than as a voice — expanded verbs, uniform sentence length,
-> a tidy closing clause — suspect the corpus first.
+> **So the bar below is not a formality, and the audit under it is the file's real index.** A rule
+> the shipped copy corroborates stands on the corroboration. A rule resting only on a habit of 326
+> words is an observation, and this file may not enforce one.
 
 **The measured profile of that corpus is `low_confidence`.** At 326 words and 11 sentences of prose,
 its rhythm and punctuation statistics are noise, and they are deliberately not reproduced here.
@@ -62,9 +63,43 @@ reinstall it and run the same gates.
 
 ---
 
+## The corroboration audit
+
+Every rule in this file, measured against the 1,787 strings of `report.json` and `ui.json` on
+2026-08-29. **`enforced` means the shipped copy corroborates it. `observed` means it held across 326
+words and nothing else, which is not enough to hold anyone to.**
+
+| §   | Rule                                      | Shipped copy says                                   | Standing                                                 |
+| --- | ----------------------------------------- | --------------------------------------------------- | -------------------------------------------------------- |
+| 1   | Two-sentence shape, "held in 5 of 5"      | 39% of prose strings are two sentences, 44% are one | **observed** — the commonest shape, not the required one |
+| 2   | `managed to` is the praise marker         | **0 uses**                                          | **observed**                                             |
+| 2   | Exclamation point live in praise          | **0 uses**                                          | **observed**                                             |
+| 3   | Hedge the observation (`You seem to`)     | **0 uses**                                          | **observed**                                             |
+| 4   | Authority is an external system           | `the Sim` / `the rotation` in 18 strings            | **enforced**                                             |
+| 4   | `proves`, never `suggests`                | **0 uses of `proves`**                              | **observed**                                             |
+| 5   | Never first person                        | **0 first-person tokens in 1,787 strings**          | **enforced**                                             |
+| 6   | ~~Expanded by default~~                   | **95 strings contract**                             | **retracted**, see §6                                    |
+| 7   | No em dash                                | 1 remaining                                         | **enforced**, with the caveat below                      |
+| 8   | `TEB`, `RoRo`, `SEF`, `CD` never expanded | **0 uses of any of the four**                       | **observed**                                             |
+| 8   | `GCD`, `DPS`, `AoE` never expanded        | 20 strings                                          | **enforced**                                             |
+| 9   | Author's grammar habits, do not emit      | 0 instances emitted                                 | **enforced**                                             |
+
+**The em dash is the one row that cannot corroborate itself.** Both locale files were rewritten _by_
+that rule, so counting the result and calling it evidence is circular. It is kept enforced on the
+other half of the bar — the corpus shows active avoidance, three calibration rewrites restructuring a
+sentence rather than take one — and this note is here so nobody upgrades it on the strength of the
+count it produced.
+
+**Five of thirteen rows are `observed`.** That is the expected yield from 326 words and is not a
+failure of the file; it is the file working. What would be a failure is enforcing one of them.
+
+---
+
 ## 1. The two-sentence shape (fault and explanatory copy)
 
-Held in 5 of the first 5 pieces. Praise, disagreement and argument each have their own shape.
+**Observed, not required — see the audit.** Held in 5 of the first 5 corpus pieces, and the shipped
+copy is 39% two-sentence against 44% one-sentence, so this is the commonest shape rather than the
+form a string has to take. Praise, disagreement and argument each have their own.
 
 1. State the fault or the fact. Second person. Number attached, no preamble.
 2. Explain the mechanism or give the fix, opening with a signpost or an imperative.
@@ -90,8 +125,9 @@ closes on a short verdict graded to that evidence, and offers no fix at all.**
 
 > You managed to hit the elixir window 6/7 times. That's solid.
 
-- `managed to` in 3 of 3. It credits the difficulty rather than flattering the player, and it is the
-  single strongest praise marker in the corpus.
+- `managed to` in 3 of 3, the strongest praise marker in the corpus — **and it appears in none of the
+  1,787 shipped strings.** Observed, not enforced. Credit the difficulty rather than flatter the
+  player; whether you do it in these words is open.
 - **The verdict is graded to the evidence.** It is not a fixed formula:
 
   | Evidence                 | Verdict                                  |
@@ -108,8 +144,9 @@ closes on a short verdict graded to that evidence, and offers no fix at all.**
 - Subject is the player _or_ the ability: `You managed to snapshot`, `Touch of Karma managed to
 reflect`. Fault copy always opens on `You`; praise does not have to.
 - **Exclamation points are live in praise, sparingly.** `Perfect planning!` is the only `!` in 3301
-  words of this author's prose, and it sits on the strongest result of the three. Do not use one
-  anywhere else, and never more than one.
+  words of this author's prose, and it sits on the strongest result of the three. The shipped copy
+  carries **none**, so this permits rather than requires: never outside praise, never more than one,
+  and a praise string without one is not missing anything.
 - Never append advice to praise. Either close the door explicitly (`nothing to improve here`) or
   stop at the verdict.
 
@@ -119,7 +156,10 @@ reflect`. Fault copy always opens on `You`; praise does not have to.
 > The rotation is exactly the opposite, you prioritize keeping FS up because it generates Lava
 > Surge procs.
 
-This is the one place the corpus hedges, and it hedges precisely one half of the sentence.
+This is the one place the corpus hedges, and it hedges precisely one half of the sentence. **One
+instance in 326 words and none in the shipped copy: observed, not enforced.** What survives the bar
+is the split itself, which is a sound rule wherever the report does infer intent — hedge what you
+infer, never what you measure, and never the correction.
 
 - **The observation is hedged**: `You seem to prioritize`. The analyzer is reading intent off a log
   and says so. Fault copy, which reads a fact off a log, never hedges: `You forgot to`, `You
@@ -167,7 +207,9 @@ player did; argument leads with the rule and measures the player against it.**
 - **Authority is always an external system**, never the author: `The Sim proves`, `The rotation is
 exactly the opposite`. First person appears nowhere in 326 words. There is no `I think`, no `in my
 experience`, no appeal to the writer's judgement anywhere in the corpus.
-- `proves` is not softened to `suggests` or `indicates`. When the Sim settles it, say so.
+- `proves` is not softened to `suggests` or `indicates`. When the Sim settles it, say so. The word
+  itself appears in no shipped string, so take the instruction and not the vocabulary: **naming the
+  authority is enforced** — `the Sim` or `the rotation` in 18 strings — while `proves` is observed.
 - The verdict names the play, not the player: `suboptimal play`, not `you played badly`.
 
 ## 5. Certainty: authoritative, and the authority is sourced
@@ -211,10 +253,11 @@ Everything else expands where a contraction would fit: `others will not eat your
 **Retraction, third and final: "write expanded by default" is dead.** It had already been wrong
 twice — "zero contractions, every opportunity declined" until the praise pieces, then "contractions
 appear only in praise verdicts" until an argument piece put one in an observation clause. The third
-correction kills the rule rather than narrowing it, because the corpus it was measured from is
-machine-written (see Provenance). A model declining a contraction is not a voice; it is the single
-most reliable tell that prose was generated, and a register that enforced it was teaching the defect
-it exists to catch.
+correction kills the rule rather than narrowing it, and the evidence is the copy it governs: **95
+shipped strings contract.** The rule failed the bar at the top of this file and was enforced anyway,
+against a corpus of 326 words in which a contraction had no room to appear. Expanding on that
+authority is also the single most reliable tell that prose was generated, so the rule was teaching
+the defect this file exists to catch.
 
 **Write the contraction wherever speech would take one.** `can't`, `doesn't`, `you're`. Expand only
 where the full form carries weight the short one loses, which is rare and is a decision about that
@@ -239,7 +282,9 @@ worth defending.
 ## 7. Never
 
 - **Em dashes.** 0 across all 12 pieces, and 3 calibration rewrites restructured sentences
-  specifically to avoid one. `docs/conventions.md` separately allows the em dash in _this
+  specifically to avoid one. This is the only rule here standing on active avoidance rather than on
+  absence, which is what carried it over the bar; the shipped count cannot corroborate it, because
+  the shipped copy was rewritten by it. See the audit. `docs/conventions.md` separately allows the em dash in _this
   repository's_ prose as a deliberate override for appositive definitions; that override is about
   the report's own copy standard, and this line records what the author's own writing does.
 - **Exclamation points**, outside praise. See §2.
