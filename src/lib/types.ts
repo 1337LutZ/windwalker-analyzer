@@ -3476,6 +3476,34 @@ export interface LightningShieldBadSpend {
 	stacks: number | null;
 }
 
+/**
+ * Who or what produced a judgment a reader is looking at, in one word.
+ *
+ * **Every ledger in this report answers "what happened" and none of them answered "whose was it".** A
+ * reader met five Lava Burst rows that read like five mistakes, when one was theirs and four were the
+ * priority list declining to press the button; the engine knew the difference and spent it on a row
+ * tint. This is that knowledge, said out loud, on every row that judges anything.
+ *
+ * The six are a taxonomy of *what to do next*, which is why they are not a severity scale:
+ *
+ * - `player` is a mistake at the keyboard, and the only one practice moves.
+ * - `rotation` is the priority list asking for it or allowing it. Correct play carries this too: an
+ *   opener press and a forgiven add-phase proc are both the list's doing, and a tag that only ever
+ *   appeared on faults would be a second severity column rather than an answer to "whose was it".
+ * - `fight` is the encounter taking the chance away: nothing in range, a submerge, a pull that ended.
+ * - `log` is the pull not being readable on this point, which is missing evidence and never a verdict.
+ * - `raid` is somebody else's cooldown or buff. **It is an action, not an excuse** — the fix is to
+ *   communicate cooldowns, so it must not fold into `fight`, which tells a reader to shrug.
+ * - `build` is the talents taken rather than the presses made. No amount of practice moves one.
+ *
+ * **Where `raid` stops is the part worth stating.** An Ascendance spent with no Skull Banner inside it
+ * is `player`: the banner is on the raid frames and its cooldown is visible, so that is a call made
+ * with the information in hand. `raid` is for what a player cannot see coming and cannot press.
+ *
+ * Optional, because an analysis captured before this existed carries none; read it for truthiness.
+ */
+export type JudgmentCause = 'player' | 'rotation' | 'fight' | 'log' | 'raid' | 'build';
+
 /** One Lava Surge proc window, and whether a Lava Burst consumed it before it expired. */
 export interface LavaSurgeProc {
 	start: number;
@@ -3506,6 +3534,15 @@ export interface LavaSurgeProc {
 	 * truthiness rather than against null.
 	 */
 	judged?: boolean;
+	/**
+	 * The tag the section draws beside this row: `player` on a surge the player let go, `rotation` on
+	 * one the add phase forgave.
+	 *
+	 * Derived from `judged` rather than published beside it as a second opinion, so the tint, the tag and
+	 * the scorecard's charge cannot disagree about one proc. Absent on a proc that is not drawn as a
+	 * fault at all, and on any analysis captured before this existed.
+	 */
+	cause?: JudgmentCause;
 }
 
 /** One Lava Burst press, what made it free, and whether Flame Shock paid for it. */

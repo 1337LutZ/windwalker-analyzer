@@ -1910,6 +1910,32 @@
     "ascendanceNote": "Dropping Stormlash costs you a global, and during Ascendance you want that global on Lava Beam, so lay the totem before you press Ascendance, or after the window closes. Treat this as a preference rather than a requirement: nothing in your score moves either way, and a totem still running through Ascendance is a good thing, because Stormlash pays out on what the raid does while it is up.",
     "note": "The overlap row shows where two totems ran at once. The assignment is yours to make; the second totem in one of those stretches bought the raid nothing."
   },
+  "cause": {
+    "player": {
+      "label": "Player",
+      "takeaway": "Practise it"
+    },
+    "rotation": {
+      "label": "Rotation",
+      "takeaway": "Nothing to fix"
+    },
+    "fight": {
+      "label": "Fight",
+      "takeaway": "Nothing you could do"
+    },
+    "log": {
+      "label": "Log",
+      "takeaway": "Missing evidence"
+    },
+    "raid": {
+      "label": "Raid",
+      "takeaway": "Communicate cooldowns"
+    },
+    "build": {
+      "label": "Talent build",
+      "takeaway": "Change the build"
+    }
+  },
   "lavaBurst": {
     "title": "Lava Burst",
     "intent": "Lava Surge makes one Lava Burst free and Ascendance removes its cooldown entirely, the only two ways the button comes back early. Press it while the surge is up: a surge that expires with no Lava Burst in it is a free cast thrown away, and a cast count will never show it.",
@@ -1923,9 +1949,9 @@
       "state": "what it was"
     },
     "state": {
-      "wasted": "The proc expired with no Lava Burst pressed",
-      "wastedAdds": "The proc expired during an add phase, where Chain Lightning hits harder than one Lava Burst",
-      "noDot": "Cast with no Flame Shock on the target"
+      "wasted": "You let the proc expire",
+      "wastedAdds": "Three or more targets up",
+      "noDot": "No Flame Shock on the target"
     },
     "caption": "What this pull gave away: Lava Surge procs that expired with no Lava Burst inside them, and Lava Bursts you pressed with no Flame Shock on the enemy you aimed at",
     "none": "Nothing given away, every Lava Surge was spent, and every Lava Burst went out with Flame Shock already on its target.",

@@ -2,9 +2,20 @@ import { useMemo } from 'react';
 
 import { useReportCopy } from '~/hooks/useReportCopy';
 import { formatClock } from '~/lib/format';
-import type { Analysis, ElementalAuditResult } from '~/lib/types';
+import type { Analysis, ElementalAuditResult, JudgmentCause } from '~/lib/types';
 
-import { DataGrid, Note, Prose, Section, SpellIcon, StatTile, StatTiles, type GridRow } from '~/components/primitives';
+import {
+	CauseLegend,
+	CauseTag,
+	DataGrid,
+	Note,
+	Prose,
+	Section,
+	SpellIcon,
+	StatTile,
+	StatTiles,
+	type GridRow,
+} from '~/components/primitives';
 
 /**
  * Lava Burst and its two resets.
@@ -33,7 +44,7 @@ export default function LavaBurst({ analysis }: { analysis: Analysis }) {
 	const { lavaBurst } = el;
 	const { t, gradeOf, unasked } = useReportCopy(analysis);
 
-	const faultRows = useMemo<GridRow[]>(() => {
+	const faultRows = useMemo<(GridRow & { cause: JudgmentCause })[]>(() => {
 		const faults = [
 			// Only the surges the player actually threw away — a consumed surge needs no row, and one
 			// the fight took back during an intermission was never on offer.
@@ -53,13 +64,26 @@ export default function LavaBurst({ analysis }: { analysis: Analysis }) {
 					at: proc.start,
 					kind: 'surge',
 					fault: proc.judged !== false,
+					// The engine's own tag, never re-derived here: `docs/conventions.md` puts which sentence
+					// comes back with the audit and not with the component, and the same holds for whose the
+					// sentence is. A proc captured before the field existed falls back to the reading the tint
+					// already makes, so an older analysis draws the tag it would have drawn.
+					cause: proc.cause ?? (proc.judged === false ? ('rotation' as const) : ('player' as const)),
 					state: t(proc.judged === false ? 'lavaBurst.state.wastedAdds' : 'lavaBurst.state.wasted'),
 				})),
 			// `=== false` and not `!p.flameShock`: null is "the log named no target and the pull had no
 			// hit to fall back on", which is a missing measurement rather than a missing dot.
 			...lavaBurst.presses
 				.filter((press) => press.flameShock === false)
-				.map((press) => ({ at: press.t, kind: 'nodot', fault: true, state: t('lavaBurst.state.noDot') })),
+				.map((press) => ({
+					at: press.t,
+					kind: 'nodot',
+					fault: true,
+					// A press made onto an undotted target is the player's whatever the enemy count was: the
+					// list wants Flame Shock under every Lava Burst, at every band.
+					cause: 'player' as const,
+					state: t('lavaBurst.state.noDot'),
+				})),
 		];
 		return faults
 			.sort((a, b) => a.at - b.at)
@@ -67,11 +91,22 @@ export default function LavaBurst({ analysis }: { analysis: Analysis }) {
 				// The kind and the index both belong in the key: two faults can share a millisecond, and
 				// the two lists are independent so their stamps can collide.
 				key: `${fault.kind}-${fault.at}-${i}`,
+				// Kept on the row as well as drawn in the cell, so the legend below lists the tags this table
+				// actually spent rather than the six that exist.
+				cause: fault.cause,
 				// The colour is the claim, so the row the add wave excuses does not carry one.
 				...(fault.fault ? { band: 'warn' as const } : {}),
 				cells: {
 					at: formatClock(fault.at),
-					state: fault.state,
+					// The tag rides in the cell rather than in a column of its own: the folded card view gives a
+					// column its own row, and a one-word cause stacked above the sentence it belongs to reads as
+					// two facts rather than one. `GridRow.cells` takes a node, which is what makes this free.
+					state: (
+						<span className="inline-flex items-baseline">
+							<CauseTag cause={fault.cause} />
+							<span>{fault.state}</span>
+						</span>
+					),
 				},
 			}));
 	}, [lavaBurst.procs, lavaBurst.presses, t]);
@@ -120,6 +155,13 @@ export default function LavaBurst({ analysis }: { analysis: Analysis }) {
 					rows={faultRows}
 					empty={t('lavaBurst.none')}
 				/>
+			</div>
+
+			{/* The vocabulary, under the table that spends it and only for the tags this pull drew. A reader
+			    meets `Rotation` beside "nothing to fix" in the same glance as the row it belongs to, which is
+			    what keeps a forgiven row from reading as a softer fault. */}
+			<div className="mt-3.5">
+				<CauseLegend causes={faultRows.map((row) => row.cause).filter((cause) => cause !== undefined)} />
 			</div>
 
 			<div className="mt-5 flex flex-col gap-3.5">

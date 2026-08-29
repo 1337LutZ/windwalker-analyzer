@@ -714,6 +714,11 @@ describe('report copy with no reader', () => {
 			keys: () => CROSSOVERS.map((crossover) => crossover.copy),
 			pinned: ['rjw', 'sck', 'sckOverRsk', 'sef'],
 		},
+		cause: {
+			where: 'lib/types.ts → JudgmentCause',
+			keys: () => declaredArms('lib/types.ts', /export type JudgmentCause =/),
+			pinned: ['build', 'fight', 'log', 'player', 'raid', 'rotation'],
+		},
 		earthElementalState: {
 			where: 'specs/elemental/components/sections/EarthElemental.tsx → STATE_KEY',
 			keys: () =>
@@ -1055,6 +1060,10 @@ describe('report copy with no reader', () => {
 	const FAMILY_SOURCE: Record<string, string> = {
 		'ascendance.read.fault.*': 'ascendanceFault',
 		'ascendance.read.reason.*': 'ascendanceReason',
+		// Two leaves per tag and one source for both: the badge draws the `label`, the legend under the table
+		// pairs it with the `takeaway`, and a tag whose fix nobody wrote is a badge that reads as an excuse.
+		'cause.*.label': 'cause',
+		'cause.*.takeaway': 'cause',
 		'castLog.resource.*': 'castLogBar',
 		'castLog.resourceAria.*': 'castLogBar',
 		'castLog.target.*': 'castLogGrouping',
@@ -1109,6 +1118,8 @@ describe('report copy with no reader', () => {
 	 */
 	const FAMILY_LEAVES: Record<string, number> = {
 		'ascendance.read.fault.*': 5,
+		'cause.*.label': 6,
+		'cause.*.takeaway': 6,
 		'ascendance.read.reason.*': 6,
 		'castLog.resource.*': 7,
 		'castLog.resourceAria.*': 7,

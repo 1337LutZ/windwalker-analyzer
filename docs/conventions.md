@@ -571,17 +571,17 @@ copy itself follows — say it once, outside the arms.
      src/lib/i18n/__tests__/conventionsCensus.test.ts. Re-run the block above and paste the whole set
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
-As of the split-group callout, it prints 1792 leaves, 851 prose, 26,467
-words; median 27, p75 41, p90 60, p95 70, p99 102, max 158; longest 9% carry 23%; report.json 773 prose
-leaves, 1,372 sentences, median 16, 242 past 25 (17.6%), 1 em-dash in 0 sentences (0.0%);
+As of the split-group callout, it prints 1804 leaves, 848 prose, 26,435
+words; median 27, p75 41, p90 61, p95 70, p99 102, max 158; longest 9% carry 23%; report.json 770 prose
+leaves, 1,369 sentences, median 16, 242 past 25 (17.7%), 1 em-dash in 0 sentences (0.0%);
 75 / 30 / 1 / 2 on the quote lines.
 
-Four leaves, all of them the Lava Burst section's: a summary card for the free casts a Lava Surge hands
-out, the row that says a surge expired inside an add phase, and the note that says why the tile counts
-fewer than the table lists, written twice for its singular and plural arms. Three are prose and one is the
-card's own label. The plural pair is why the sentence count moves by more than the prose leaf count, and
-p90 came down a word, which is what four short strings do to a percentile taken over eight hundred. The
-block before it was one leaf and no sentence, the cast log's tooltip label for an aura going up.
+Twelve leaves in and three sentences out, which is the shape this whole pass has: the cause vocabulary
+arrives as six tags and the fix each one asks for, twelve short labels that are not prose by this
+script's own eight-word test, while the three Lava Burst rows they are drawn beside lose the reasoning
+they used to carry inside them. So the leaf count climbs twelve, the prose count falls three, and the
+word total falls by thirty-two even though the file grew. p90 came back up a word with the same trade.
+The block before it was four leaves, the Lava Surge card and the rows that explain it.
 
 Two leaves and no prose at all in the pass after that: `app.toCompare` and `app.toReport`, the header
 link each of a spec's two pages carries to the other. Both are three-word button labels, so they lift the

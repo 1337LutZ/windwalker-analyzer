@@ -489,6 +489,10 @@ describe('the Windwalker copy is about the pull, not about the audit', () => {
  * into this edit rather than a silent one.
  */
 const SHARED_SECTIONS = [
+	// The cause vocabulary: six one-word tags and the fix each one asks for, drawn beside every judgment
+	// the report makes. Shared rather than a spec's, because a Windwalker row and an Elemental row are
+	// tagged out of the same six.
+	'cause',
 	'castLog',
 	// The compare page. Spec-agnostic by construction — nothing under `src/lib/compare` may name a
 	// spec — so it belongs here rather than to any one of the three.

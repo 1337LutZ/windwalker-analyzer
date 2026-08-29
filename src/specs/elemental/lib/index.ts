@@ -3146,14 +3146,24 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	const surgeJudged = (w: Window): boolean => overlapMs(w.start, w.end, gradedContact) >= SELF_EVENT_MS;
 	const lavaSurgeProcs = lavaSurgeWindows.map((w) => {
 		const consumed = lavaBurstCasts.some((t) => t >= w.start && t <= w.end);
+		// A surge that expired while the player could not act — an intermission — is the fight
+		// taking the free cast back, not a cast the player threw away.
+		const wasted = !consumed && contact.some(([s, e]) => w.end >= s && w.end < e);
+		const judged = surgeJudged(w);
 		return {
 			start: w.start,
 			end: w.end,
 			consumed,
-			// A surge that expired while the player could not act — an intermission — is the fight
-			// taking the free cast back, not a cast the player threw away.
-			wasted: !consumed && contact.some(([s, e]) => w.end >= s && w.end < e),
-			judged: surgeJudged(w),
+			wasted,
+			judged,
+			/**
+			 * Whose the row is, off the same pair the tint and the charge are taken from.
+			 *
+			 * Only a wasted surge is drawn as a judgment, so only a wasted surge carries a tag. `judged`
+			 * then decides which: a free cast let go at one or two targets is the player's, and one the add
+			 * phase swallowed is the list's, because `aoe.apl.json` has no Lava Burst rung at all.
+			 */
+			...(wasted ? { cause: judged ? ('player' as const) : ('rotation' as const) } : {}),
 		};
 	});
 	/**

@@ -425,7 +425,9 @@ describe('the three things a surge can come to', () => {
 			// 50 000ms falls in the gap between the two contact segments, which is the same reason `wasted`
 			// is false on it: there was nothing to cast at, so there was nothing to judge either.
 			{ start: 10_000, end: 20_000, consumed: true, wasted: false, judged: true },
-			{ start: 25_000, end: 35_000, consumed: false, wasted: true, judged: true },
+			// The tag rides only on the row a reader is shown, which is the wasted one: a proc that was spent,
+			// or one the fight took back before it could be, is not a judgment and carries no cause.
+			{ start: 25_000, end: 35_000, consumed: false, wasted: true, judged: true, cause: 'player' },
 			{ start: 50_000, end: 60_000, consumed: false, wasted: false, judged: false },
 		]);
 	});

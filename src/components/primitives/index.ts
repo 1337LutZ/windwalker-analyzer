@@ -22,6 +22,8 @@
 export { default as Bar } from './Bar';
 export type { BarTone } from './Bar';
 export { default as Callout } from './Callout';
+export { default as CauseLegend } from './CauseLegend';
+export { default as CauseTag } from './CauseTag';
 export { default as ChartFigure } from './ChartFigure';
 export { default as CopyField } from './CopyField';
 export { default as DataGrid } from './DataGrid';
