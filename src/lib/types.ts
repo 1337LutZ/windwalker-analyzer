@@ -453,16 +453,17 @@ export interface AuraLane {
 	group: LaneGroup;
 	windows: LaneWindow[];
 	/**
-	 * When this player applied or refreshed the aura, for the chart to mark on the bar.
+	 * When the aura went up or was renewed, for the chart to mark on the bar.
 	 *
 	 * **A window is a coverage claim and says nothing about how often the aura was bought.** `auraWindows`
 	 * opens on an apply and closes on a remove; a refresh arriving on a live aura is deliberately
 	 * discarded, because counting it would break the coverage the window exists to state. The cost is that
 	 * an aura held across a phase draws as one unbroken bar with no sign of the presses that paid for it —
-	 * Elemental Discharge draws 38.9 seconds that way, over three applications.
+	 * Elemental Discharge draws 47 seconds of one bar for a buff that runs fourteen.
 	 *
-	 * Absent when the log carries none, and absent on any analysis captured before this existed, so read
-	 * it for truthiness rather than against null. Drawing only: nothing graded reads it.
+	 * Filled by `analyseCore` for every lane of every spec, out of one walk — see `laneApplications`
+	 * there. Absent when the log carries none, and absent on any analysis captured before this existed, so
+	 * read it for truthiness rather than against null. Drawing only: nothing graded reads it.
 	 */
 	applications?: number[];
 	/**

@@ -571,16 +571,17 @@ copy itself follows — say it once, outside the arms.
      src/lib/i18n/__tests__/conventionsCensus.test.ts. Re-run the block above and paste the whole set
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
-As of the split-group callout, it prints 1787 leaves, 848 prose, 26,371
+As of the split-group callout, it prints 1788 leaves, 848 prose, 26,371
 words; median 27, p75 41, p90 61, p95 70, p99 102, max 158; longest 9% carry 23%; report.json 770 prose
 leaves, 1,367 sentences, median 16, 242 past 25 (17.7%), 1 em-dash in 0 sentences (0.0%);
 75 / 30 / 1 / 2 on the quote lines.
 
-Eight leaves and three sentences, the smallest block to move this census in some time: six column
-headings, a table caption and one line of prose, added when the Method section's per-encounter figures
-grew a give-or-take beside each fight. Headings are one or two words, so they lift the leaf count without
-touching the median string length or any of the percentiles — which is what a table of labels should do
-to a corpus, and a useful contrast with the rotation pass above it.
+One leaf and no sentence, which is the smallest move this census can record: the cast log's tooltip
+gained a label for a mark that says when an aura went up or was renewed. A three-word label is not prose
+by this script's own test, so every figure below the leaf count is unchanged, and that is the shape a
+label should have. The block before it was eight leaves and three sentences: six column headings, a table
+caption and one line of prose, added when the Method section's per-encounter figures grew a give-or-take
+beside each fight.
 
 Two leaves and no prose at all in the pass after that: `app.toCompare` and `app.toReport`, the header
 link each of a spec's two pages carries to the other. Both are three-word button labels, so they lift the

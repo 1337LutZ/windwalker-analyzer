@@ -18,7 +18,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { AuraWindow } from '~/lib/analysis/auras';
+import { SELF_EVENT_MS, type AuraWindow } from '~/lib/analysis/auras';
 import { complementOf } from '~/lib/analysis/intervals';
 import type {
 	AbilityDamage,
@@ -1203,6 +1203,102 @@ function barNodesOf(
 	});
 }
 
+/**
+ * The aura's own icon wherever the player applied or renewed it, on the bar it belongs to.
+ *
+ * **What a bar cannot say.** `auraWindows` opens on an apply and closes on a remove, and a refresh
+ * landing on a live aura is thrown away — deliberately, because a window is a coverage claim. So an
+ * aura kept up across a phase draws as one unbroken stretch and the presses that paid for it are
+ * nowhere on the chart: the reader can see that Tiger Power never dropped and not that it was renewed
+ * eleven times. `AuraLane.applications` is the engine's answer and these are the marks it draws.
+ *
+ * **Never twice for one press.** Most aura rows on this chart are merged rows: the button and the buff
+ * it puts up are one row, so the press that applied the aura is already drawn on it, in the button's own
+ * art. A second icon on the same pixel would be the same fact twice and would cover the first. An
+ * application within `SELF_EVENT_MS` of a press on this row is therefore that press's, and is left to
+ * it: the buff a cast applies is logged 0–2ms either side of the cast, which is the whole reason that
+ * constant exists. What survives is the renewal nobody sees — a refresh with no press of this row's
+ * button behind it, and every application on a row that draws no presses at all.
+ *
+ * **Drawn as a press is drawn**, the same 24px art, the same border, the same rounding, because it is
+ * the same kind of claim about the same row: a thing that happened at a moment, as against a bar that
+ * says a stretch was covered. A smaller mark was tried first, on the argument `DISCHARGE_ICON_PX` makes
+ * about leaving the meter underneath visible, and it read as a lesser event rather than a tidier one.
+ *
+ * The icon's left edge is the moment, as it is for a press: the mark starts where the log stamped it.
+ * An id `spells.json` has no art for is drawn as a tick rather than dropped, for the reason a press with
+ * no icon is — a hole reads as an application that never happened.
+ */
+function applyNodesOf(
+	lane: AuraLane,
+	span: number,
+	pressed: readonly number[],
+	appliedLabel: string,
+	pxPerSec: number,
+) {
+	const url = spellIconUrl(lane.id);
+	/**
+	 * As many marks as this zoom has room for, nearest-first from the left.
+	 *
+	 * **A row can carry hundreds of them.** Ancestral Vigor is re-applied to the whole raid all pull long:
+	 * 314 applications inside one unbroken window on the Protection `garrosh` fixture, 267 on `paragons`.
+	 * Drawn every one, a 24px icon every few pixels is a solid strip of art that says less than the bare
+	 * bar did, and the marks that matter — the ones with a gap either side — are lost inside it.
+	 *
+	 * So a mark is drawn when it clears the last one drawn by its own width. That is a statement about
+	 * pixels rather than about the pull, which is why the zoom ladder is the answer to it: every step in
+	 * separates marks this dropped, and the reader who wants the count has the tooltip on the bar and the
+	 * section beside the chart. It is the same trade `labelFits` makes for a word inside a bar, and the
+	 * same one `packCasts` makes for presses — except that a press may take a second row and a mark on a
+	 * bar may not, because the bar is the row.
+	 */
+	const spacingMs = (GCD_ICON_PX / Math.max(pxPerSec, 1)) * 1000;
+	let last: number | null = null;
+	return (lane.applications ?? [])
+		.filter((at) => !pressed.some((press) => Math.abs(press - at) <= SELF_EVENT_MS))
+		.filter((at) => {
+			if (last !== null && at - last < spacingMs) return false;
+			last = at;
+			return true;
+		})
+		.map((at) => {
+			const stamp = formatStamp(at);
+			const common = {
+				title: `${lane.name} · ${appliedLabel} ${stamp}`,
+				// The aura's name, the aura's tone: the mark is the row's own spell rather than a press, and
+				// the tooltip says when it went up rather than when anything was pressed — which is why it
+				// carries an attribute of its own instead of `data-tip-at`, labelled "Pressed".
+				'data-tip': lane.name,
+				'data-tip-tone': GROUP_TONE[lane.group],
+				'data-tip-applied': stamp,
+				style: { left: pct(at, span), width: GCD_ICON_PX, height: GCD_ICON_PX },
+			};
+			// The key is written out rather than spread with the rest: a lint rule reads the literal, and a
+			// key it cannot see is one nobody notices going missing.
+			return url === null ? (
+				<span
+					key={`apply-${at}`}
+					{...common}
+					className="absolute top-1/2 w-[3px] -translate-y-1/2 rounded-[1px] bg-muted"
+				/>
+			) : (
+				<img
+					key={`apply-${at}`}
+					{...common}
+					src={url}
+					// Decorative: the plot as a whole carries the text alternative, and a row's icon repeated
+					// down the pull is not a description of anything.
+					alt=""
+					width={GCD_ICON_PX}
+					height={GCD_ICON_PX}
+					loading="lazy"
+					decoding="async"
+					className="absolute top-1/2 -translate-y-1/2 rounded-[3px] border border-line/60"
+				/>
+			);
+		});
+}
+
 /** One stretch the counter held a level, which is the shape a step series has to be drawn as. */
 interface ChargeStep {
 	start: number;
@@ -1744,30 +1840,51 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 	const pressed = useMemo(() => mergeRows(castNodes, lanes, appliedByCast), [castNodes, lanes, appliedByCast]);
 	const laneRows = useMemo(
 		() =>
-			lanes.map((lane) => ({
-				lane,
-				// A lane the engine handed a counter is drawn as that counter instead of as a window. The
-				// choice is the engine's, not this component's: a lane has a counter when the log actually
-				// counted one, which is a question about events and not about how a row should look.
-				bars:
-					lane.stacks === undefined
-						? barNodesOf(
+			lanes.map((lane) => {
+				// The presses this row already draws, as the moments they landed. The marks below skip the
+				// applications those presses account for, so a merged row draws the button once rather than
+				// the button and the buff on the same pixel — see `applyNodesOf`.
+				const press = pressed.into.get(rowKey(lane));
+				// A counter row draws its own charge steps rather than windows, and its every load and spend is
+				// already on it — `capacitance` carries 130 applications on one Protection pull. Marks over
+				// that would be the same events twice, in art, on top of the meter they came from.
+				const marks =
+					lane.stacks !== undefined
+						? []
+						: applyNodesOf(
 								lane,
 								span,
-								// Whether this lane carries a figure in its bars is the spec's answer, not a name
-								// this chart knows: it looks the lane up and labels nothing when there is no entry.
-								laneNotes.get(lane.key),
-								spentAs,
+								(press?.lane.casts ?? []).map((c) => c.t),
+								t('castLog.tip.applied'),
 								pxPerSec,
-								t('castLog.tip.prePull'),
-								t('castLog.tip.inferredFromPull'),
-								// One icon's width when this row also draws press marks, and nothing when it does not.
-								// The marks are painted after the bars so an icon sits on top of the bar it opened, so
-								// a label starting at the bar's own edge starts underneath that icon.
-								pressed.into.has(rowKey(lane)) ? GCD_ICON_PX : 0,
-							)
-						: chargeNodesOf(lane, lane.stacks, span),
-			})),
+							);
+				return {
+					lane,
+					marks,
+					// A lane the engine handed a counter is drawn as that counter instead of as a window. The
+					// choice is the engine's, not this component's: a lane has a counter when the log actually
+					// counted one, which is a question about events and not about how a row should look.
+					bars:
+						lane.stacks === undefined
+							? barNodesOf(
+									lane,
+									span,
+									// Whether this lane carries a figure in its bars is the spec's answer, not a name
+									// this chart knows: it looks the lane up and labels nothing when there is no entry.
+									laneNotes.get(lane.key),
+									spentAs,
+									pxPerSec,
+									t('castLog.tip.prePull'),
+									t('castLog.tip.inferredFromPull'),
+									// One icon's width when this row draws marks over its bars, and nothing when it does
+									// not. Both kinds are painted after the bars so an icon sits on top of the bar it
+									// opened, so a label starting at the bar's own edge starts underneath that icon —
+									// and an application mark opens a bar exactly as a press does.
+									press !== undefined || marks.length > 0 ? GCD_ICON_PX : 0,
+								)
+							: chargeNodesOf(lane, lane.stacks, span),
+				};
+			}),
 		// Zoom is a dependency now, as it already is for the press lanes above: whether a window is wide
 		// enough to carry its variant is a question about pixels, so a zoom step has to rebuild these.
 		[lanes, span, laneNotes, spentAs, pxPerSec, t, pressed],
@@ -1884,6 +2001,9 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 				// When a phase began. Its own attribute rather than `at`, for the reason `landed` has one:
 				// `at` is labelled "Pressed", and the boss changing phase is not something anybody pressed.
 				const entered = mark.getAttribute('data-tip-entered');
+				// The moment an aura's own mark stands for: an application or a refresh, which the log tells
+				// apart and a reader looking at one bar cannot, so the copy names both.
+				const applied = mark.getAttribute('data-tip-applied');
 				if (at !== null)
 					rows.push([
 						t(
@@ -1896,6 +2016,9 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 						at,
 					]);
 				if (entered !== null) rows.push([t('castLog.tip.entered'), entered]);
+				// When the aura went up or was renewed. Its own attribute for the reason `entered` has one:
+				// `at` is labelled "Pressed", and a mark on a bar is the buff arriving rather than a button.
+				if (applied !== null) rows.push([t('castLog.tip.applied'), applied]);
 				if (cast !== null) rows.push([t('castLog.tip.cast'), cast]);
 				// Directly under the moment, because it is the other half of the same sentence: this press,
 				// at this time, at that enemy.
@@ -2269,7 +2392,11 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 				{/* The bars are the aura's half of the row and answer to the aura's toggle; the marks
 				    are the row itself and are drawn wherever it is. Marks second, so an icon sits on
 				    top of the bar it opened rather than under it. */}
+				{/* The marks are the aura's own icon, so they answer to the aura's toggle as the bars do —
+				    a row kept on the chart by its press is a row about that press, and the buff's own
+				    renewals are what the reader turned off. Over the bars, under the presses. */}
 				{shown[block.row.lane.group] ? block.row.bars : null}
+				{shown[block.row.lane.group] ? block.row.marks : null}
 				{press?.nodes}
 			</div>
 		) : (

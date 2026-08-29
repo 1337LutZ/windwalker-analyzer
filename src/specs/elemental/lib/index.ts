@@ -4883,54 +4883,6 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * sorted "its own" lane reorder a figure's own windows. Spread only when true, so a lane that carries
 	 * neither flag serialises exactly as it did before — every captured fixture included.
 	 */
-	/**
-	 * Every moment this player put the aura up or renewed it, for the chart to mark.
-	 *
-	 * **A window says the aura was there; it does not say how many times it was bought.** `auraWindows`
-	 * opens on an apply and closes on a remove, and a refresh landing on a live aura is discarded — by
-	 * design, because the window is a coverage claim. So a debuff held across a phase draws as one long
-	 * bar, and the reader cannot see the three presses that paid for it. Elemental Discharge is the case
-	 * that asked for this: 38.9 seconds of unbroken bar on `XJ83wN9h1GQqP4tY` fight 16, three applications
-	 * inside it, nothing on the page to tell them apart.
-	 *
-	 * So the timestamps travel beside the windows rather than instead of them. Nothing here reaches a
-	 * grade — it is a drawing, and the same walk a grade would need is the one `dischargeExpiry` does for
-	 * itself, off the presses.
-	 *
-	 * Sourced to this player for the reason `dotWindowsBySpawn` is: two Elemental shamans both keep this
-	 * debuff on the boss, and the log carries both. A debuff is scoped to the primary as well, which is
-	 * the enemy every debuff lane in this file draws.
-	 */
-	const laneApplications = (
-		aura: Ability | Aura,
-		group: 'buff' | 'proc' | 'debuff',
-		windows: readonly Window[],
-	): number[] => {
-		const ids = new Set<number>('castIds' in aura ? aura.castIds : aura.ids);
-		const out: number[] = [];
-		for (const e of group === 'debuff' ? events : selfEvents) {
-			if (e.sourceID !== actor.id) continue;
-			if (group === 'debuff' && primaryID !== undefined && e.targetID !== primaryID) continue;
-			const id = abilityIdOf(e);
-			if (id === null || !ids.has(id)) continue;
-			if (isAuraApply(e) || isAuraRefresh(e)) out.push(e.timestamp - t0);
-		}
-		/**
-		 * **Clipped to the lane's own windows, which is what keeps the mark attachable.**
-		 *
-		 * This walk scopes a debuff by *actor id*; several lanes are built per **spawn**, and the two are not
-		 * the same set — `instanceKey` is the distinction this file has already paid for getting wrong. On
-		 * `addsThenBoss` a Flame Shock application at 468 217ms landed on a second spawn of the primary's id
-		 * and so sat outside every window the primary's row draws: an icon with no bar under it, which is a
-		 * mark a reader cannot attach to anything.
-		 *
-		 * So the row's own windows decide. A refresh opens no window, so this cannot thin the marks the
-		 * field exists for — every one of those is inside the window it renewed by definition. What it drops
-		 * is the applications belonging to a row that is not this one.
-		 */
-		return [...new Set(out)].filter((t) => windows.some((w) => t >= w.start && t <= w.end)).sort((a, b) => a - b);
-	};
-
 	const lane = (aura: Ability | Aura, group: 'buff' | 'proc' | 'debuff', windows: readonly Window[]): AuraLane => ({
 		key: aura.key,
 		name: aura.name,
@@ -4942,13 +4894,9 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 			...(w.preexisting === true ? { preexisting: true } : {}),
 			...(w.truncated === true ? { truncated: true } : {}),
 		})),
-		// Omitted when there are none, so a lane the log carries no applications for serialises exactly as
-		// it did before — every captured fixture included, which is the rule the windows spread above
-		// follows for the same reason.
-		...(() => {
-			const applications = laneApplications(aura, group, windows);
-			return applications.length > 0 ? { applications } : {};
-		})(),
+		// `applications` is not set here and that is deliberate: `analyseCore` fills it for every lane of
+		// every spec, out of the one walk, so a lane added tomorrow carries its renewals without this file
+		// being edited — see `laneApplications` there.
 	});
 	/**
 	 * The Flame Shock dot again, one row per enemy that carried it — for drawing, and only for drawing.

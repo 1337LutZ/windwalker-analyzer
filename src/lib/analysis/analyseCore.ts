@@ -43,6 +43,7 @@ import type {
 	Actor,
 	CastMark,
 	CastRow,
+	AuraLane,
 	DeathMark,
 	FightDataset,
 	GearSummary,
@@ -55,7 +56,7 @@ import type {
 	TargetMode,
 	Window,
 } from '~/lib/types';
-import { type AuraWindow, auraWindows } from './auras';
+import { type AuraWindow, auraApplications, auraWindows } from './auras';
 import {
 	buildCastTable,
 	castSeries,
@@ -2168,6 +2169,56 @@ export function analyseCore(
 	const wastedGcds = audit.cpm.wastedGcds ?? 0;
 	const productiveMs = Math.max(0, occupiedMs - wastedGcds * effectiveGcd);
 
+	/**
+	 * The presses that paid for every drawn window, filled here for every spec at once.
+	 *
+	 * **The bar cannot say it and every spec has the same problem.** `auraWindows` closes a window on a
+	 * remove and throws away every refresh inside a live one — deliberately, because a window is a
+	 * coverage claim — so an aura renewed before it drops draws as one long bar. Elemental Discharge is
+	 * 47 seconds of unbroken blue on `B79VQfyxk8an312v` fight 43 for a buff that runs fourteen, and the
+	 * reader had nothing on the page to tell the three renewals apart. The Windwalker's Tiger Power and
+	 * the Protection warrior's shouts are the same picture on their own rows.
+	 *
+	 * **Here rather than in each spec's lane builder, which is what "uniformly" means.** It shipped as a
+	 * closure inside the Elemental audit and the Windwalker drew nothing, which is exactly the shape
+	 * `conventions.md` warns about: one spec's fix, invisible to the next. A lane is a lane, so the walk
+	 * runs over the merged timeline once, so every spec, and every lane a spec adds tomorrow, carries its
+	 * renewals with no further edit.
+	 *
+	 * **Which end of the event the scope is taken from is the group's answer.** A debuff is this player's
+	 * dot on one enemy, so it is scoped by source and by the enemy whose row is drawn — the lane's own
+	 * target where it names one, the primary otherwise, because two players' dots on one boss are one id
+	 * in one stream. A buff or a proc is scoped by **target** instead: what the mark claims is that the
+	 * aura arrived on this player, which is true whoever cast it, and demanding a source would erase
+	 * Bloodlust and every external. A lane that names its caster narrows by that caster as well — four
+	 * shamans' totems are four rows, and a row is only honest about its own.
+	 *
+	 * The ids come from the model rather than from the lane's icon: `AuraLane.id` is one id chosen to
+	 * carry the art, and an aura logged under several, as Re-Origination's three stats are, would lose two
+	 * of them. `key` is what the lane and the model agree on; an ability-keyed lane resolves to its cast ids,
+	 * and a lane the registry cannot answer for falls back to the icon id it does carry.
+	 *
+	 * Never overwritten. A spec that computed its own, none does today, keeps it, and a lane with
+	 * nothing to mark keeps the field absent rather than writing an empty array, so a captured fixture
+	 * and a fresh analysis of the same pull still serialise the same way.
+	 */
+	const laneApplications = (lane: AuraLane): AuraLane => {
+		if (lane.applications !== undefined) return lane;
+		const model = spec.registry.auras.find((a) => a.key === lane.key);
+		const ability = model === undefined ? spec.registry.abilities.find((a) => a.key === lane.key) : undefined;
+		const ids = model?.ids ?? ability?.castIds ?? [lane.id];
+		// The enemy a debuff row is about: its own where the lane names one, and the primary for the merged
+		// row that stands for the pull. `undefined` leaves the scope off rather than matching nothing — a
+		// pull with no primary is one where every enemy's applications are the best answer available.
+		const enemyID = lane.target?.id ?? primaryID;
+		const scope =
+			lane.group === 'debuff'
+				? { t0, sourceID: actor.id, ...(enemyID === undefined ? {} : { targetID: enemyID }) }
+				: { t0, targetID: actor.id, ...(lane.source === undefined ? {} : { sourceID: lane.source.id }) };
+		const applications = auraApplications(events, ids, scope, lane.windows);
+		return applications.length === 0 ? lane : { ...lane, applications };
+	};
+
 	// `core.timeline` and `audit.timeline` are both optional on their interfaces — the committed
 	// fixtures predate them — but `analyseCore` itself always fills the first and the spec's audit
 	// always fills the second, so the merged object is a complete `CastTimeline` in practice.
@@ -2182,6 +2233,13 @@ export function analyseCore(
 		timeline: {
 			...core.timeline,
 			...audit.timeline,
+			// The renewals, on the drawn lanes and on the ones the picker may ask for — a lane held back by
+			// the target cap is a lane a reader can still choose to see, and a row that gained its marks only
+			// once it was picked would be two different pictures of one enemy.
+			...(audit.timeline?.lanes === undefined ? {} : { lanes: audit.timeline.lanes.map(laneApplications) }),
+			...(audit.timeline?.hiddenLanes === undefined
+				? {}
+				: { hiddenLanes: audit.timeline.hiddenLanes.map(laneApplications) }),
 			// Straight through from the fetch. Spread last so it cannot be clobbered by a spec that happens
 			// to put a `phases` on its own timeline, and guarded so a dataset with no `phases` at all does
 			// not write the key as `undefined`, which would clobber the audit's in the other direction.

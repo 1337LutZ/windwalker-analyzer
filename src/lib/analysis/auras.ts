@@ -274,6 +274,54 @@ export function auraWindows(
 	return out.sort((a, b) => a.start - b.start);
 }
 
+/**
+ * Every moment an aura went up or was renewed, clipped to the windows drawn for it.
+ *
+ * **A window says the aura was up; it does not say how many times it was bought.** `auraWindows` opens
+ * on an apply and closes on a remove, and a refresh landing on a live aura is discarded — by design,
+ * because a window is a coverage claim and counting refreshes would break it. The cost is that an aura
+ * kept up across a phase draws as one unbroken bar with no sign of the presses that paid for it:
+ * Elemental Discharge draws 47 seconds of one bar on `B79VQfyxk8an312v` fight 43 for a buff that runs
+ * fourteen. These are the timestamps that put the renewals back on the page — `AuraLane.applications`,
+ * drawn by `CastTimeline` and by `LanesTimeline`.
+ *
+ * **Both ends of the scope are optional, and which one a caller sets is the question it is asking.**
+ * A debuff is the *player's*: two shamans keep one dot on one boss and the log carries both, so it is
+ * scoped by source, and by the enemy whose row is being drawn. A buff is scoped by **target** instead:
+ * what a mark on a buff's bar claims is that the buff arrived on this player, which is true whoever
+ * cast it, and Bloodlust is the standing case for why demanding a source would draw nothing at all. A
+ * row that names its caster narrows both, because four shamans' totems are four rows.
+ *
+ * Unscoped on both ends would be the raid's stream read as one player's, which is the mistake
+ * `RaidEvents` exists to make hard, so a caller that sets neither gets every application in the file and
+ * deserves the reading it asked for. `laneApplications` in `analyseCore` is the one caller, and it
+ * always sets one.
+ *
+ * **Clipped to the row's own windows, which is what keeps a mark attachable.** A lane may be built per
+ * spawn while this walk scopes by actor id, and on `addsThenBoss` a Flame Shock application at 468 217ms
+ * landed on a second spawn of the primary's id — an icon with no bar under it. A refresh opens no window,
+ * so the clip cannot thin the marks this exists for; what it drops belongs to a row that is not this one.
+ *
+ * Drawing only. Nothing graded reads the result.
+ */
+export function auraApplications(
+	events: readonly WclEvent[],
+	ids: Iterable<number>,
+	{ t0, sourceID, targetID }: { t0: number; sourceID?: number; targetID?: number },
+	windows: readonly Window[],
+): number[] {
+	const wanted = new Set(ids);
+	const out: number[] = [];
+	for (const e of events) {
+		if (sourceID !== undefined && e.sourceID !== sourceID) continue;
+		if (targetID !== undefined && e.targetID !== targetID) continue;
+		const id = abilityIdOf(e);
+		if (id === null || !wanted.has(id)) continue;
+		if (isAuraApply(e) || isAuraRefresh(e)) out.push(e.timestamp - t0);
+	}
+	return [...new Set(out)].filter((t) => windows.some((w) => t >= w.start && t <= w.end)).sort((a, b) => a - b);
+}
+
 /** A stretch over which a stacking aura held one constant level. Level 0 is never emitted. */
 export interface AuraLevel {
 	start: number;
