@@ -461,7 +461,7 @@
     "grid": "Nothing to show for this pull."
   },
   "timeline": {
-    "title": "The pull, end to end",
+    "title": "The pull - summarized",
     "intent": "Every brew, every Re-Origination proc, the Rising Sun Kick debuff on {{target}} and every Fists of Fury channel on one timeline, so you can see whether the brews landed where the procs were. Drag to scrub, zoom, hover for detail.",
     "target": "the primary target",
     "target_boss": "the boss",
