@@ -22,7 +22,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
 import i18n, { initI18n } from '~/lib/i18n/config';
-import { MIN_JUDGED_WEIGHT_SHARE, overallOf, section, type Grade, type Metric } from '~/lib/score';
+import { hasSolidSection, MIN_JUDGED_WEIGHT_SHARE, overallOf, section, type Grade, type Metric } from '~/lib/score';
 import { scoreAnalysis, WEIGHTS } from '~/specs/windwalker/lib/score';
 import { resolveBands } from '~/lib/view/targetMode';
 import type { Analysis } from '~/lib/types';
@@ -483,5 +483,76 @@ describe('the headline carries the log’s own figures', () => {
 		}
 		expect(render(withParse(0))).toContain('bg-parse-common');
 		expect(render(withParse(0))).toContain('>0<');
+	});
+});
+
+/**
+ * The middle arm claims a spread, and a weighted mean cannot see one.
+ *
+ * `overall.ok` reads *some parts were solid and others lost damage*, which is a claim about how the
+ * cards are distributed. `overallOf` is an average, and an average cannot tell that pull from one that
+ * was uniformly mediocre or from one that was mostly bad and floated over the 45 line by a handful of
+ * weight-one rules. `x3cryW6DCFHhYq1t` fight 20 is the second kind: 45.24%, no section graded `good`,
+ * nothing at weight two or three graded `good`, and its four `good` points were two zero-fault rules
+ * the card hides, one banner overlap belonging to a warrior, and a single 1.8s overcap. The header
+ * called that a mix.
+ *
+ * So the arm is split on `hasSolidSection`, and these two cases are the split.
+ */
+describe('the middle headline only claims a mix when there was one', () => {
+	/** The three fields the distribution test reads, and honest values for the rest. */
+	const metric = (grade: Grade): Metric => ({
+		key: 'stand-in',
+		good: 1,
+		ok: 0,
+		higherIsBetter: true,
+		unit: 'count',
+		value: 0,
+		grade,
+		unmeasurable: false,
+	});
+
+	/** A card with a `good` section keeps the sentence that says so. */
+	it('says some parts were solid when a section actually graded good', () => {
+		expect(
+			hasSolidSection({
+				overall: 'ok',
+				sections: { a: section([metric('good')]), b: section([metric('bad')]) },
+			}),
+		).toBe(true);
+	});
+
+	/**
+	 * And a card whose every section is `ok` or `bad` takes the flat arm. This is the shape the fix is
+	 * for: nothing to point at as solid, so the sentence stops pointing.
+	 */
+	it('takes the flat wording when nothing graded good', () => {
+		expect(
+			hasSolidSection({
+				overall: 'ok',
+				sections: { a: section([metric('ok')]), b: section([metric('bad')]) },
+			}),
+		).toBe(false);
+	});
+
+	/**
+	 * An unmeasurable section is not a solid one. Without this, a pull whose only `good`-looking card is
+	 * a rule nobody could read would take the mixed sentence off the back of a section the reader is told
+	 * elsewhere was never judged.
+	 */
+	it('does not count a section nothing could measure', () => {
+		expect(
+			hasSolidSection({
+				overall: 'ok',
+				sections: { a: section([{ ...metric('good'), unmeasurable: true }]) },
+			}),
+		).toBe(false);
+	});
+
+	/** The two sentences are different copy, so the split is visible to a reader and not only to a test. */
+	it('has a sentence of its own that claims no spread', () => {
+		expect(t('overall.okFlat')).not.toBe('overall.okFlat');
+		expect(t('overall.okFlat')).not.toContain('solid and others');
+		expect(t('overall.ok')).toContain('solid');
 	});
 });

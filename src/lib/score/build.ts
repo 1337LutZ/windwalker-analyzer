@@ -13,7 +13,16 @@
  */
 
 import { gradedBands, type ScoreView, viewBands } from './bands';
-import { type Grade, gradeOf, type Judged, type Metric, type MetricRule, type SectionScore, worst } from './model';
+import {
+	type Grade,
+	gradeOf,
+	type Judged,
+	type Metric,
+	type MetricRule,
+	type Scorecard,
+	type SectionScore,
+	worst,
+} from './model';
 
 /** Percentage of `part` in `whole`, or null when there is nothing to take a share of. */
 export function sharePct(part: number, whole: number): number | null {
@@ -296,6 +305,32 @@ export function overallOf(
 		grade: pct >= 75 ? 'good' : pct >= 45 ? 'ok' : 'bad',
 		judged: { measured, total, unmeasurable: false },
 	};
+}
+
+/**
+ * Whether any section of this card actually graded well.
+ *
+ * **The headline's middle arm makes a claim the mean cannot support.** `overallOf` above is a weighted
+ * average, and an average cannot tell "half of this was excellent and half was broken" from "all of it
+ * was mediocre" from "most of it was bad and a few weightless rules floated it over the line". The
+ * copy for `ok` says *some parts were solid and others lost damage*, which is the first of those three,
+ * so on the other two the report is telling the reader something it never measured.
+ *
+ * `x3cryW6DCFHhYq1t` fight 20 is the pull that showed it: 45.24% against a band that opens at 45, no
+ * section graded `good`, nothing at weight two or three graded `good`, and the four weight-one `good`s
+ * were two zero-fault rules the card hides, one banner overlap that belongs to a warrior, and a single
+ * 1.8s overcap. The header called that a mix.
+ *
+ * So the arm is split on the distribution rather than on the mean, and this is the test. Sections and
+ * not metrics, because a section is what the reader is being sent to: the sentence says "the cards
+ * below say which was which", and a card is solid or it is not.
+ *
+ * **Here rather than in the header**, because `docs/conventions.md` puts which sentence comes back with
+ * `lib/score` and never with the component: a component "never holds a sentence to hard-code", and a
+ * distribution read at the render would be exactly that rule broken.
+ */
+export function hasSolidSection(card: Scorecard): boolean {
+	return Object.values(card.sections).some((section) => !section.unmeasurable && section.grade === 'good');
 }
 
 /** The verdict alone, for a caller that has nowhere to put the denominator. */

@@ -5,6 +5,7 @@ export type { BandView, ScoreView } from './bands';
 export {
 	gradedOver,
 	grader,
+	hasSolidSection,
 	metricOf,
 	MIN_CONTACT_SHARE,
 	MIN_GRADED_SAMPLE,

@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 
 import { useReportCopy } from '~/hooks/useReportCopy';
+import { hasSolidSection } from '~/lib/score';
 import { formatClock } from '~/lib/format';
 import type { Analysis } from '~/lib/types';
 
@@ -79,6 +80,18 @@ export default function ReportHeader({ analysis }: { analysis: Analysis }) {
 	 * amber down the side of a refusal reads as a middling verdict, which is the claim being withdrawn.
 	 */
 	const cannotSay = judged?.unmeasurable === true;
+	/**
+	 * The middle arm's claim, tested rather than assumed.
+	 *
+	 * `overall.ok` says *some parts were solid and others lost damage*, which is a claim about the spread
+	 * of the cards and not about their mean. A weighted average cannot tell that spread from a pull that
+	 * was uniformly mediocre, or from one that was mostly bad and floated over the line by a handful of
+	 * weightless rules. So the sentence asks `lib/score` whether anything actually graded well, and takes
+	 * the flat wording when nothing did.
+	 *
+	 * Only on `ok`. A `good` pull has solid parts by construction and a `bad` one is not claiming any.
+	 */
+	const flat = !cannotSay && card.overall === 'ok' && !hasSolidSection(card);
 	// Undefined on an analysis captured before the fetch asked, null when WarcraftLogs has no ranking
 	// for the pull. Both mean "no parse", and both draw nothing.
 	const parse = analysis.rankPercent ?? undefined;
@@ -125,7 +138,7 @@ export default function ReportHeader({ analysis }: { analysis: Analysis }) {
 			    the weight from a `good` over all of it, and anywhere else on the page is a place to hunt. */}
 			<div className={`mt-4 max-w-[56ch] border-l-2 pl-4 ${gradeClass('border', cannotSay ? null : card.overall)}`}>
 				<p className="m-0 text-lg leading-snug font-semibold text-balance text-ink sm:text-xl">
-					{cannotSay ? t('overall.none') : t(`overall.${card.overall}`)}
+					{cannotSay ? t('overall.none') : flat ? t('overall.okFlat') : t(`overall.${card.overall}`)}
 				</p>
 				{/* Printed on every pull, including the ones judged in full. A line that appeared only when the
 				    reckoning was short would be indistinguishable from a line that was never built, and "judged
