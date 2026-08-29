@@ -217,46 +217,46 @@
       "leeway": {
         "label": "Snapshot leeway",
         "unit": "ms",
-        "hint": "How much of a Re-Origination proc can be left over for a brew to still count as catching it on the last global. The default of {{default}}ms is one global, which is what the rotation asks for. Raise it if latency means the log records you later than you acted, or if you brew with a safety cushion. Between {{min}} and {{max}}ms."
+        "hint": "How much of a Re-Origination proc can be left over for a brew to still count as catching it on the last global. Between {{min}} and {{max}}ms, default {{default}}ms, which is one global."
       },
       "weave": {
         "label": "Elixir weave leeway",
         "unit": "ms",
-        "hint": "How close to a Tigereye Brew running out your elixir has to come back for the weave to count as played out in full. The default of {{default}}ms is the brew’s last second, as long as the crit or haste you swapped for can stay useful. Raise it if you would rather swap back with a cushion. Between {{min}} and {{max}}ms."
+        "hint": "How close to a Tigereye Brew running out your elixir has to come back for the weave to count as played out in full. Between {{min}} and {{max}}ms, default {{default}}ms, the brew’s last second."
       },
       "tigerPalm": {
         "label": "Tiger Palm refresh window",
         "unit": "ms",
-        "hint": "How much Tiger Power can be left before a Tiger Palm counts as refreshing the buff rather than overwriting one that was still fine. The rotation refreshes it at {{min}}ms; the default of {{default}}ms is one global wider, because a person has to finish the global they are in before they can press. Between {{min}} and {{max}}ms."
+        "hint": "How much Tiger Power can be left before a Tiger Palm counts as refreshing the buff rather than overwriting one that was still fine. The rotation refreshes it at {{min}}ms. Between {{min}} and {{max}}ms, default {{default}}ms."
       },
       "cooldown": {
         "label": "Cooldown leeway",
         "unit": "ms",
-        "hint": "How late a press can land after a cooldown comes back before the wait counts as a cooldown held. A wait shorter than this is forgiven whole; a longer one is charged whole. The default of {{default}}ms is the global you were committed to when the button came up, plus half a global to react. Lower it to {{min}}ms for the strictest reading. Between {{min}} and {{max}}ms, and it applies to every button with a cooldown: Rising Sun Kick, Chi Wave, Xuen and the potion."
+        "hint": "How late a press can land after a cooldown comes back before the wait counts as a cooldown held. A wait shorter than this is forgiven whole; a longer one is charged whole. Between {{min}} and {{max}}ms, default {{default}}ms. Applies to Rising Sun Kick, Chi Wave, Xuen and the potion."
       }
     },
     "ele": {
       "cooldown": {
         "label": "Cooldown leeway",
         "unit": "ms",
-        "hint": "How late a press can land after a cooldown comes back before the wait counts as a cooldown held. A wait shorter than this is forgiven whole; a longer one is charged whole. The default of {{default}}ms is the global you were committed to when the button came up, plus half a global to react. Lower it to {{min}}ms for the strictest reading. Between {{min}} and {{max}}ms, and it applies to every button with a cooldown: Unleash Elements, Elemental Blast, Ascendance, Elemental Mastery and the Fire Elemental."
+        "hint": "How late a press can land after a cooldown comes back before the wait counts as a cooldown held. A wait shorter than this is forgiven whole; a longer one is charged whole. Between {{min}} and {{max}}ms, default {{default}}ms. Applies to Unleash Elements, Elemental Blast, Ascendance, Elemental Mastery and the Fire Elemental."
       },
       "lightningShieldOvercap": {
         "label": "Lightning Shield overcap grace",
         "unit": "ms",
-        "hint": "How long the shield may sit at seven before the time past that is called overcapping. One press’s worth of grace is forgiven, like the cooldown leeway, because the shock that should spend the shield has to be finished and the reaction has to land. Between {{min}} and {{max}}ms."
+        "hint": "How long the shield may sit at seven before the time past that is called overcapping. One press’s worth of grace is forgiven, like the cooldown leeway. Between {{min}} and {{max}}ms."
       },
       "searingTotemRefresh": {
         "label": "Searing Totem refresh leeway",
         "unit": "ms",
-        "hint": "How much of the totem’s minute can be left before a re-press counts as clipping a healthy totem rather than placing the next one early. The default of {{default}}ms is one press’s worth of grace, like the cooldown leeway. Between {{min}} and {{max}}ms."
+        "hint": "How much of the totem’s minute can be left before a re-press counts as clipping a healthy totem rather than placing the next one early. Between {{min}} and {{max}}ms, default {{default}}ms."
       }
     },
     "prot": {
       "cooldown": {
         "label": "Cooldown leeway",
         "unit": "ms",
-        "hint": "How late a press can land after a cooldown comes back before the wait counts as a cooldown held. A wait shorter than this is forgiven whole; a longer one is charged whole. The default of {{default}}ms is one global at this spec’s own floor, because Sanctity of Battle takes it to a second from 50% haste upwards, which is every geared pull. Between {{min}} and {{max}}ms, and it applies to every button with a cooldown."
+        "hint": "How late a press can land after a cooldown comes back before the wait counts as a cooldown held. A wait shorter than this is forgiven whole; a longer one is charged whole. Between {{min}} and {{max}}ms, default {{default}}ms. The default is one global at this spec’s own floor (Sanctity of Battle, from 50% haste upwards). Applies to every button with a cooldown."
       }
     }
   },

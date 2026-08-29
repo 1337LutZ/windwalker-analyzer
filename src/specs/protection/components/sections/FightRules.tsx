@@ -68,8 +68,30 @@ export default function FightRules({ analysis }: { analysis: Analysis }) {
 			</div>
 
 			{fight.noteKey === null ? null : (
-				<div className="mt-5">
+				<div className="mt-5 flex flex-col gap-3">
 					<Note>{t(`fight.note.${fight.noteKey}`)}</Note>
+					{/*
+					 * The audit half, folded away by default.
+					 *
+					 * Six of these notes carried their own evidence inline: the pull counts, the press rates
+					 * either side of a window, the comparison that rejected a candidate rule. That is what makes
+					 * the call checkable six months later, and it is also most of the reading. Splitting it into
+					 * `fight.audit.*` behind a disclosure keeps both — the verdict is the note, the measurement
+					 * is one click away — rather than choosing between a short page and an auditable one.
+					 *
+					 * `<details>` rather than a controlled toggle: it needs no state, it is open to a find-in-page,
+					 * and it prints expanded.
+					 */}
+					{t(`fight.audit.${fight.noteKey}`, { defaultValue: '' }) === '' ? null : (
+						<details className="group">
+							<summary className="cursor-pointer font-mono text-sm font-medium tracking-[0.1em] uppercase text-muted marker:content-none hover:text-ink-2">
+								{t('fight.auditTrigger')}
+							</summary>
+							<div className="mt-2.5">
+								<Note>{t(`fight.audit.${fight.noteKey}`)}</Note>
+							</div>
+						</details>
+					)}
 				</div>
 			)}
 		</Section>

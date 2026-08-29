@@ -1062,6 +1062,7 @@ describe('report copy with no reader', () => {
 		'earthElemental.state.*': 'earthElementalState',
 		'fight.basis.*': 'enforcedBasis',
 		'fight.note.*': 'enforcedNote',
+		'fight.audit.*': 'enforcedNote',
 		'earthShock.state.*': 'earthShockReason',
 		'elementalMastery.state.*': 'elementalMasteryReason',
 		'fireElemental.state.*': 'fireElementalReason',
@@ -1117,6 +1118,10 @@ describe('report copy with no reader', () => {
 		'earthElemental.state.*': 3,
 		'fight.basis.*': 2,
 		'fight.note.*': 14,
+		// Six, against fourteen notes: only the notes that carried their own measurement inline were split,
+		// and the other eight are a verdict with nothing to fold away. The call site passes a `defaultValue`
+		// so a boss with no audit renders no disclosure rather than an empty one.
+		'fight.audit.*': 6,
 		'earthShock.state.*': 9,
 		'elementalMastery.state.*': 5,
 		'fireElemental.state.*': 4,

@@ -1177,9 +1177,9 @@ describe('no string in either locale sounds machine-written', () => {
 	 *
 	 * Written as two lists rather than as counts, in the shape every other exception list here takes: a
 	 * count drifts on any copy edit, while a word crossing from one list to the other is exactly the
-	 * event worth being told about. Twelve entries are earning their place against real copy today.
-	 * Five fire on nothing, which is not a fault — `exempt` is deliberately prophylactic and has its own
-	 * test above saying so, and `p5`, `predicate`, `band` and `satisfied` are the words by which this
+	 * event worth being told about. Ten entries are earning their place against real copy today.
+	 * Seven fire on nothing, which is not a fault — `exempt` is deliberately prophylactic and has its own
+	 * test above saying so, and `p5`, `predicate`, `band`, `clock` and `satisfied` are the words by which this
 	 * defect would arrive rather than words already here. What the split refuses is the third state: an
 	 * entry that used to fire, stopped, and nobody noticed which kind it had become.
 	 */
@@ -1192,7 +1192,6 @@ describe('no string in either locale sounds machine-written', () => {
 		const prophylactic = MODEL_WORDS.filter((word) => !fires(word)).sort();
 		expect(live).toEqual([
 			'branch',
-			'clock',
 			'condition',
 			'gate',
 			'graded',
@@ -1206,7 +1205,14 @@ describe('no string in either locale sounds machine-written', () => {
 		// `on offer` moved from live to prophylactic with the Snapshots section: it fired on that copy and
 		// on nothing else, so the guard now holds it against copy nobody has written yet — which is what
 		// the rest of this list is for and why the split is stated rather than assumed.
-		expect(prophylactic).toEqual(['band', 'exempt', 'on offer', 'p5', 'predicate', 'satisfied']);
+		//
+		// `clock` moved the same way on 2026-08-29, and for a better reason than a section leaving. It
+		// fired on one string, `energy.resolution`'s "stamps a reading onto events rather than onto a
+		// clock". Every other `clock` in `report.json` is the i18next format token (`{{duration, clock}}`),
+		// so the word was carrying two senses two keys apart; the sibling strings all said "timer". The
+		// wording sweep replaced the clause with "stamps readings onto events", which settles the sense
+		// collision and empties this entry in the same edit.
+		expect(prophylactic).toEqual(['band', 'clock', 'exempt', 'on offer', 'p5', 'predicate', 'satisfied']);
 	});
 
 	it('anchors on both sides, so an ordinary word that contains a banned one is not a red', () => {
