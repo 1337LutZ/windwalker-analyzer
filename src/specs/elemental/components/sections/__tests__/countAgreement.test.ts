@@ -135,7 +135,7 @@ describe('the Rage count agrees with itself', () => {
 
 	it('says once rather than one times, on the pull a reader could already open', () => {
 		const sentence = verdictOf(render(Mana, addsThenBoss));
-		expect(sentence).toContain('come back to a pool already under 70% once without pressing it');
+		expect(sentence).toContain('came back once to a pool already under 70% without being pressed');
 		expect(sentence).not.toContain('1 times');
 		noRawKey(sentence);
 	});
@@ -152,7 +152,7 @@ describe('the Rage count agrees with itself', () => {
 		const many: El = { ...base, mana: { ...base.mana!, strained: { ...base.mana!.strained, stretches: 4 } } };
 		expect(ELEMENTAL_SPEC.score(many).sections['mana']?.grade).toBe('bad');
 		const sentence = verdictOf(render(Mana, many));
-		expect(sentence).toContain('come back to a pool already under 70% 4 times without pressing it');
+		expect(sentence).toContain('came back 4 times to a pool already under 70% without being pressed');
 		noRawKey(sentence);
 	});
 
@@ -180,7 +180,7 @@ describe('the Rage count agrees with itself', () => {
 		expect(ELEMENTAL_SPEC.score(one).sections['mana']?.grade).toBe('ok');
 		const sentence = verdictOf(render(Mana, one));
 		expect(sentence).toContain('under 15% with Thunderstorm up');
-		expect(sentence).toContain('come back to a pool already under 70% once without pressing it');
+		expect(sentence).toContain('came back once to a pool already under 70% without being pressed');
 		expect(sentence).not.toContain('1 times');
 		noRawKey(sentence);
 	});
@@ -190,7 +190,7 @@ describe('the Rage count agrees with itself', () => {
 		expect(ELEMENTAL_SPEC.score(many).sections['mana']?.grade).toBe('bad');
 		const sentence = verdictOf(render(Mana, many));
 		expect(sentence).toContain('under 15% with Thunderstorm up');
-		expect(sentence).toContain('come back to a pool already under 70% 3 times without pressing it');
+		expect(sentence).toContain('came back 3 times to a pool already under 70% without being pressed');
 		noRawKey(sentence);
 	});
 

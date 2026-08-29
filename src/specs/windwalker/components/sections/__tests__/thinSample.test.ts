@@ -173,7 +173,7 @@ const noRawKey = (sentence: string) => expect(sentence).not.toMatch(/\b(snapshot
 const NEVER_ARRIVED =
 	'No Re-Origination proc arrived with enough Tigereye Brew banked to be worth spending on, so there was nothing to catch.';
 const NEVER_CAST = 'Rising Sun Kick was never cast in this pull.';
-const TOO_FEW_PROCS = 'too few to tell a habit from a coincidence';
+const TOO_FEW_PROCS = 'Too few to tell a habit from a coincidence';
 const NO_CONTACT = 'no time with an enemy in front of you was recorded to measure the debuff against';
 
 const cleave = fixture('cleave');
@@ -251,11 +251,11 @@ describe('a Windwalker pull with presses and nothing to read them by', () => {
 
 			const sentence = verdictOf(render(SnapshotTable, thin));
 			expect(sentence, label).not.toContain(NEVER_ARRIVED);
-			expect(sentence, label).toContain(`${total} catchable in total, with ${caught} of those taken`);
+			expect(sentence, label).toContain(`${caught} of ${total} catchable procs taken`);
 			expect(sentence, label).toContain(TOO_FEW_PROCS);
 			// The reader is sent to the chart rather than left with a fraction, which is the whole difference
 			// between this arm and the never-arrived one in what it asks them to do next.
-			expect(sentence, label).toContain('own row on the chart above');
+			expect(sentence, label).toContain('own row on the chart');
 			// Phrased so the numeral needs no agreement, at one as at two.
 			expect(sentence, label).not.toMatch(/\b1 procs\b/);
 			noRawKey(sentence);
@@ -280,7 +280,9 @@ describe('a Windwalker pull with presses and nothing to read them by', () => {
 
 		const sentence = verdictOf(render(SnapshotTable, thin));
 		expect(sentence).not.toContain('1 of 2 catchable procs taken (0%)');
-		expect(sentence).not.toMatch(/catchable procs taken/);
+		// The refused share, not the count: the arm may say how many procs it saw and must not print a
+		// percentage the scorer declined to stand behind.
+		expect(sentence).not.toMatch(/\(\d+(\.\d+)?%\)/);
 		noRawKey(sentence);
 	});
 
@@ -331,7 +333,7 @@ describe('a Windwalker pull with presses and nothing to read them by', () => {
 
 			const sentence = verdictOf(render(RisingSunKick, thin));
 			expect(sentence, label).not.toContain(NEVER_CAST);
-			expect(sentence, label).toContain('Rising Sun Kick was cast in this pull, 20 in total');
+			expect(sentence, label).toContain('Rising Sun Kick went out 20 times');
 			expect(sentence, label).toContain(NO_CONTACT);
 			// It claims nothing about the uptime, because there is none — and least of all a percentage.
 			expect(sentence, label).not.toMatch(/uptime across \d+ casts/);
@@ -438,8 +440,8 @@ describe('the plain sentence, on every graded Windwalker section that has one', 
 		const thin: Analysis = { ...cleave, targets: { ...targets, aplCounts: targets.counts } };
 		const sentence = verdictOf(render(TigerPalm, thin));
 		expect(sentence).not.toContain('Tiger Palm was never pressed in this pull.');
-		expect(sentence).toContain('only 2 of your 12 presses went out with one enemy up');
-		expect(sentence).toContain('too few to read the habit from');
+		expect(sentence).toContain('Only 2 of your 12 presses went out with one enemy up');
+		expect(sentence).toContain('too few to read a habit from');
 	});
 });
 
@@ -520,7 +522,7 @@ describe('a Windwalker pull with too few Touch of Karma presses to read a share 
 	};
 
 	const NEVER_PRESSED = 'Touch of Karma was never pressed, and the pull allowed';
-	const TOO_FEW_PRESSES = 'too few presses to tell a habit from a coincidence';
+	const TOO_FEW_PRESSES = 'Too few presses to tell a habit from a coincidence';
 	const CLEAN_SHEET = 'Every press ran while damage was actually coming in.';
 	const WORTH_FAR_LESS = 'Those presses returned far less than they were worth';
 

@@ -576,17 +576,19 @@ copy itself follows — say it once, outside the arms.
      src/lib/i18n/__tests__/conventionsCensus.test.ts. Re-run the block above and paste the whole set
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
-As of the split-group callout, it prints 1807 leaves, 821 prose, 25,362
-words; median 27, p75 41, p90 59, p95 68, p99 102, max 158; longest 9% carry 23%; report.json 743 prose
-leaves, 1,334 sentences, median 16, 225 past 25 (16.9%), 1 em-dash in 0 sentences (0.0%);
-72 / 26 / 1 / 2 on the quote lines.
+As of the split-group callout, it prints 1807 leaves, 821 prose, 24,968
+words; median 27, p75 40, p90 57, p95 66, p99 102, max 158; longest 9% carry 23%; report.json 743 prose
+leaves, 1,321 sentences, median 16, 212 past 25 (16.0%), 1 em-dash in 0 sentences (0.0%);
+73 / 25 / 1 / 2 on the quote lines.
 
-No leaves either way and 613 words gone, the largest single fall this census has recorded. Forty-four
-graded verdicts were rewritten to the register the tags left them in: evidence first, one clause of
-mechanism, and the third clause dropped. "You kept Flame Shock up for 89% of the pull, which is the
-number this rotation is built on" is now "89% uptime across 21 casts, and every refresh bought
-something." Every percentile below p99 comes down with them, and the past-25 share falls a full point to
-16.9%, which is the shape of a corpus losing its longest strings rather than its shortest. The block
+No leaves either way and 1,007 words gone across two commits, which is the whole graded-verdict family
+rewritten to the register the tags left it in: evidence first, one clause of mechanism, third clause
+dropped. "You kept Flame Shock up for 89% of the pull, which is the number this rotation is built on"
+is now "89% uptime across 21 casts, and every refresh bought something." The obligations the guards
+encode survived the cut rather than being trimmed with it: the good headline still admits the page can
+be red under it, the perfect keep-up still says so beside its correction, and each mana arm still names
+the half it is not speaking for. Every percentile below p99 falls, the past-25 share drops from 17.9% to
+16.0%, and one apostrophe changes hand because a possessive left with the clause holding it. The block
 before it was the shared tagging pass: three leaves in, three prose leaves out.
 
 Two leaves and no prose at all in the pass after that: `app.toCompare` and `app.toReport`, the header

@@ -161,7 +161,7 @@ describe('Tiger Palm summary cards', () => {
 		// Neither sentence a pull without a grade gets, and they are different sentences for different
 		// reasons — see the two arms in `thinSample.test.ts`.
 		expect(html).not.toContain(t('tigerPalm.verdict', { context: 'none', sample: 4, casts: 12 }));
-		expect(html).not.toContain('too few to read the habit from');
+		expect(html).not.toContain('too few to read a habit from');
 		expect(html).not.toContain(t('tigerPalm.unpressed'));
 		// And the section is otherwise unchanged: the twelve presses are still drawn, still counted, and
 		// the uptime beside them is still true.

@@ -183,8 +183,8 @@ describe('the Tigereye Brew sentence names the fault its own metric found', () =
 		expect(html).not.toContain('near the cap every time');
 		expect(html).toContain(t('brew.verdict', { context: 'short', count: 7, avg: mixed.brew.avgConsumed, short: 1 }));
 		expect(html).toContain('7 brews spent, averaging 9.7 of 10 stacks.');
-		expect(html).toContain('1 of them went out with the bank under ten and nothing in this pull asking for it');
-		expect(html).toContain('Hold the brew until the bank reads ten');
+		expect(html).toContain('1 went out under ten with nothing asking for it');
+		expect(html).toContain('Hold until the bank reads ten');
 		// The clauses after it are unchanged and still have their antecedents.
 		expect(html).toContain(t('brew.cap', { context: 'good', count: 0 }));
 		expect(html).toContain(t('brew.bankLeft', { count: mixed.brew.bankAtEnd }));
@@ -209,7 +209,7 @@ describe('the Tigereye Brew sentence names the fault its own metric found', () =
 		// The sentence the letter used to select, verbatim.
 		expect(html).not.toContain(t('brew.verdict', { context: 'bad', count: 16, avg: strong.brew.avgConsumed }));
 		expect(html).not.toContain('averaging only');
-		expect(html).toContain('3 of them went out with the bank under ten and nothing in this pull asking for it');
+		expect(html).toContain('3 went out under ten with nothing asking for it');
 		// Three of sixteen, not three of the five that went out under ten: `lean` counts the list's own
 		// presses and this number does not.
 		expect(strong.brew.uses - strong.brew.fullUses).toBe(5);
@@ -220,7 +220,7 @@ describe('the Tigereye Brew sentence names the fault its own metric found', () =
 	 * The inversion, and the reason `shortExcused` is a fourth sentence rather than a wording tweak.
 	 * `cleave` has the worst mean in the set at 8.5 and not one brew to answer for: two of its three
 	 * short brews caught a proc on its last global and the third was the tail dump. A clause keyed on
-	 * `lean` would have said "3 of them went out with the bank under ten" and then named that excuse.
+	 * `lean` would have said "3 went out under ten" and then named that excuse.
 	 */
 	it('says the short brews were the right press when every one of them was', () => {
 		const cleave = fixture('cleave');
@@ -231,8 +231,8 @@ describe('the Tigereye Brew sentence names the fault its own metric found', () =
 		expect(html).toContain(
 			t('brew.verdict', { context: 'shortExcused', count: 6, avg: cleave.brew.avgConsumed, lean: 3 }),
 		);
-		expect(html).toContain('3 of them went out with the bank under ten');
-		expect(html).toContain('so those presses were the right ones');
+		expect(html).toContain('3 went out under ten');
+		expect(html).toContain('Both are worth more than the stacks');
 		expect(html).not.toContain('nothing in this pull asking for it');
 	});
 
@@ -252,7 +252,7 @@ describe('the Tigereye Brew sentence names the fault its own metric found', () =
 		expect(weave.brew.uses - weave.brew.fullUses).toBe(2);
 
 		const html = render(weave);
-		expect(html).not.toContain('so those presses were the right ones');
+		expect(html).not.toContain('Both are worth more than the stacks');
 		expect(html).not.toContain('nothing in this pull asking for it');
 		expect(html).toContain(t('brew.verdict', { context: 'ok', count: 5, avg: weave.brew.avgConsumed }));
 	});
@@ -494,7 +494,7 @@ describe('a pull with one brew', () => {
 		const html = render(oneBrew(5));
 		expect(html).not.toContain('1 brew spent, averaging 5 of 10 stacks. Nothing was lost to the stack cap.');
 		expect(html).toContain(t('brew.verdict', { context: 'oneShort', count: 1, avg: 5 }));
-		expect(html).toContain('One press is not enough to tell which this was');
+		expect(html).toContain('one press cannot tell you which');
 	});
 
 	/** The `ok` one gets the same sentence, which is the collapse itself and not a fall-through. */

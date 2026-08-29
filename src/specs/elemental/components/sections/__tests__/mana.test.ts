@@ -69,7 +69,7 @@ describe('a pull that starved with Thunderstorm on the bar', () => {
 
 	it('tells the reader which button to press, and why it is not optional', () => {
 		expect(html).toContain('At 15% your next Lava Burst may not go out');
-		expect(html).toContain('Press it the moment you get there');
+		expect(html).toContain('press it the moment you get there');
 		// The cue is the mana number, not a widget. "Press it as the bar reaches the line" is what this
 		// sentence said until the deixis sweep, and the bar and the line are this report's own furniture —
 		// a sentence telling a player what to press names the game state. Quoted so it cannot come back.
@@ -223,8 +223,8 @@ describe('a good mana verdict speaks only for the halves the log answered', () =
 		expect(html).not.toContain('with Thunderstorm up, and never under');
 		expect(html).toContain(t('mana.verdict_good_noThunderstorm', { starved: 15, strained: 70 }));
 		// What it says instead: the half it measured, then which half it is not speaking for.
-		expect(html).toContain('No stretch under 70% went by with Shamanistic Rage sitting unpressed.');
-		expect(html).toContain('This log never puts you under 15% with Thunderstorm in your hands');
+		expect(html).toContain('No stretch under 70% went by with Shamanistic Rage unpressed.');
+		expect(html).toContain('This log never puts you under 15% with Thunderstorm in hand');
 		expect(html).toContain('only about the Rage');
 		// Not a raw key, which is what a context arm with no copy behind it renders as.
 		expect(html).not.toContain('mana.verdict');
@@ -244,8 +244,8 @@ describe('a good mana verdict speaks only for the halves the log answered', () =
 		expect(card.sections['mana']?.grade).toBe('good');
 		const html = render(starvedOnly);
 		expect(html).toContain(t('mana.verdict_good_noRage', { starved: 15, strained: 70 }));
-		expect(html).toContain('No stretch under 15% went by with Thunderstorm sitting unpressed.');
-		expect(html).toContain('This log never puts you under 70% with Shamanistic Rage in your hands');
+		expect(html).toContain('No stretch under 15% went by with Thunderstorm unpressed.');
+		expect(html).toContain('This log never puts you under 70% with Shamanistic Rage in hand');
 		expect(html).not.toContain('mana.verdict');
 	});
 
@@ -263,8 +263,8 @@ describe('a good mana verdict speaks only for the halves the log answered', () =
 		};
 		expect(ELEMENTAL_SPEC.score(both).sections['mana']?.grade).toBe('good');
 		const html = render(both);
-		expect(html).toContain('No stretch under 15% went by with Thunderstorm sitting unpressed, and none under 70%');
-		expect(html).toContain('The pool was never the thing holding your casts back.');
+		expect(html).toContain('No stretch under 15% went by with Thunderstorm unpressed, and none under 70%');
+		expect(html).toContain('The pool never held your casts back.');
 		expect(html).not.toContain('This log never puts you under');
 	});
 
@@ -280,7 +280,7 @@ describe('a good mana verdict speaks only for the halves the log answered', () =
 		};
 		expect(ELEMENTAL_SPEC.score(measured).sections['mana']?.grade).toBe('ok');
 		const html = render(measured);
-		expect(html).toContain('let Shamanistic Rage come back to a pool already under 70%');
+		expect(html).toContain('Shamanistic Rage came back once to a pool already under 70%');
 		expect(html).not.toContain('This log never puts you under');
 	});
 });
@@ -292,7 +292,7 @@ describe('a good mana verdict speaks only for the halves the log answered', () =
  * `gradedMs`, so `ok` and `bad` print a true zero for the unread half rather than a figure contradicting
  * the tile beside it — thin there, not false. That is right about the number and wrong about the sentence.
  * A zero with nothing beside it does not read as an absence of data: *"You spent 0s under 15% with
- * Thunderstorm up, and let Shamanistic Rage come back to a pool already under 70% 1 times without pressing
+ * Thunderstorm up, and Shamanistic Rage came back 1 times to a pool already under 70% without pressing
  * it"* tells a reader their Thunderstorm was clean in the same breath as faulting their Rage.
  *
  * **`addsThenBoss` is the pull that made it visible, and it is a committed fixture rather than a
@@ -322,7 +322,7 @@ describe('an ok or bad mana verdict speaks only for the halves the log answered'
 		// The sentence this pull used to be handed, verbatim from its opening clause.
 		expect(html).not.toContain('You spent 0s under 15% with Thunderstorm up');
 		expect(html).toContain(t('mana.verdict_ok_noThunderstorm', { starved: 15, strained: 70, rage: 1 }));
-		expect(html).toContain('This log never puts you under 15% with Thunderstorm in your hands');
+		expect(html).toContain('This log never puts you under 15% with Thunderstorm in hand');
 		expect(html).not.toContain('mana.verdict');
 	});
 
@@ -340,7 +340,7 @@ describe('an ok or bad mana verdict speaks only for the halves the log answered'
 		expect(ELEMENTAL_SPEC.score(starvedOnly).sections['mana']?.grade).toBe('ok');
 		const html = render(starvedOnly);
 		expect(html).toContain(t('mana.verdict_ok_noRage', { starved: 15, strained: 70, starvedMs: 4000 }));
-		expect(html).toContain('This log never puts you under 70% with Shamanistic Rage in your hands');
+		expect(html).toContain('This log never puts you under 70% with Shamanistic Rage in hand');
 		expect(html).not.toContain('mana.verdict');
 	});
 
@@ -354,7 +354,7 @@ describe('an ok or bad mana verdict speaks only for the halves the log answered'
 		const html = render(badRage);
 		expect(html).not.toContain('You spent 0s under 15% with Thunderstorm up');
 		expect(html).toContain(t('mana.verdict_bad_noThunderstorm', { starved: 15, strained: 70, rage: 4 }));
-		expect(html).toContain('This log never puts you under 15% with Thunderstorm in your hands');
+		expect(html).toContain('This log never puts you under 15% with Thunderstorm in hand');
 		expect(html).not.toContain('mana.verdict');
 	});
 
@@ -371,7 +371,7 @@ describe('an ok or bad mana verdict speaks only for the halves the log answered'
 		expect(ELEMENTAL_SPEC.score(badStarved).sections['mana']?.grade).toBe('bad');
 		const html = render(badStarved);
 		expect(html).toContain(t('mana.verdict_bad_noRage', { starved: 15, strained: 70, starvedMs: 20_000 }));
-		expect(html).toContain('This log never puts you under 70% with Shamanistic Rage in your hands');
+		expect(html).toContain('This log never puts you under 70% with Shamanistic Rage in hand');
 		expect(html).not.toContain('mana.verdict');
 	});
 });

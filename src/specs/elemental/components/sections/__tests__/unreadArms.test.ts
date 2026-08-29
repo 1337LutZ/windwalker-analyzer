@@ -9,7 +9,7 @@
 //
 // **The one that was wrong: the pool's un-narrowed plural at nought.** `mana.verdict_ok` takes its
 // plural off the count of Shamanistic Rage presses passed over, and that arm read *"…and let Shamanistic
-// Rage come back to a pool already under 70% 0 times without pressing it. … And put the Rage down every
+// Rage came back 0 times to a pool already under 70% without being pressed. … And put the Rage down every
 // time it is up and you are under 70%."* — a fault the pull did not commit, followed by the instruction
 // to stop committing it. What makes it worse than a stray nought is that nought is the *only* count that
 // arm can ever be handed: `shamanisticRageMissed` is `good` at nought and `ok` at exactly one, so two or
@@ -148,7 +148,7 @@ describe('the pool at no missed Rage press', () => {
 
 	it('does not fault the Rage on the ok letter, where nought is the only count it can have', () => {
 		const sentence = verdictOf(render(Mana, bothHalves(733)));
-		expect(sentence).toContain('No stretch under 70% went by with Shamanistic Rage sitting unpressed');
+		expect(sentence).toContain('No stretch under 70% went by with Shamanistic Rage unpressed');
 		expect(sentence).not.toContain('0 times');
 		expect(sentence).not.toContain('put the Rage down every time');
 		// The Thunderstorm's half is untouched — this is a narrowing of one clause, not a new sentence.
@@ -160,7 +160,7 @@ describe('the pool at no missed Rage press', () => {
 		const pull = bothHalves(20_000);
 		expect(ELEMENTAL_SPEC.score(pull).sections['mana']?.grade).toBe('bad');
 		const sentence = verdictOf(render(Mana, pull));
-		expect(sentence).toContain('No stretch under 70% went by with Shamanistic Rage sitting unpressed');
+		expect(sentence).toContain('No stretch under 70% went by with Shamanistic Rage unpressed');
 		expect(sentence).not.toContain('0 times');
 		expect(sentence).not.toContain('press it whenever it is up');
 		expect(sentence).toContain('your next Lava Burst may not go out');
@@ -181,8 +181,8 @@ describe('the pool at no missed Rage press', () => {
 				strained: { ...base.mana!.strained, stretches },
 			},
 		});
-		expect(verdictOf(render(Mana, at(1)))).toContain('already under 70% once without pressing it');
-		expect(verdictOf(render(Mana, at(3)))).toContain('already under 70% 3 times without pressing it');
+		expect(verdictOf(render(Mana, at(1)))).toContain('came back once to a pool already under 70%');
+		expect(verdictOf(render(Mana, at(3)))).toContain('came back 3 times to a pool already under 70%');
 	});
 });
 
