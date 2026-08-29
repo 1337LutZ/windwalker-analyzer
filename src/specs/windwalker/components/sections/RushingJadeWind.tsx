@@ -2,11 +2,22 @@ import { useMemo } from 'react';
 
 import { useReportCopy } from '~/hooks/useReportCopy';
 import { formatClock, formatDecimal } from '~/lib/format';
-import type { Analysis, TargetMode } from '~/lib/types';
+import type { Analysis, JudgmentCause, TargetMode } from '~/lib/types';
 import { readJadeWind } from '~/specs/windwalker/lib/view/jadeWind';
 import { bandForMode } from '~/lib/view/targetMode';
 
-import { DataGrid, Note, Prose, Section, SpellIcon, StatTile, StatTiles, type GridRow } from '~/components/primitives';
+import {
+	CauseLegend,
+	CauseTag,
+	DataGrid,
+	Note,
+	Prose,
+	Section,
+	SpellIcon,
+	StatTile,
+	StatTiles,
+	type GridRow,
+} from '~/components/primitives';
 import LogLink from '~/components/sections/LogLink';
 
 /**
@@ -42,7 +53,7 @@ export default function RushingJadeWind({
 	const forced = bandForMode(forcedMode ?? null);
 	const apl = forced === null ? analysis.apl : (analysis.aplForced?.[forced] ?? analysis.apl);
 	const { talent, measured, ladder } = useMemo(() => readJadeWind(analysis, apl), [analysis, apl]);
-	const decisionRows = useMemo<GridRow[]>(
+	const decisionRows = useMemo<(GridRow & { cause: JudgmentCause })[]>(
 		() =>
 			(ladder?.decisions ?? []).map((decision, index) => {
 				let event: string;
@@ -99,8 +110,28 @@ export default function RushingJadeWind({
 					}
 				}
 
+				/**
+				 * Whose the decision is.
+				 *
+				 * A miss the list itself explains is the list's: two targets up, a pull too short to pay the
+				 * talent back, an energy cap a second out, a haste window the brew belongs in. A miss with no
+				 * such reason is the player pressing something else. A press the ladder could not read is the
+				 * log, and a press made where the list never asked for one is the player again.
+				 */
+				const cause: JudgmentCause =
+					decision.kind === 'missed'
+						? decision.reason === null
+							? 'player'
+							: 'rotation'
+						: decision.verdict === 'unknown'
+							? 'log'
+							: decision.verdict === 'followed'
+								? 'rotation'
+								: 'player';
+
 				return {
 					key: `${decision.at}-${decision.kind}-${index}`,
+					cause,
 					band: decision.verdict === 'followed' ? undefined : ('warn' as const),
 					cells: {
 						at: decision.link ? (
@@ -108,7 +139,14 @@ export default function RushingJadeWind({
 						) : (
 							formatClock(decision.at)
 						),
-						event,
+						// The tag rides on the event, which is the judgment; the `why` column beside it is the
+						// evidence, and a tag on both would say one thing twice.
+						event: (
+							<span className="inline-flex items-baseline">
+								<CauseTag cause={cause} />
+								<span>{event}</span>
+							</span>
+						),
 						reason,
 					},
 				};
@@ -222,6 +260,10 @@ export default function RushingJadeWind({
 						    button's whole position in the list changes. */}
 					{readingBand === 1 ? <Note>{t('jadeWind.singleTarget')}</Note> : null}
 					<Note>{t('jadeWind.notGraded')}</Note>
+				</div>
+
+				<div className="mt-3.5">
+					<CauseLegend causes={decisionRows.map((row) => row.cause)} />
 				</div>
 			</>
 		</Section>

@@ -571,20 +571,19 @@ copy itself follows — say it once, outside the arms.
      src/lib/i18n/__tests__/conventionsCensus.test.ts. Re-run the block above and paste the whole set
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
-As of the split-group callout, it prints 1804 leaves, 824 prose, 26,001
-words; median 27, p75 42, p90 61, p95 71, p99 102, max 158; longest 9% carry 23%; report.json 746 prose
+As of the split-group callout, it prints 1807 leaves, 821 prose, 25,972
+words; median 27, p75 42, p90 61, p95 71, p99 102, max 158; longest 9% carry 23%; report.json 743 prose
 leaves, 1,335 sentences, median 16, 239 past 25 (17.9%), 1 em-dash in 0 sentences (0.0%);
-72 / 29 / 1 / 2 on the quote lines.
+72 / 28 / 1 / 2 on the quote lines.
 
-No leaves either way and twenty-four sentences gone, which is what tagging a judgment does to the copy
-that carried the tag's work in prose. Every Elemental ledger now says whose a row is in a badge beside
-it, so the rows stop explaining themselves: "Pressed inside Ascendance. Hold the shock, every global in
-there is a Lava Burst" becomes "Ascendance was up, hold the shock" under a `Rotation` tag, and thirty
-more like it. The leaf count is unmoved because nothing was added or deleted, only rewritten; the prose
-count falls twenty-four as those strings drop under the eight-word line, and the word total falls 434.
-p75, p95 and the past-25 share all move up a notch, which is the arithmetic of removing short-ish prose
-from a corpus rather than long: what is left leans longer. The block before it was twelve leaves in and
-three out, the cause vocabulary and the Lava Burst rows it was first drawn beside.
+Three leaves in and three prose leaves out, the shared half of the same pass. Rushing Jade Wind, the raid
+buff table, the externals table and the four scorecard states all say whose a row is now, so the rows
+stop saying it in prose: "This fight puts you out of reach by design, so the time this figure is measured
+over is the fight's doing rather than yours" becomes a Fight tag over "Out of reach by design". The three
+arriving leaves are the two notes that name what the Raid tag asks for, one per table, and the plural arm
+one of them needs. The sentence count is unmoved because the sentences left are the ones that were
+already short, and a curly apostrophe leaves with the copy that held it. The block before it was the
+Elemental sweep: no leaves either way, twenty-four sentences gone.
 
 Two leaves and no prose at all in the pass after that: `app.toCompare` and `app.toReport`, the header
 link each of a spec's two pages carries to the other. Both are three-word button labels, so they lift the

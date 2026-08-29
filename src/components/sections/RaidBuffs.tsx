@@ -4,7 +4,7 @@ import { narrowRaidBuffs } from '~/lib/analysis/raidBuffs';
 import { formatPercentValue } from '~/lib/format';
 import type { Analysis, RaidBuffRow } from '~/lib/types';
 
-import { DataGrid, Note, Pill, Prose, Section, SpellIcon } from '../primitives';
+import { CauseLegend, CauseTag, DataGrid, Note, Pill, Prose, Section, SpellIcon } from '../primitives';
 
 /**
  * The raid buffs this spec's damage rests on, one row per effect.
@@ -55,6 +55,9 @@ export default function RaidBuffs({ analysis }: { analysis: Analysis }) {
 	// The spec's own rows, out of the engine's spec-neutral measurement — see the module comment.
 	const { rows, deaths, selfGaps } = narrowRaidBuffs(raidBuffs, spec.raidBuffEffects);
 	const unreported = rows.filter((row) => row.notReported);
+	// The rows the Raid tag is drawn on: a buff somebody else supplies that left the player at some point.
+	// `selfMissing` below is the other half, the ones that are the player's own to keep up.
+	const raidGaps = rows.filter((row) => !row.notReported && !row.selfProvided && row.gaps.length > 0);
 	const selfMissing = rows.filter((row) => row.selfProvided && !row.notReported && row.gaps.length > 0);
 	// `+5% Agility` to a monk and `+5% Intellect` to a shaman: one buff, and each spec reads the stat it
 	// is paid in. The context falls back to the plain key for an effect whose name is the same either way.
@@ -102,6 +105,16 @@ export default function RaidBuffs({ analysis }: { analysis: Analysis }) {
 				/>
 			</div>
 
+			<div className="mt-3.5">
+				<CauseLegend
+					causes={[
+						...(rows.some((row) => row.gaps.length > 0 && !row.selfProvided) ? (['raid'] as const) : []),
+						...(rows.some((row) => row.gaps.length > 0 && row.selfProvided) ? (['player'] as const) : []),
+						...(unreported.length > 0 ? (['log'] as const) : []),
+					]}
+				/>
+			</div>
+
 			<div className="mt-5 flex flex-col gap-3.5">
 				{/* Each caveat appears only when it is true of this pull, so a clean pull reads short. */}
 				{selfGaps > 0 ? (
@@ -111,6 +124,12 @@ export default function RaidBuffs({ analysis }: { analysis: Analysis }) {
 							buffs: selfMissing.map(nameOf).join(' and '),
 						})}
 					</Prose>
+				) : null}
+				{/* The fix the Raid tag asks for, named where the reader met the tag. Only when somebody else's
+				    buff actually left them: a reader whose raid covered everything is not told to go and have a
+				    conversation about it. */}
+				{raidGaps.length > 0 ? (
+					<Note>{t('raidBuffs.callNote', { count: raidGaps.length, buffs: raidGaps.map(nameOf).join(' and ') })}</Note>
 				) : null}
 				{unreported.length > 0 ? (
 					<Note>{t('raidBuffs.notReportedNote', { buffs: unreported.map(nameOf).join(', ') })}</Note>
@@ -133,13 +152,28 @@ function State({ row, specKey, t }: { row: RaidBuffRow; specKey: string; t: Retu
 	// What a buff is worth is a claim about a rotation, so it is keyed on the spec: five percent off the
 	// Fists of Fury channel and five percent off every cast in the pull are not the same sentence.
 	const worth = t(`raidBuffs.worth.${row.key}`, { context: specKey });
-	if (row.notReported) return <span className="text-muted">{worth}</span>;
+	if (row.notReported)
+		return (
+			<span className="inline-flex items-baseline">
+				<CauseTag cause="log" />
+				<span className="text-muted">{worth}</span>
+			</span>
+		);
 
 	const lost = row.gaps.reduce((sum, gap) => sum + gap.seconds, 0);
 	const first = row.gaps[0];
+	// A buff that never left carries no tag: the row states a fact and asks nothing of anybody.
+	const gapped = row.gaps.length > 0;
 
 	return (
-		<span>
+		<span className="inline-flex flex-wrap items-baseline">
+			{/*
+			 * The tag is on the rows that lost time and on no others, and which tag it is turns on who was
+			 * supposed to supply the buff. A gap in somebody else's buff is the one row on this page a reader
+			 * fixes by talking rather than by practising, which is what `raid` says and what `fight` would
+			 * have told them to shrug at. A gap in a buff they cast themselves is theirs.
+			 */}
+			{gapped ? <CauseTag cause={row.selfProvided ? 'player' : 'raid'} /> : null}
 			{/* A buff that was not up at the pull is named by when it did go out, which is the actionable
 			    half — "60 seconds in" is a thing to fix, "94% uptime" is not. */}
 			{row.gaps.length === 0 || first === undefined

@@ -10,6 +10,8 @@ import WindowTracks, { type Track } from '~/components/charts/WindowTracks';
 import type { VengeanceAudit } from '~/lib/analysis/vengeance';
 import {
 	Callout,
+	CauseLegend,
+	CauseTag,
 	ChartFigure,
 	DataGrid,
 	Note,
@@ -198,7 +200,17 @@ export default function Externals({ analysis }: { analysis: Analysis }) {
 						})}
 					</span>
 				),
-				landed: <span className="text-ink-2">{row.count === 0 ? t('externals.never') : formatInteger(row.count)}</span>,
+				// A cooldown that never reached you is the one row here nobody can practise away and everybody
+				// can talk about, which is what the tag says and what the note under the table asks for.
+				landed:
+					row.count === 0 ? (
+						<span className="inline-flex items-baseline">
+							<CauseTag cause="raid" />
+							<span className="text-ink-2">{t('externals.never')}</span>
+						</span>
+					) : (
+						<span className="text-ink-2">{formatInteger(row.count)}</span>
+					),
 				held: <b className="font-semibold text-ink-2">{row.heldMs === 0 ? '—' : formatSeconds(row.heldMs)}</b>,
 			},
 		};
@@ -296,6 +308,15 @@ export default function Externals({ analysis }: { analysis: Analysis }) {
 					rows={grid}
 				/>
 			</div>
+
+			{/* Only when one of them never reached the player, so a tank whose raid covered them is not sent
+			    to have a conversation they do not need. */}
+			{rows.some((row) => row.count === 0) ? (
+				<div className="mt-3.5 flex flex-col gap-3.5">
+					<CauseLegend causes={['raid']} />
+					<Note>{t('externals.callNote')}</Note>
+				</div>
+			) : null}
 		</Section>
 	);
 }
