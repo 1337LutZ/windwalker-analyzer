@@ -2,8 +2,8 @@
 	"source": {
 		"repo": "wowsims/mop",
 		"branch": "master",
-		"commit": "bf66107a252608ff414b88b6324abc8f5b4696c1",
-		"committed": "2026-08-24T18:05:32Z"
+		"commit": "7bf5a73793452a1ed2b59bd8cdeb5ce8749c63c3",
+		"committed": "2026-08-27T20:50:21Z"
 	},
 	"specs": {
 		"windwalker": {
