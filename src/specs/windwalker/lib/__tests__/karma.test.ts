@@ -224,9 +224,160 @@ describe('Touch of Karma', () => {
 		}
 	});
 
-	/** Measured, shown, and deliberately not counted: the encounter decides what a press can be worth. */
-	it('does not let the section move the whole-pull verdict', () => {
+	/**
+	 * Two of the three are measured, shown and deliberately not counted: the encounter decides what a
+	 * press can be worth, so letting either swing the headline would grade the pull the player was
+	 * handed. The third is the one thing here the encounter cannot excuse, and it is counted.
+	 *
+	 * Pinned so that moving any of the three is a decision rather than a side effect.
+	 */
+	it('counts only the rule the encounter cannot excuse', () => {
 		expect(WEIGHTS.karmaEmpty).toBe(0);
 		expect(WEIGHTS.karmaCapShare).toBe(0);
+		expect(WEIGHTS.karmaInBrew).toBe(0.5);
+	});
+
+	/**
+	 * And the weight is only ever spent on a pull that pressed the button.
+	 *
+	 * A monk who held a ninety-second defensive through a fight with nothing incoming made no decision
+	 * about where to put it, so there is nothing to grade: `metricOf` refuses the absent value and
+	 * `overallOf` leaves it out of the mean. The point stays in `judged.total`, which is the same
+	 * accounting `weaveRate` gets: the line under the headline says a point was offered and not
+	 * answered rather than quietly shrinking the denominator.
+	 */
+	it('spends its weight only on a pull that pressed the button', () => {
+		const never = scoreAnalysis(pressedInBrew('weave', []));
+		const pressed = scoreAnalysis(pressedInBrew('weave', [true, true]));
+		const faultless = scoreAnalysis(pressedInBrew('weave', [false, false]));
+
+		// The point leaves the numerator on a pull with no presses and stays in the denominator, which
+		// is the whole of what "only if they used it" costs a reader: one line saying so.
+		expect(never.judged?.measured).toBe(pressed.judged!.measured - WEIGHTS.karmaInBrew);
+		expect(never.judged?.total).toBe(pressed.judged!.total);
+		expect(never.judged?.total).toBe(faultless.judged!.total);
+		// Having pressed it, the point is read either way and the grade on it is what moves.
+		expect(pressed.judged?.measured).toBe(faultless.judged!.measured);
+		expect(inBrew(pressedInBrew('weave', [true, true]))?.grade).toBe('bad');
+		expect(inBrew(pressedInBrew('weave', [false, false]))?.grade).toBe('good');
+	});
+
+	/**
+	 * The one thing this section grades that the fight cannot excuse: a press inside a Tigereye Brew.
+	 *
+	 * A count and not a share, which is `karmaEmpty`'s own sample argument turned around. One press
+	 * inside a brew is a whole fault by itself and does not become a smaller one because the pull had
+	 * room for three charges. See `duringBrew` in `../index` for what the fault is and, more to the
+	 * point, what it refuses to claim: the simulator does not model Touch of Karma at all, so the cost
+	 * being named is the global and never the redirect.
+	 *
+	 * Built rather than borrowed for the same reason `unmeasured` above is built: every committed
+	 * capture predates the field, so a fixture reaching these branches would pin how old the capture is.
+	 */
+	const inBrew = (analysis: Analysis) =>
+		scoreAnalysis(analysis).sections.karma?.metrics.find((m) => m.key === 'karmaInBrew');
+	const pressedInBrew = (name: string, flags: boolean[]): Analysis => {
+		const captured = fixture(name);
+		return {
+			...captured,
+			karma: {
+				...captured.karma,
+				casts: flags.length,
+				duringBrew: flags.filter(Boolean).length,
+				uses: flags.map((duringBrew, i) => ({
+					...(captured.karma.uses[0] as (typeof captured.karma.uses)[number]),
+					t: i * 90_000,
+					duringBrew,
+				})),
+			},
+		};
+	};
+
+	it('reads one press inside a brew as a slip and two as a habit', () => {
+		expect(inBrew(pressedInBrew('weave', [false, false]))?.value).toBe(0);
+		expect(inBrew(pressedInBrew('weave', [false, false]))?.grade).toBe('good');
+		expect(inBrew(pressedInBrew('weave', [true, false]))?.grade).toBe('ok');
+		expect(inBrew(pressedInBrew('weave', [true, true]))?.value).toBe(2);
+		expect(inBrew(pressedInBrew('weave', [true, true]))?.grade).toBe('bad');
+		expect(THRESHOLDS.karmaInBrew.good).toBe(0);
+		expect(THRESHOLDS.karmaInBrew.ok).toBe(1);
+	});
+
+	/**
+	 * And it is graded at one press, where `karmaEmpty` is not.
+	 *
+	 * The two refusals are about different things and must not be made to agree. A share of one press
+	 * is nought or a hundred and neither is a habit; a count of one press inside a brew is one global
+	 * that went into the most expensive window in the pull, which is true whatever the sample.
+	 */
+	it('grades a single press, unlike the share beside it', () => {
+		const one = pressedInBrew('weave', [true]);
+		expect(inBrew(one)?.unmeasurable).toBe(false);
+		expect(inBrew(one)?.grade).toBe('ok');
+		expect(
+			scoreAnalysis(one).sections.karma?.metrics.find((m) => m.key === 'karmaEmpty')?.unmeasurable,
+			'the share still declines at one press',
+		).toBe(true);
+	});
+
+	/**
+	 * Two silences, both of which have to survive as "cannot say" rather than as a clean sheet.
+	 *
+	 * A pull that never pressed the button was never asked the question, which is the shape the weave
+	 * rules take, and a capture from before the field existed has not been measured. Reading either as
+	 * nought would print `good` over six committed pulls nobody has checked.
+	 */
+	/**
+	 * The rule is secondary, so it reads a band and never carries the section's letter.
+	 *
+	 * `verdict('karma', …)` picks its sentence off that letter and every arm of it is about what the
+	 * redirect *returned*: "only part of their potential came back", "time it for when damage is
+	 * coming in". A press that landed full, drained its pool and went out inside a brew would pull the
+	 * letter down and print one of those over a pull they are false of, which is the shape of the
+	 * `tooFew` bug on `karmaEmpty` above with a third metric instead of a second. `snapshots` and
+	 * `weave` put their fault counts in the secondary slot for the same reason.
+	 */
+	it('reads a band without moving the section letter', () => {
+		const clean = pressedInBrew('weave', [false, false]);
+		const faulted = pressedInBrew('weave', [true, true]);
+		// Non-vacuity: the metric itself has to move, or the claim below is about nothing.
+		expect(inBrew(clean)?.grade).toBe('good');
+		expect(inBrew(faulted)?.grade).toBe('bad');
+		expect(scoreAnalysis(faulted).sections.karma?.grade).toBe(scoreAnalysis(clean).sections.karma?.grade);
+		expect(scoreAnalysis(faulted).overall).toBe(scoreAnalysis(clean).overall);
+		// Secondary, so it is out of `primary` and still in `metrics`: the grid draws it, the letter does not.
+		const section = scoreAnalysis(faulted).sections.karma;
+		expect(section?.metrics.map((m) => m.key)).toContain('karmaInBrew');
+		expect(section?.primary.map((m) => m.key)).not.toContain('karmaInBrew');
+	});
+
+	/**
+	 * The figure the threshold was cut from, derived here rather than quoted at it.
+	 *
+	 * Every committed capture predates `duringBrew`, so the metric declines on all six, but they carry
+	 * the two things it is built from, the press times and the brew windows, so the answer is
+	 * recoverable and the band above can be checked instead of believed. It is also the evidence for
+	 * the claim that this is not a rare slip: half of these pulls make it.
+	 */
+	it('derives the same figure the threshold was cut from', () => {
+		const insideBrewCount = (analysis: Analysis) =>
+			analysis.karma.uses.filter((use) => analysis.brew.windows.some((w) => w.start <= use.t && w.end >= use.t)).length;
+
+		expect(
+			['strong', 'poor', 'mixed', 'cleave', 'waves', 'weave'].map((name) => insideBrewCount(fixture(name))),
+		).toEqual([1, 1, 2, 0, 0, 0]);
+		// The ladder separates all three ways on that spread, which is what `ok: 1` rests on.
+		expect(THRESHOLDS.karmaInBrew.ok).toBe(1);
+	});
+
+	it('says nothing about a pull that never pressed it, or one nobody measured', () => {
+		const never = pressedInBrew('weave', []);
+		expect(never.karma.casts).toBe(0);
+		expect(inBrew(never)?.unmeasurable).toBe(true);
+
+		for (const name of ['strong', 'mixed', 'poor', 'waves', 'weave', 'cleave']) {
+			expect(fixture(name).karma.duringBrew, `${name} was captured before the rule existed`).toBeUndefined();
+			expect(inBrew(fixture(name))?.unmeasurable, name).toBe(true);
+		}
 	});
 });

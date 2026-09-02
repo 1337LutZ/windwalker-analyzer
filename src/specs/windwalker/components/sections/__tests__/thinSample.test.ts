@@ -509,16 +509,24 @@ describe('a Windwalker pull with too few Touch of Karma presses to read a share 
 	 *
 	 * Those two are the reason this table pins the denominator beside the letter. A guard that read only
 	 * the letter would have called `waves` a no-change and missed two points leaving the reckoning; one
-	 * that read only the count would have missed `strong` entirely. Karma still moves neither, which is
-	 * the claim, and it is now stated by six pulls across two threshold regimes rather than by a weight.
+	 * that read only the count would have missed `strong` entirely. `karmaEmpty` still moves neither,
+	 * which is the claim, and it is now stated by six pulls across two threshold regimes rather than by
+	 * a weight.
+	 *
+	 * **Every denominator here went up by a half, and the metric that did it is `karmaInBrew`, which is
+	 * also a Karma rule, and is not this one.** That rule is worth half a point and no committed capture
+	 * can answer it: they predate the field, so it is refused on all six and its weight sits in the
+	 * denominator unspent. `karmaEmpty` is still zero and every letter above is unchanged, which is
+	 * exactly the pair this table was built to keep apart: a Karma rule moving a denominator is not a
+	 * Karma rule moving a verdict.
 	 */
 	const HEADLINES = {
-		cleave: 'good over 14 of 16',
-		mixed: 'ok over 15 of 17',
-		poor: 'bad over 15 of 17',
-		strong: 'ok over 15 of 17',
-		waves: 'good over 12 of 16',
-		weave: 'good over 14 of 17',
+		cleave: 'good over 14 of 16.5',
+		mixed: 'ok over 15 of 17.5',
+		poor: 'bad over 15 of 17.5',
+		strong: 'ok over 15 of 17.5',
+		waves: 'good over 12 of 16.5',
+		weave: 'good over 14 of 17.5',
 	};
 
 	const NEVER_PRESSED = 'Touch of Karma was never pressed, and the pull allowed';
@@ -698,9 +706,14 @@ describe('a Windwalker pull with too few Touch of Karma presses to read a share 
 	 * The whole-pull verdict renormalises over the weight it could measure, and a metric offering nought
 	 * weight contributes to neither side of that fraction whether it is refused or not. Asserted rather
 	 * than reasoned about, because it is the claim the commit message makes about the headline.
+	 *
+	 * The sibling assertion is the one that keeps this honest: the section's *third* rule does carry
+	 * half a point, so a table pinning only the letters would have passed while the denominators moved
+	 * under it.
 	 */
 	it('moves no whole-pull letter, because the metric carries no weight', () => {
 		expect(WEIGHTS.karmaEmpty).toBe(0);
+		expect(WEIGHTS.karmaInBrew).toBe(0.5);
 		const headline = Object.fromEntries(
 			FIXTURES.map((name) => {
 				const analysis = fixture(name);

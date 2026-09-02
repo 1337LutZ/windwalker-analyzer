@@ -618,6 +618,9 @@
     "verdict_none": "Touch of Karma was never pressed, and the pull allowed {{available}} uses.",
     "empty_one": "One press redirected nothing at all, a ninety-second cooldown and a global used while nothing was hitting you.",
     "empty_other": "{{count}} presses redirected nothing at all, that many ninety-second cooldowns and globals used while nothing was hitting you.",
+    "inBrew_one": "One press went out while a Tigereye Brew was running. Touch of Karma takes a global, and a brew is fifteen seconds of everything you do hitting harder. Its ninety-second cooldown has room on either side of a brew, so keep the press out of that window.",
+    "inBrew_other": "{{count}} presses went out while a Tigereye Brew was running. Touch of Karma takes a global, and a brew is fifteen seconds of everything you do hitting harder. Its ninety-second cooldown has room on either side of a brew, so keep the presses out of that window.",
+    "inBrewNote": "What the redirect itself returns under a brew is not claimed either way. Touch of Karma is absent from the simulator entirely, so nothing can say whether the damage it sends back is amplified. The cost being named is the global.",
     "none": "Touch of Karma was never pressed, and the pull allowed {{available}} uses.",
     "caption": "Every Touch of Karma, and what the redirect returned while it ran",
     "kpi": {
@@ -632,7 +635,8 @@
       "reflected": "returned",
       "hits": "hits",
       "capPct": "% of max health",
-      "fortifying": "fortifying brew"
+      "fortifying": "fortifying brew",
+      "inBrew": "inside a brew"
     },
     "capSummary_zero": "Your health pool on this pull was {{health, compact}}, and that is the most one press can absorb. Across {{casts}} presses that comes to {{possible, compact}}; the redirect absorbed {{absorbed, compact}} of it, {{pct, percent}}. None of them ran out of pool, so every one of them had room left for damage that never came.",
     "capSummary_one": "Your health pool on this pull was {{health, compact}}, and that is the most one press can absorb. Across {{casts}} presses that comes to {{possible, compact}}; the redirect absorbed {{absorbed, compact}} of it, {{pct, percent}}. One press drained its pool completely and could not have returned more.",
@@ -1322,6 +1326,9 @@
         },
         "karmaCapShare": {
           "label": "Health reflected"
+        },
+        "karmaInBrew": {
+          "label": "Pressed inside a brew"
         },
         "globalsMissed": {
           "label": "Missed globals"
@@ -2207,6 +2214,14 @@
       "title": "Casts per minute",
       "intent": "How often each button went out, per minute of pull. A cooldown that differs here drifted; a button waiting on chi or energy differs because the economy behind it did.",
       "none": "Neither pull recorded a cast."
+    },
+    "procs": {
+      "title": "Gear procs per minute",
+      "intent": "Trinkets, the meta gem, the cloak and the weapon enchant fire on their own. Procs per minute of contact, so a longer pull does not read as a luckier one. A roll is not a decision, so none of this is scored. It is here because it moves damage: check a gap above against this block before hunting the rotation for a mistake.",
+      "absent": "no proc in this log",
+      "perMinute": "{{value}}/min",
+      "caveat": "A missing row means that log recorded no proc of it: different gear, or the same gear that never fired. This report cannot tell which, and the gear each of you wore is on the two report pages.",
+      "none": "Neither pull recorded a gear proc."
     },
     "rate": {
       "notPressed": "not pressed",

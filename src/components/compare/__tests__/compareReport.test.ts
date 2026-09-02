@@ -159,7 +159,7 @@ describe('the compare page', () => {
 	 * assertion would have pinned the wrong invariant to the right name.
 	 */
 	it('names the first log before the second in the chart legend', () => {
-		const chart = html.slice(html.indexOf('compare-gaps-heading'), html.indexOf('compare-damage-heading'));
+		const chart = html.slice(html.indexOf('id="compare-gaps-heading"'), html.indexOf('id="compare-damage-heading"'));
 		expect(chart).not.toBe('');
 		const legend = chart.match(/<figcaption[\s\S]*?<\/figcaption>/)?.[0] ?? '';
 		expect(legend.indexOf(captured('strong').player)).toBeGreaterThan(-1);
@@ -172,7 +172,7 @@ describe('the compare page', () => {
 	 * thresholds.
 	 */
 	it('draws each figure on its own scale rather than one shared axis', () => {
-		const chart = html.slice(html.indexOf('compare-gaps-heading'), html.indexOf('compare-damage-heading'));
+		const chart = html.slice(html.indexOf('id="compare-gaps-heading"'), html.indexOf('id="compare-damage-heading"'));
 		const comparable = compare(pull('strong'), pull('poor'), IDENTITY)
 			.sections.flatMap((section) => section.metrics)
 			.filter((gap) => gap.bands !== null);
@@ -198,5 +198,65 @@ describe('the compare page', () => {
 		expect(self).not.toContain('Not asked of');
 		expect(self).not.toMatch(/compare\.[a-z]+\./i);
 		expect(self).toContain('12/14');
+	});
+});
+
+describe('the gear-proc block', () => {
+	/**
+	 * The block draws, names its rows off the game model, and says what an absent row means.
+	 *
+	 * The caveat is asserted rather than taken on trust because it is load-bearing: without it an
+	 * absent row is a blank beside a real reading, and a reader supplies the wrong reason for it.
+	 */
+	it('draws the item effects and the note that makes an absent row readable', () => {
+		expect(html).toContain(`id="compare-procs-heading"`);
+		expect(html).toContain('Re-Origination');
+		expect(html).toContain('Capacitance');
+		// The class proc that shares the timeline's `proc` group and is not luck. See `build.test.ts`.
+		expect(html).not.toContain('Combo Breaker: Tiger Palm');
+		expect(html).toMatch(/different gear, or the same gear that never fired/);
+	});
+
+	/**
+	 * The unit is on every reading, which is what a bare number could not say.
+	 *
+	 * `2.1` beside a trinket reads as a proc count, and a trinket does not fire 2.1 times. It is a
+	 * rate on purpose: `strong` rolled the Rune 16 times over 8:55 and `poor` 9 times over 4:15, so
+	 * the count favours the longer pull (16 against 9) and the rate says `poor` was luckier (1.86 against 2.14).
+	 */
+	it('prints the unit on every reading', () => {
+		const block = html.slice(html.indexOf('id="compare-procs-heading"'), html.indexOf('id="compare-casts-heading"'));
+		expect(block).toMatch(/\d\.\d\/min/);
+		// And never the counts the rate was divided from, which read as the comparison itself.
+		expect(block).not.toMatch(/>16</);
+	});
+
+	/** Two pulls in different trinkets: the side with no row says so instead of reading nought. */
+	it('labels the side that recorded no proc', () => {
+		const across = render(pull('strong'), pull('mixed'));
+		expect(across).toContain('Vicious');
+		expect(across).toContain('Ferocity');
+		expect(across).toContain('no proc in this log');
+	});
+});
+
+describe('the contents rail', () => {
+	/**
+	 * The same rail the report page and the segment tool carry, in the same column.
+	 *
+	 * Asserted through the links rather than the markup: what a reader needs is a way to reach every
+	 * block, and the failure worth catching is a section added below without an entry here, or an
+	 * entry left behind pointing at a heading that no longer renders.
+	 */
+	it('lists every section on the page, and nothing that is not on it', () => {
+		const linked = [...html.matchAll(/href="#(compare-[a-z]+)-heading"/g)].map((m) => m[1]);
+		const headings = [...html.matchAll(/id="(compare-[a-z]+)-heading"/g)].map((m) => m[1]);
+		expect(linked).toEqual(['compare-framing', 'compare-gaps', 'compare-damage', 'compare-procs', 'compare-casts']);
+		expect([...new Set(headings)]).toEqual(linked);
+	});
+
+	/** Desktop only and genuinely not rendered below `lg`, exactly as `SectionNav` argues for it. */
+	it('is a landmark that a phone never has to skip past', () => {
+		expect(html).toMatch(/<nav[^>]*class="hidden lg:/);
 	});
 });

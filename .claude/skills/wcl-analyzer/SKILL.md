@@ -52,8 +52,10 @@ shared UI under `src/components/`. Nothing in `src/lib/` may import a spec (see 
   (`sharePct`, `metricOf`, `section`, `overall`). Thresholds and weights stay per-spec.
 - `src/lib/compare/` — two scored pulls differenced. `gap.ts` (`bandGap`, `leaderOf`, `metricGap`,
   `TIE_BANDS`), `build.ts` (`compare(a, b)`, `ranked`), `model.ts` (`MetricGap`, `SectionGap`,
-  `AbilityGap`, `CastGap`, `Comparison`). Spec-agnostic like the rest of `lib/`: it joins two
-  `Scorecard`s on metric key and never imports a spec.
+  `AbilityGap`, `CastGap`, `ProcGap`, `Comparison`). Spec-agnostic like the rest of `lib/`: it joins two
+  `Scorecard`s on metric key and never imports a spec. What it needs from a spec arrives through
+  `AbilityIdentity` — including `gearProc(id)`, which is how the proc block below asks the game model
+  which auras an item puts up without this folder ever naming a trinket.
 - `src/lib/spec/` — `registry.ts` (`SPECS`, `getSpec`, `findSpecForClass`, `DEFAULT_SPEC`,
   `SpecDefinition`), `apl.ts` (the whole ladder engine: `aplAudit(inputs, ladder)`, `ladderEntries`,
   `Band`), `index.ts` (re-exports the registry only — it must not export one spec's engine).
@@ -233,8 +235,32 @@ routes. Two pulls of **one spec and one boss**, read side by side.
   pull is a filled mark and the second a ring (`PullKey`).
 - **No new chart library work.** The rows are HTML, like `BandScale` and `Bar`. `conventions.md`
   forbids a hand-built _SVG_ chart, not a figure made of divs.
+- **The rail is `SectionNav`, the report page's own**, handed a fixed five-entry list from
+  `CompareReport`. Fixed rather than derived because every comparison draws all five blocks: a block
+  with nothing in it prints a `Note` rather than declining, so no link here can point at a heading
+  that is not there. All five take `group: null`, which lists them flat: five is a glance, and a
+  disclosure over it would be a control whose two positions are five links and a heading.
+- **The gear-proc block is the one thing on the page that is not about play**, and it is drawn apart
+  for that reason: `ProcGap` in `lib/compare/model.ts` carries the argument, and it reaches neither
+  `tally` nor `sections`. A trinket fires on its own schedule, so a rate difference is the pull's luck
+  and the gear behind it; scoring it would be the report grading a roll. It is drawn because it moves
+  damage, and a reader looking at a damage gap should check it before hunting the rotation for a
+  mistake. **Procs per contact minute, and the unit is printed on every reading**: it shipped as a bare
+  `2.2` and the first reader took it for a proc count, which is the number the rate was divided from. A
+  count is the wrong comparison here anyway (`strong` rolled the Rune 16 times over 8:55 and `poor` 9
+  times over 4:15: nearly twice the count on the pull that was slightly _unluckier_ per minute), so the
+  fix was the unit and not the figure. Which auras count is `Aura.gearProc` in `lib/game/model.ts`,
+  declared on the item effects in `game/shared.ts` and pinned as a set by
+  `game/__tests__/shared.test.ts` — on a proc _window_ and never on the counter inside it, because five
+  of those trinkets log both and a counter reaches ten or twenty per proc. A tinker the player presses
+  and a tier bonus the rotation earns are gear and are deliberately not flagged: neither fires on its
+  own. An absent row says only that the log recorded no proc of it, which is either different gear or
+  the same gear that never rolled — nothing here can separate those, because the character sheet
+  carries item ids, the events carry spell ids, and no map between them ships.
 - **Not compared:** timelines, cast logs, lanes, the miss ledger. Two pulls of different length do not
-  line up second for second. The page says so and links to each report instead.
+  line up second for second. The page says so and links to each report instead. The proc block is not
+  an exception to this: it counts off the lanes rather than drawing them, and a count survives two
+  pulls that share no clock where a picture of one does not.
 - Guards: `src/lib/compare/__tests__/` (real figures over the captures, plus the `TIE_BANDS` sweep —
   146 metric pairs, none called level while the grades disagree) and
   `src/components/compare/__tests__/compareReport.test.ts`.

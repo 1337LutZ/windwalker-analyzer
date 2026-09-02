@@ -9,6 +9,7 @@ type CastOrdering = Parameters<typeof byCastOrder>[1];
 import { formatDecimal, formatInteger, formatPercentValue } from '~/lib/format';
 
 import { Note, Prose, Section, StatTile, StatTiles } from '../primitives';
+import SectionNav, { type ReportSection } from '../report/SectionNav';
 import { useSpec } from '../report/specContext';
 
 import ComparabilityNotes from './ComparabilityNotes';
@@ -78,6 +79,54 @@ function castRows(
 }
 
 /**
+ * The contents list, in the order the page argues.
+ *
+ * A fixed array rather than the report's derived one, because this page has fixed sections: every
+ * comparison draws all five, and a block with nothing in it says so in a `Note` rather than declining
+ * to render. So there is no `when` to filter on and no way for a link here to point at a heading that
+ * is not there: the guard the report's `useMemo` exists to provide is structural here.
+ *
+ * **Every entry takes `group: null`**, which lists them flat above the groups. The report groups
+ * because it runs to a dozen-odd sections; five is a list a reader takes in at a glance, and a
+ * disclosure over it would be a control whose two positions are "five links" and "a heading".
+ *
+ * The ids are the `Section id` each block below is rendered with and the keys are the titles those
+ * blocks are given, so the nav and the heading cannot come to disagree about either.
+ */
+const NAV: readonly ReportSection[] = [
+	{ id: 'compare-framing', titleKey: 'compare.title', group: null },
+	{ id: 'compare-gaps', titleKey: 'compare.gaps.title', group: null },
+	{ id: 'compare-damage', titleKey: 'compare.damage.title', group: null },
+	{ id: 'compare-procs', titleKey: 'compare.procs.title', group: null },
+	{ id: 'compare-casts', titleKey: 'compare.casts.title', group: null },
+];
+
+/**
+ * The proc rows, and the one absence key they need.
+ *
+ * A single reason rather than `ABSENCE`'s four, because there is only one thing an absent proc can
+ * mean and the report cannot narrow it: a log with no row for a trinket either was not wearing it or
+ * was wearing it and never rolled it. Separating those needs a map from item ids to the auras they
+ * put up, and none is shipped. The gear list carries item ids and the auras carry spell ids; the note
+ * under the block says so, and this string says only what is true.
+ *
+ * Quoted at the call for the reason `ABSENCE` is quoted in `RateGaps`: `i18n/__tests__/keys.test.ts`
+ * finds a key by reading the source for quoted key paths, and a key reached through a variable is a
+ * key it reports as copy nothing asks for.
+ */
+function procRows(comparison: Comparison): { rows: RateRow[]; max: number } {
+	const rows = comparison.procs.map((proc) => ({
+		id: proc.id,
+		name: proc.name,
+		a: proc.a,
+		b: proc.b,
+		absent: 'compare.procs.absent',
+	}));
+	const max = Math.max(0, ...rows.flatMap((row) => [row.a ?? 0, row.b ?? 0]));
+	return { rows, max };
+}
+
+/**
  * Two pulls, differenced and drawn.
  *
  * **Read top down, the page answers three questions in order**: what were these two pulls and what
@@ -98,64 +147,99 @@ export default function CompareReport({ a, b }: { a: Pull; b: Pull }) {
 	const identity = useMemo(() => identityFrom(spec.registry), [spec]);
 	const damage = useMemo(() => damageRows(comparison, identity.damage, spec), [comparison, identity, spec]);
 	const casts = useMemo(() => castRows(comparison, identity.cast, spec), [comparison, identity, spec]);
+	const procs = useMemo(() => procRows(comparison), [comparison]);
 
 	// Not the bare names: two anonymous reports can both hold a `Player (10)`. See `pullLabels`.
 	const players = pullLabels(comparison.a, comparison.b);
 	const { tally } = comparison;
 
 	return (
-		<div className="flex flex-col gap-10 md:gap-12">
-			<Section id="compare-framing" title={t('compare.title')}>
-				<Prose>{t('compare.intent')}</Prose>
-				<div className="mt-5 flex flex-col gap-5">
-					<PullHeader comparison={comparison} />
-					<ComparabilityNotes notes={comparison.notes} />
-					{/* Four buckets that add up to every metric offered. The last is its own figure and is never
+		// The report page's own two-column shell, verbatim, so the rail sits where a reader who has
+		// come from a report or from the segment tool already expects it. Below `lg` the grid does not
+		// apply and `SectionNav` renders nothing at all, so a phone gets the page it had.
+		<div className="lg:grid lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-8">
+			<SectionNav sections={NAV} />
+			<div className="flex flex-col gap-10 md:gap-12">
+				<Section id="compare-framing" title={t('compare.title')}>
+					<Prose>{t('compare.intent')}</Prose>
+					<div className="mt-5 flex flex-col gap-5">
+						<PullHeader comparison={comparison} />
+						<ComparabilityNotes notes={comparison.notes} />
+						{/* Four buckets that add up to every metric offered. The last is its own figure and is never
 					    folded into the third: two pulls neither of which could answer a question have not tied
 					    on it, and a summary that says they did is the one claim this page must not make. */}
-					<StatTiles>
-						<StatTile value={formatInteger(tally.a)} label={t('compare.tally.ahead', { player: players.a })} />
-						<StatTile value={formatInteger(tally.b)} label={t('compare.tally.ahead', { player: players.b })} />
-						<StatTile value={formatInteger(tally.level)} label={t('compare.tally.level')} />
-						<StatTile value={formatInteger(tally.incomparable)} label={t('compare.tally.notComparable')} />
-					</StatTiles>
-					{/* After the tally rather than before it. The tally is the headline — how many figures each
+						<StatTiles>
+							<StatTile value={formatInteger(tally.a)} label={t('compare.tally.ahead', { player: players.a })} />
+							<StatTile value={formatInteger(tally.b)} label={t('compare.tally.ahead', { player: players.b })} />
+							<StatTile value={formatInteger(tally.level)} label={t('compare.tally.level')} />
+							<StatTile value={formatInteger(tally.incomparable)} label={t('compare.tally.notComparable')} />
+						</StatTiles>
+						{/* After the tally rather than before it. The tally is the headline — how many figures each
 					    of you leads — and the talents are what a reader turns to next to explain it: a build that
 					    took Invoke Xuen is behind on Rushing Jade Wind by choice, not by play. */}
-					<TalentGaps gap={comparison.talents} players={players} />
-				</div>
-			</Section>
+						<TalentGaps gap={comparison.talents} players={players} />
+					</div>
+				</Section>
 
-			<Section id="compare-gaps" title={t('compare.gaps.title')}>
-				<Prose>{t('compare.gaps.intent')}</Prose>
-				<div className="mt-5">
-					<SectionGaps sections={comparison.sections} players={players} />
-				</div>
-			</Section>
+				<Section id="compare-gaps" title={t('compare.gaps.title')}>
+					<Prose>{t('compare.gaps.intent')}</Prose>
+					<div className="mt-5">
+						<SectionGaps sections={comparison.sections} players={players} />
+					</div>
+				</Section>
 
-			<Section id="compare-damage" title={t('compare.damage.title')}>
-				<Prose>{t('compare.damage.intent')}</Prose>
-				<div className="mt-5">
-					{damage.rows.length === 0 ? (
-						<Note>{t('compare.damage.none')}</Note>
-					) : (
-						<RateGaps rows={damage.rows} max={damage.max} format={formatPercentValue} players={players} />
+				<Section id="compare-damage" title={t('compare.damage.title')}>
+					<Prose>{t('compare.damage.intent')}</Prose>
+					<div className="mt-5">
+						{damage.rows.length === 0 ? (
+							<Note>{t('compare.damage.none')}</Note>
+						) : (
+							<RateGaps rows={damage.rows} max={damage.max} format={formatPercentValue} players={players} />
+						)}
+					</div>
+				</Section>
+
+				{/* After the damage block and before the presses, which is where a reader meets the question.
+			    They have just seen one player ahead on a damage row, and the next thing worth knowing is how
+			    much of that the gear handed over, before they go looking through the rotation for a mistake
+			    that may not be there. Drawn in the same shape as the two lists around it, and deliberately
+			    absent from the tally above them: see `ProcGap`. */}
+				<Section id="compare-procs" title={t('compare.procs.title')}>
+					<Prose>{t('compare.procs.intent')}</Prose>
+					<div className="mt-5">
+						{procs.rows.length === 0 ? (
+							<Note>{t('compare.procs.none')}</Note>
+						) : (
+							// The unit rides on every reading: a bare `2.1` is the number a reader takes for a
+							// proc count, and a trinket does not fire 2.1 times.
+							<RateGaps
+								rows={procs.rows}
+								max={procs.max}
+								format={(value) => t('compare.procs.perMinute', { value: formatDecimal(value) })}
+								players={players}
+							/>
+						)}
+					</div>
+					{procs.rows.length === 0 ? null : (
+						<div className="mt-5">
+							<Note>{t('compare.procs.caveat')}</Note>
+						</div>
 					)}
-				</div>
-			</Section>
+				</Section>
 
-			<Section id="compare-casts" title={t('compare.casts.title')}>
-				<Prose>{t('compare.casts.intent')}</Prose>
-				<div className="mt-5">
-					{casts.rows.length === 0 ? (
-						<Note>{t('compare.casts.none')}</Note>
-					) : (
-						<RateGaps rows={casts.rows} max={casts.max} format={formatDecimal} players={players} />
-					)}
-				</div>
-			</Section>
+				<Section id="compare-casts" title={t('compare.casts.title')}>
+					<Prose>{t('compare.casts.intent')}</Prose>
+					<div className="mt-5">
+						{casts.rows.length === 0 ? (
+							<Note>{t('compare.casts.none')}</Note>
+						) : (
+							<RateGaps rows={casts.rows} max={casts.max} format={formatDecimal} players={players} />
+						)}
+					</div>
+				</Section>
 
-			<Note>{t('compare.elsewhere')}</Note>
+				<Note>{t('compare.elsewhere')}</Note>
+			</div>
 		</div>
 	);
 }

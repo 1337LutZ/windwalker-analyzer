@@ -158,6 +158,39 @@ describe('a real Windwalker pull, audited from raw events', () => {
 		expect(a.filler.casts).toBe(12);
 		expect(a.filler.wasted).toBe(0);
 		expect(a.lostCasts).toHaveLength(3);
-		expect(a.misses).toHaveLength(3);
+		// Four, and the fourth is the Touch of Karma below. It was three before that rule existed.
+		expect(a.misses).toHaveLength(4);
+	});
+
+	/**
+	 * The Touch of Karma placement rule, on the pull that demonstrates it.
+	 *
+	 * Two presses, and the first goes out at 28.99s inside a brew that ran 14.871s to 29.875s, with
+	 * 0.885s of it left, so the global it took landed almost entirely inside the amplified window. That
+	 * is the whole fault: the button is on a ninety-second cooldown and the brew on fifteen seconds, so
+	 * the press had somewhere else to be. The second press, at 119.0s, sits in the gap between two
+	 * brews and is exactly what the rule asks for.
+	 *
+	 * Asserted here rather than only in `karma.test.ts` because that file works over pre-analysed
+	 * captures, and none of the six carries this field. A rule pinned only against built objects is a
+	 * rule pinned against its own construction. This runs `analyse()`.
+	 */
+	it('finds the one Touch of Karma that went out inside a brew', () => {
+		expect(a.karma.casts).toBe(2);
+		expect(a.karma.duringBrew).toBe(1);
+		expect(a.karma.uses.map((use) => [use.t, use.duringBrew])).toEqual([
+			[28_990, true],
+			[119_004, false],
+		]);
+		// The brew it landed in, and how little of it was left: the figure the ledger prints.
+		expect(a.brew.windows[0]).toMatchObject({ start: 14_871, end: 29_875 });
+		expect(a.misses.filter((miss) => miss.kind === 'Touch of Karma inside a brew')).toEqual([
+			{
+				kind: 'Touch of Karma inside a brew',
+				at: 28_990,
+				detail: 'pressed with 0.9s of a Tigereye Brew left to run',
+				link: expect.any(String) as unknown as string,
+			},
+		]);
 	});
 });

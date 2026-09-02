@@ -609,9 +609,9 @@ copy itself follows — say it once, outside the arms.
      src/lib/i18n/__tests__/conventionsCensus.test.ts. Re-run the block above and paste the whole set
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
-As of the split-group callout, it prints 1808 leaves, 823 prose, 24,992
-words; median 27, p75 40, p90 57, p95 66, p99 102, max 158; longest 9% carry 23%; report.json 745 prose
-leaves, 1,324 sentences, median 16, 212 past 25 (16.0%), 1 em-dash in 0 sentences (0.0%);
+As of the gear-proc block on the compare page, it prints 1819 leaves, 828 prose, 25,228
+words; median 27, p75 40, p90 57, p95 66, p99 102, max 158; longest 9% carry 23%; report.json 750 prose
+leaves, 1,339 sentences, median 16, 212 past 25 (15.8%), 1 em-dash in 0 sentences (0.0%);
 73 / 25 / 1 / 2 on the quote lines.
 
 One leaf in, one prose string with it, and three of the five headlines reworded. The line under them
@@ -807,6 +807,40 @@ the row stands at 75.
 **What this census is for, on the evidence of that round trip.** A row moving is a question, not a
 verdict. This one was answered wrongly twice before the provenance of the rule behind it was checked,
 and the number was the same number all three times.
+
+Five leaves and 135 words in the pass that added the Touch of Karma placement rule: two labels, two
+count arms of one sentence and the note under them. Three of the five are prose and two are headings, so
+the leaf count moves five and the prose count three, which is the split the replay family above is the
+long-form case of. **The row worth reading is `past 25`, which falls 212 to 212 and 16.0% to 15.9%
+while the sentence total climbs nine.** The first draft of the two count arms was two sentences of
+thirty-five and twenty-eight words apiece, both past the line; splitting each into three took them
+under it without losing a clause, and the share fell out of the denominator rather than out of a
+decision. The em-dash count holds at 1 in 0 sentences.
+
+**The note under it exists because the rule is narrower than it reads.** "Do not press this during a
+brew" invites the reader to supply the reason, and the obvious reason is that the redirect would have
+been amplified, which nothing can support: the simulator does not model Touch of Karma at all. So the
+copy names the cost it can stand behind, the global, and then says outright what it is not claiming.
+That is the same trade the replay's note makes, in a section where the misreading is about a mechanic
+rather than about a picture.
+
+Six leaves and 101 words in the pass after that, for the **gear-proc block** on the compare page: a
+heading, an intent, a two-word absence label, a unit, the caveat under the table and an empty state.
+**Not one of the six is past 25 words, and the block is the shortest section copy on the page.** It
+did not start that way. The first draft ran an intent of five sentences and a caveat of five, both
+arguing the block's design at a reader who had asked only what the numbers were; the reader who saw
+it asked what the numbers were anyway. Six leaves and a unit label answered it.
+
+**The unit is a leaf on its own, `{{value}}/min`, and it is the entry.** The figure is procs per
+minute of contact and the block drew it as a bare `2.2`, which is a fraction of a proc and nothing
+the game produces. The reader read it as a count and said so. A number whose unit is only in the
+prose above it is a number without a unit.
+
+**The caveat is the longest of the six and is the reason the block can exist at all.** A proc absent
+from one log is either gear the player did not wear or gear that never fired, and nothing in this
+report separates them: the character sheet carries item ids, the events carry spell ids, and no map
+between the two ships. Saying that plainly is what lets the table print an absent row without the
+reader taking it for a nought.
 
 <!-- /census:figures -->
 

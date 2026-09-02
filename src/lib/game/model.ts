@@ -173,6 +173,23 @@ export interface Aura {
 	appliedBy?: string;
 	/** Keys of abilities that spend it. Resolved by the registry. */
 	consumedBy?: string[];
+	/**
+	 * True when an item puts this up on its own schedule: a trinket, a meta gem, a cloak, an enchant.
+	 *
+	 * **The claim is about who decides, not about which slot it came from.** These auras arrive without
+	 * anybody pressing anything, so a count of them is a reading of the pull's luck and of the gear
+	 * behind it, and never of how the rotation was played. That is the whole reason the flag exists: the
+	 * compare page draws them apart from every graded figure, and nothing scored may read it.
+	 *
+	 * So a tinker the player *presses* is not one of these, and neither is a tier bonus a rotation earns
+	 * by spending its own resource. Both are gear; neither fires on its own.
+	 *
+	 * **Declared on the window and never on the counter beside it.** Five of these trinkets log a proc
+	 * window and a stacking counter inside it under separate ids, and the counter reaches ten or twenty
+	 * per proc. Flagging both would report the same trinket twice, once at ten times its real rate. See
+	 * the stacking-trinket block in `game/shared.ts`.
+	 */
+	gearProc?: true;
 }
 
 export interface Channel {

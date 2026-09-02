@@ -126,6 +126,52 @@ export interface CastGap {
 	absent: { side: Side; why: Absence } | null;
 }
 
+/**
+ * One piece of gear's proc, on both sides, as a rate rather than a count.
+ *
+ * **This is the one block on the page that is not about how the pull was played, and it is drawn
+ * apart for that reason.** A trinket fires on its own schedule; whether it fired eleven times or
+ * seven is the roll of the pull and the gear behind it, so counting it into the tally would be the
+ * report scoring luck. It is here because the question it answers is a real one. A Windwalker's
+ * output swings on these, and two pulls that differ by two Rune procs differ by more than most of
+ * what the sections above measure; a reader looking at a damage gap deserves to know how much of it
+ * the gear handed over before they go looking for a mistake.
+ *
+ * **Per contact minute, never as a raw count**, on `RateGaps`' standing rule: two pulls of different
+ * length produce different totals for identical gear, so a difference in the count is mostly a
+ * difference in how long the boss lived.
+ */
+export interface ProcGap {
+	/** The aura's key in the game model, which is what joins the two pulls' rows. */
+	key: string;
+	/** The spell whose icon stands for the row. */
+	id: number;
+	name: string;
+	/** Procs per contact minute, or null when that log carries none of this proc at all. */
+	a: number | null;
+	b: number | null;
+	/**
+	 * Rate difference, positive when A procced more often. An absent side counts as zero.
+	 *
+	 * **The raw counts are deliberately not carried beside these.** `strong` rolled the Rune 16 times
+	 * over 8:55 and `poor` 9 times over 4:15, which is 1.8 a minute against 2.1: nearly twice the count
+	 * on the pull that was slightly *unluckier* per minute. A count answers a question about how long
+	 * the boss lived. The unit is on screen, because a bare `2.1` is the number a reader takes for a
+	 * proc count.
+	 */
+	rate: number;
+	/**
+	 * Which side has no row, when one has none.
+	 *
+	 * **There is no `why` beside it, and the missing `why` is the honest part.** A proc reaches this
+	 * page only by having fired, so a log with no row either was not wearing the item or was wearing
+	 * it and never rolled it. Nothing in the report can separate those: the gear list carries item
+	 * ids and the auras carry spell ids, and no map between them is shipped. The copy says so rather
+	 * than picking one, which is the same refusal `absenceOf` makes when a talent list is missing.
+	 */
+	absent: Side | null;
+}
+
 /** Everything about one pull that frames the comparison rather than being compared by it. */
 export interface PullFraming {
 	player: string;
@@ -221,4 +267,9 @@ export interface Comparison {
 	sections: SectionGap[];
 	abilities: AbilityGap[];
 	casts: CastGap[];
+	/**
+	 * What the gear did on its own, side by side. Deliberately absent from `tally` and from `sections`;
+	 * see `ProcGap`, which is where the reason for keeping it out of the scoring lives.
+	 */
+	procs: ProcGap[];
 }

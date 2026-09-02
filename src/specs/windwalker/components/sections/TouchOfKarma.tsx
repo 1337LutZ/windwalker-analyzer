@@ -38,6 +38,10 @@ export default function TouchOfKarma({ analysis }: { analysis: Analysis }) {
 	// all, so both read `undefined` rather than `0` — hence the truthiness guard rather than a
 	// comparison, which is the exact shape of a bug this file has already had once.
 	const withFortifying = karma.withFortifyingBrew ?? 0;
+	// Same guard, same reason: a capture from before the rule existed carries neither the count nor the
+	// flag on a use, and reading either as `0`/`false` would print a clean sheet over a pull nobody has
+	// measured. `karmaInBrew` in `lib/score` refuses the letter on exactly the same test.
+	const inBrew = karma.duringBrew ?? 0;
 	// Read off the metrics rather than the section, so each tile is coloured by the number it shows
 	// and stays neutral on a pull that could not answer it.
 	const empties = card.sections.karma?.metrics.find((m) => m.key === 'karmaEmpty');
@@ -134,9 +138,23 @@ export default function TouchOfKarma({ analysis }: { analysis: Analysis }) {
 							: {
 									fortifying: <span className="text-ink-2">{use.fortifyingBrew ? t('karma.cells.yes') : '—'}</span>,
 								}),
+						// Coloured, unlike the neutral column beside it, because this one is a fault rather than a
+						// fact about the pull. See `duringBrew` in the engine for what the fault is and, just as
+						// importantly, what it does not claim. Not banded: the row's band already carries the two
+						// verdicts about what the press *returned*, and a third state on it would put two different
+						// questions in one colour.
+						...(inBrew === 0
+							? {}
+							: {
+									inBrew: (
+										<span className={use.duringBrew === true ? 'text-miss' : 'text-ink-2'}>
+											{use.duringBrew === true ? t('karma.cells.yes') : '—'}
+										</span>
+									),
+								}),
 					},
 				})),
-		[karma.uses, withFortifying, t],
+		[karma.uses, withFortifying, inBrew, t],
 	);
 
 	return (
@@ -229,6 +247,18 @@ export default function TouchOfKarma({ analysis }: { analysis: Analysis }) {
 												width: '96px',
 											},
 										]),
+								// Only on a pull that had one, for the reason the column above it is: a column of
+								// dashes is a fault the report keeps asking about on every pull that never made it.
+								...(inBrew === 0
+									? []
+									: [
+											{
+												key: 'inBrew',
+												label: t('karma.columns.inBrew'),
+												align: 'right' as const,
+												width: '96px',
+											},
+										]),
 							]}
 							rows={rows}
 							empty={t('karma.none', { available: karma.available })}
@@ -299,6 +329,15 @@ export default function TouchOfKarma({ analysis }: { analysis: Analysis }) {
 								})}
 							</Prose>
 						)}
+						{/* Only when it happened. Two sentences rather than one: the first is the fault, and the
+						    second is the claim the fault is carefully not making. The simulator does not model
+						    Touch of Karma at all, so what the redirect returns under a brew is unknown, and the
+						    cost being named is the global the press took out of the window. */}
+						{inBrew > 0 ? (
+							<Note>
+								{t('karma.inBrew', { count: inBrew })} {t('karma.inBrewNote')}
+							</Note>
+						) : null}
 						{/* Only when it happened, and stated as a correction rather than as a credit: the
 						    overlap raises the redirect's ceiling and lowers what fills it at the same time. */}
 						{withFortifying > 0 ? (
