@@ -64,9 +64,10 @@ const render = (analysis: Analysis, choice: 'auto' | 'single' | 'multi' = 'auto'
 
 describe('the headline says how much of the pull it judged', () => {
 	/**
-	 * A pull every rule its capture can answer was asked of. 15 of 17 points, and the two missing ones
-	 * are the weave rule: every committed analysis predates that audit, so `weaveRate` is `undefined`
-	 * rather than nought and drops out of the numerator while its weight stays in the denominator.
+	 * A pull every rule its capture can answer was asked of. 15 of 17.5 points, and the two and a half
+	 * missing ones are rules the capture predates: `weaveRate` at two, `undefined` rather than nought
+	 * because every committed analysis is older than that audit, and `karmaInBrew` at a half, for the
+	 * same reason. Both drop out of the numerator while their weight stays in the denominator.
 	 *
 	 * **This case used to read 15 of 15 and was the "judged on all of it" contrast.** It cannot be that
 	 * any more without a re-capture, and the contrast below still works because it turns on the gap
@@ -75,7 +76,7 @@ describe('the headline says how much of the pull it judged', () => {
 	it('prints the whole denominator on a pull it could judge in full', () => {
 		const poor = fx('poor');
 		const judged = scoreAnalysis(poor, resolveBands(poor.targets, 'auto')).judged!;
-		expect(judged).toMatchObject({ measured: 15, total: 17, unmeasurable: false });
+		expect(judged).toMatchObject({ measured: 15, total: 17.5, unmeasurable: false });
 
 		// The line counts checks and not weight: `judged.checks` is the pair a reader is shown, because a
 		// ratio under "scored" read as a mark out of the weight. See `Judged.checks`.
@@ -86,12 +87,12 @@ describe('the headline says how much of the pull it judged', () => {
 	});
 
 	/**
-	 * `weave` under its own detected reading: a `good` over fourteen seventeenths of the weight, which
-	 * without this sentence prints exactly like a `good` over all of it.
+	 * `weave` under its own detected reading: a `good` over fourteen of the seventeen and a half points
+	 * the spec offers, which without this sentence prints exactly like a `good` over all of it.
 	 *
-	 * 14 of 17 — `brewShortUses` is worth one point and cannot be read, because the priority list asked
-	 * this pull for two brews and `MIN_GRADED_SAMPLE` is three; the other two are `weaveRate`, which
-	 * this capture predates. The fixture's name is a coincidence of the elixir weave it does contain —
+	 * 14 of 17.5: `brewShortUses` is worth one point and cannot be read, because the priority list asked
+	 * this pull for two brews and `MIN_GRADED_SAMPLE` is three; two more are `weaveRate` and a half is
+	 * `karmaInBrew`, both of which this capture predates. The fixture's name is a coincidence of the elixir weave it does contain —
 	 * it is a captured `Analysis`, so the new audit is absent from it like every other.
 	 *
 	 * **`cleave` stood here and can no longer answer, which is a change of mechanism and not of number.**
@@ -106,7 +107,7 @@ describe('the headline says how much of the pull it judged', () => {
 	it('prints a short denominator on a pull part of which went unjudged', () => {
 		const weave = fx('weave');
 		const judged = scoreAnalysis(weave, resolveBands(weave.targets, 'auto')).judged!;
-		expect(judged).toMatchObject({ measured: 14, total: 17, unmeasurable: false });
+		expect(judged).toMatchObject({ measured: 14, total: 17.5, unmeasurable: false });
 
 		const html = render(weave);
 		expect(html).toContain(t('summary.judged', { measured: judged.checks!.measured, total: judged.checks!.total }));
@@ -146,7 +147,7 @@ describe('the headline says how much of the pull it judged', () => {
 		// synthetic contradicting itself rather than the metric refusing to go quiet.
 		quiet.brew.stacksGained = 0;
 		const card = scoreAnalysis(quiet, resolveBands(quiet.targets, 'multi'));
-		expect(card.judged).toMatchObject({ measured: 4, total: 16, unmeasurable: true });
+		expect(card.judged).toMatchObject({ measured: 4, total: 16.5, unmeasurable: true });
 		expect(card.overall).toBe('ok');
 
 		const html = render(quiet, 'multi');
@@ -220,10 +221,11 @@ describe('the good headline does not deny the faults under it', () => {
 		const cleave = fx('cleave');
 		const card = scoreAnalysis(cleave, resolveBands(cleave.targets, 'auto'));
 		expect(card.overall).toBe('good');
-		// Nothing here is excused by a thin denominator: 14 of 16 is 87.5% of the weight the spec offered,
-		// and the two it could not read are the weave rule this capture predates. It is not the *worst*
-		// case, which is measured in the block at the foot of this file.
-		expect(card.judged).toMatchObject({ measured: 14, total: 16, unmeasurable: false });
+		// Nothing here is excused by a thin denominator: 14 of 16.5 is 84.8% of the weight the spec
+		// offered, and the two and a half it could not read are the weave rule and the Karma placement
+		// rule, both of which this capture predates. It is not the *worst* case, which is measured in the
+		// block at the foot of this file.
+		expect(card.judged).toMatchObject({ measured: 14, total: 16.5, unmeasurable: false });
 		const bad = Object.entries(card.sections)
 			.filter(([, score]) => !score.unmeasurable && score.grade === 'bad')
 			.map(([key]) => key)
@@ -308,15 +310,17 @@ describe('the good headline does not deny the faults under it', () => {
  * anchored per encounter; it letters `ok` at 73.33% now — see the block above.)
  *
  * Measured on the Windwalker's own weights — `snapshotRate` 4, `tigerPalmWaste` 3, `gcdUtilisation`,
- * `rskUptime` and `weaveRate` 2, four more at 1, and `snapshotDepth`, the two Karma metrics and the two
- * weave faults at 0, for 17 offered:
+ * `rskUptime` and `weaveRate` 2, four more at 1, `karmaInBrew` at a half, and `snapshotDepth`, the
+ * other two Karma metrics and the two weave faults at 0, for 17.5 offered:
  *
  *   - **75% of the points it measured** is the floor, and it is reachable: 12 of 16. Nothing below it
  *     letters `good`, and the next step the weights can express — 11.5 of 16, 71.9% — does not.
  *   - **Half the weight the spec offered** is the floor on how much was read, straight off
- *     `MIN_JUDGED_WEIGHT_SHARE`. On these weights the least reachable is 9 of 17, 52.9%.
+ *     `MIN_JUDGED_WEIGHT_SHARE`. On these weights the least reachable is 9 of 17.5, 51.4%.
  *   - **Three of seven sections** can letter `bad` under it, and the cheapest two cost the headline
- *     almost nothing: Karma's two metrics carry weight 0, so that section can be red for *free*.
+ *     almost nothing: Karma's section letter is decided by its two *primary* metrics, and both carry
+ *     weight 0, so that section can be red for *free*. Its third rule is weighted and cannot turn the
+ *     section red, which is the pair of decisions `score.ts` argues separately.
  *
  * All three at once is the sentence's real audience. Everything here is a no-change guard — it passes
  * against the old copy too, because it is a test of the arithmetic the copy has to survive.
@@ -348,23 +352,26 @@ describe('the worst case a good letter permits', () => {
 		...states,
 	});
 
-	it('offers seventeen points on the base weights', () => {
-		expect(OFFERED).toBe(17);
+	it('offers seventeen and a half points on the base weights', () => {
+		expect(OFFERED).toBe(17.5);
 	});
 
 	it('still letters good on three quarters of the points it measured, and not below', () => {
 		// 12 of 16: `snapshotRate` half-marked at weight 4, `brewStacks` and `potionsUsed` half-marked,
-		// `brewCapWaste` scoring zero, and `brewShortUses` dropping out of the denominator entirely.
+		// `brewCapWaste` scoring zero, and two weight-1 rules dropping out of the denominator entirely:
+		// `brewShortUses` on a pull with no brew to read, `karmaInBrew` on one that never pressed the
+		// button, which is the ordinary shape of both.
 		const floor = letterOver(
 			allBut({
 				snapshotRate: 'ok',
 				brewStacks: 'ok',
 				brewCapWaste: 'bad',
 				brewShortUses: null,
+				karmaInBrew: null,
 				potionsUsed: 'ok',
 			}),
 		);
-		expect(floor.judged).toMatchObject({ measured: 16, total: 17, unmeasurable: false });
+		expect(floor.judged).toMatchObject({ measured: 16, total: 17.5, unmeasurable: false });
 		expect(floor.grade).toBe('good');
 
 		// Half a point down from there is 11.5 of 16 — 71.9%, the nearest step these weights can express
@@ -375,10 +382,11 @@ describe('the worst case a good letter permits', () => {
 				brewStacks: 'ok',
 				brewCapWaste: 'bad',
 				brewShortUses: null,
+				karmaInBrew: null,
 				potionsUsed: 'bad',
 			}),
 		);
-		expect(under.judged).toMatchObject({ measured: 16, total: 17, unmeasurable: false });
+		expect(under.judged).toMatchObject({ measured: 16, total: 17.5, unmeasurable: false });
 		expect(under.grade).toBe('ok');
 	});
 
@@ -388,28 +396,41 @@ describe('the worst case a good letter permits', () => {
 			snapshotRate: null,
 			tigerPalmWaste: null,
 			brewStacks: null,
+			karmaInBrew: null,
 		};
-		// 9 of 17 — 52.9%, the least these weights can leave standing and still be over half.
+		// 9 of 17.5, 51.4%: the least these weights can leave standing and still clear the half. The
+		// half-point rule is in the unread set because that is what makes 9 reachable at all.
 		const half = letterOver(allBut(unread));
-		expect(half.judged).toMatchObject({ measured: 9, total: 17, unmeasurable: false });
+		expect(half.judged).toMatchObject({ measured: 9, total: 17.5, unmeasurable: false });
 		expect(half.grade).toBe('good');
 
-		// 8 of 17 is 47.1%, and the letter is withdrawn rather than lowered: `unmeasurable`, which is
+		// 8 of 17.5 is 45.7%, and the letter is withdrawn rather than lowered: `unmeasurable`, which is
 		// what makes the header print `overall.none` instead of any of the three grades.
 		const tooLittle = letterOver(allBut({ ...unread, brewCapWaste: null }));
-		expect(tooLittle.judged).toMatchObject({ measured: 8, total: 17, unmeasurable: true });
+		expect(tooLittle.judged).toMatchObject({ measured: 8, total: 17.5, unmeasurable: true });
 	});
 
 	it('lets a section letter bad for nothing at all', () => {
-		// Karma's two metrics are weight 0 — graded in their own section and deliberately kept out of the
-		// headline — so a red Karma costs the average not one point of the seventeen. The two weave
-		// faults are zero-weighted on the same argument and would do the same.
+		// Karma's two *primary* metrics are weight 0, graded in their own section and deliberately kept
+		// out of the headline, so a red Karma costs the average not one point of the seventeen and a
+		// half. The two
+		// weave faults are zero-weighted on the same argument and would do the same.
+		//
+		// `karmaInBrew` is the third rule in that section and is weighted, which does not disturb this:
+		// it sits in the secondary slot, so it cannot letter the section at all. The two decisions are
+		// separate and `score.ts` argues them separately: what turns a section red, and what the
+		// headline is a mean over.
 		expect(WEIGHTS.karmaEmpty).toBe(0);
 		expect(WEIGHTS.karmaCapShare).toBe(0);
-		expect(section([at('karmaEmpty', 'bad'), at('karmaCapShare', 'good')]).grade).toBe('bad');
+		expect(section([at('karmaEmpty', 'bad'), at('karmaCapShare', 'good')], [at('karmaInBrew', 'good')]).grade).toBe(
+			'bad',
+		);
+		expect(section([at('karmaEmpty', 'good'), at('karmaCapShare', 'good')], [at('karmaInBrew', 'bad')]).grade).toBe(
+			'good',
+		);
 
 		const withRedKarma = letterOver(allBut({ karmaEmpty: 'bad' }));
-		expect(withRedKarma.judged).toMatchObject({ measured: 17, total: 17, unmeasurable: false });
+		expect(withRedKarma.judged).toMatchObject({ measured: 17.5, total: 17.5, unmeasurable: false });
 		expect(withRedKarma.grade).toBe('good');
 
 		// And the brew section's worst-of-three fold puts a second red section on the page for one point,
@@ -418,7 +439,7 @@ describe('the worst case a good letter permits', () => {
 			'bad',
 		);
 		const three = letterOver(allBut({ karmaEmpty: 'bad', brewShortUses: 'bad', potionsUsed: 'bad' }));
-		expect(three.judged).toMatchObject({ measured: 17, total: 17, unmeasurable: false });
+		expect(three.judged).toMatchObject({ measured: 17.5, total: 17.5, unmeasurable: false });
 		expect(three.grade).toBe('good');
 	});
 });

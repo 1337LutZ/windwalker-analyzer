@@ -295,6 +295,11 @@ export const SHARED_AURAS: Aura[] = [
 	// The non-tier item effects: gear procs that fire on their own and belong to no spec. Almost all are
 	// a `buff` in the game's sense, and the timeline's proc/buff split is made further down, not here.
 	//
+	// Everything from here to the end of the file carries `gearProc: true`, which is what the compare
+	// page reads to draw the luck apart from the play; see `Aura.gearProc`. Two exclusions inside that
+	// span and both are deliberate: a counter that sits inside a proc window is not a second proc, and
+	// Synapse Springs above is a button rather than a roll.
+	//
 	// "None of them touches the enemy" used to be part of that sentence and it was only true by
 	// omission: `essence-of-yulon` below is an enemy **debuff**, and a Buffs sweep is structurally
 	// incapable of finding one — which is exactly how a proc on all three Elemental fixtures went
@@ -310,6 +315,7 @@ export const SHARED_AURAS: Aura[] = [
 		ids: [138963],
 		kind: 'buff',
 		durationMs: 4_000,
+		gearProc: true,
 	},
 	{
 		/**
@@ -356,18 +362,21 @@ export const SHARED_AURAS: Aura[] = [
 		ids: [138786],
 		kind: 'buff',
 		durationMs: 10_000,
+		gearProc: true,
 	},
 	{
 		key: 'breath-of-hydra',
 		name: 'Breath of the Hydra',
 		ids: [138898],
 		kind: 'buff',
+		gearProc: true,
 	},
 	{
 		key: 'chayes',
 		name: "Cha-Ye's Essence of Brilliance",
 		ids: [139133],
 		kind: 'buff',
+		gearProc: true,
 	},
 	{
 		key: 'wrath-of-darkspear',
@@ -380,6 +389,7 @@ export const SHARED_AURAS: Aura[] = [
 		ids: [146184],
 		kind: 'buff',
 		durationMs: 10_000,
+		gearProc: true,
 	},
 	{
 		key: 'tempus-repit',
@@ -389,6 +399,7 @@ export const SHARED_AURAS: Aura[] = [
 		ids: [137590],
 		kind: 'buff',
 		durationMs: 10_000,
+		gearProc: true,
 	},
 	{
 		key: 'fortitude',
@@ -399,6 +410,7 @@ export const SHARED_AURAS: Aura[] = [
 		ids: [137593],
 		kind: 'buff',
 		durationMs: 15_000,
+		gearProc: true,
 	},
 	{
 		key: 're-origination',
@@ -411,6 +423,7 @@ export const SHARED_AURAS: Aura[] = [
 		variants: { 139117: 'Crit', 139120: 'Mastery', 139121: 'Haste' },
 		kind: 'buff',
 		durationMs: 10_000,
+		gearProc: true,
 	},
 	{
 		key: 'vicious',
@@ -419,6 +432,7 @@ export const SHARED_AURAS: Aura[] = [
 		// `sim/common/mop/trinkets_phase_4_54.go:363-367`.
 		ids: [148903],
 		kind: 'buff',
+		gearProc: true,
 	},
 	{
 		key: 'ferocity',
@@ -426,6 +440,7 @@ export const SHARED_AURAS: Aura[] = [
 		// Sigil of Rampage, the agility cleave trinket — `sim/common/mop/trinkets_phase_4_54.go:739-743`.
 		ids: [148896],
 		kind: 'buff',
+		gearProc: true,
 	},
 	{
 		key: 'expanded-mind',
@@ -446,6 +461,7 @@ export const SHARED_AURAS: Aura[] = [
 		ids: [146_046],
 		kind: 'buff',
 		durationMs: 20_000,
+		gearProc: true,
 	},
 	{
 		key: 'dextrous',
@@ -455,6 +471,7 @@ export const SHARED_AURAS: Aura[] = [
 		ids: [146_308],
 		kind: 'buff',
 		durationMs: 20_000,
+		gearProc: true,
 	},
 	{
 		key: 'titanic-restoration',
@@ -463,6 +480,7 @@ export const SHARED_AURAS: Aura[] = [
 		ids: [146_314],
 		kind: 'buff',
 		durationMs: 20_000,
+		gearProc: true,
 	},
 	{
 		key: 'toxic-power',
@@ -474,6 +492,7 @@ export const SHARED_AURAS: Aura[] = [
 		ids: [148906],
 		kind: 'buff',
 		durationMs: 10_000,
+		gearProc: true,
 	},
 	{
 		key: 'tenacious',
@@ -483,6 +502,7 @@ export const SHARED_AURAS: Aura[] = [
 		ids: [148899],
 		kind: 'buff',
 		durationMs: 15_000,
+		gearProc: true,
 	},
 	{
 		key: 'juju-madness',
@@ -492,6 +512,7 @@ export const SHARED_AURAS: Aura[] = [
 		ids: [138938],
 		kind: 'buff',
 		durationMs: 10_000,
+		gearProc: true,
 	},
 	{
 		key: 'rampage',
@@ -503,6 +524,7 @@ export const SHARED_AURAS: Aura[] = [
 		kind: 'buff',
 		durationMs: 10_000,
 		maxStacks: 5,
+		gearProc: true,
 	},
 	{
 		key: 'eye-of-brutality',
@@ -513,6 +535,7 @@ export const SHARED_AURAS: Aura[] = [
 		kind: 'buff',
 		durationMs: 20_000,
 		maxStacks: 3,
+		gearProc: true,
 	},
 
 	// -------------------------------------- the stacking trinkets: window + counter
@@ -551,6 +574,7 @@ export const SHARED_AURAS: Aura[] = [
 		ids: [138756],
 		kind: 'buff',
 		durationMs: 10_000,
+		gearProc: true,
 	},
 	{
 		key: 'blades-of-renataki-stacks',
@@ -568,6 +592,7 @@ export const SHARED_AURAS: Aura[] = [
 		ids: [138759],
 		kind: 'buff',
 		durationMs: 10_000,
+		gearProc: true,
 	},
 	{
 		key: 'feathers-of-fury-stacks',
@@ -600,6 +625,7 @@ export const SHARED_AURAS: Aura[] = [
 		ids: [146285],
 		kind: 'buff',
 		durationMs: 10_000,
+		gearProc: true,
 	},
 	{
 		key: 'cruelty-stacks',
@@ -631,6 +657,7 @@ export const SHARED_AURAS: Aura[] = [
 		kind: 'buff',
 		durationMs: 10_000,
 		maxStacks: 20,
+		gearProc: true,
 	},
 	{
 		key: 'cloudburst',
@@ -642,6 +669,7 @@ export const SHARED_AURAS: Aura[] = [
 		kind: 'buff',
 		durationMs: 10_000,
 		maxStacks: 5,
+		gearProc: true,
 	},
 
 	// --------------------------------------------------------------- the meta gems
@@ -656,6 +684,7 @@ export const SHARED_AURAS: Aura[] = [
 		kind: 'buff',
 		durationMs: 60_000,
 		maxStacks: 5,
+		gearProc: true,
 	},
 
 	// --------------------------------------------------------- the legendary cloaks
@@ -670,6 +699,7 @@ export const SHARED_AURAS: Aura[] = [
 		ids: [146194],
 		kind: 'buff',
 		durationMs: 3_000,
+		gearProc: true,
 	},
 	{
 		key: 'essence-of-yulon',
@@ -688,6 +718,7 @@ export const SHARED_AURAS: Aura[] = [
 		ids: [146198],
 		kind: 'debuff',
 		durationMs: 4_000,
+		gearProc: true,
 	},
 	{
 		key: 'spirit-of-chi-ji',
@@ -697,6 +728,7 @@ export const SHARED_AURAS: Aura[] = [
 		ids: [146200],
 		kind: 'buff',
 		durationMs: 10_000,
+		gearProc: true,
 	},
 
 	// ----------------------------------------------- weapon and cloak enchant procs
@@ -716,6 +748,7 @@ export const SHARED_AURAS: Aura[] = [
 		variants: { 104423: 'Haste', 104509: 'Crit', 104510: 'Mastery' },
 		kind: 'buff',
 		durationMs: 12_000,
+		gearProc: true,
 	},
 	{
 		key: 'dancing-steel',
@@ -738,6 +771,7 @@ export const SHARED_AURAS: Aura[] = [
 		ids: [120032],
 		kind: 'buff',
 		durationMs: 12_000,
+		gearProc: true,
 	},
 	{
 		key: 'jade-spirit',
@@ -749,6 +783,7 @@ export const SHARED_AURAS: Aura[] = [
 		ids: [104993],
 		kind: 'buff',
 		durationMs: 12_000,
+		gearProc: true,
 	},
 	{
 		key: 'rivers-song',
@@ -759,6 +794,7 @@ export const SHARED_AURAS: Aura[] = [
 		kind: 'buff',
 		durationMs: 7_000,
 		maxStacks: 2,
+		gearProc: true,
 	},
 	{
 		key: 'lightweave',
@@ -769,6 +805,7 @@ export const SHARED_AURAS: Aura[] = [
 		ids: [125487],
 		kind: 'buff',
 		durationMs: 15_000,
+		gearProc: true,
 	},
 	{
 		key: 'swordguard-embroidery',
@@ -778,6 +815,7 @@ export const SHARED_AURAS: Aura[] = [
 		ids: [125489],
 		kind: 'buff',
 		durationMs: 15_000,
+		gearProc: true,
 	},
 	{
 		key: 'lord-blastingtons',
@@ -786,6 +824,7 @@ export const SHARED_AURAS: Aura[] = [
 		ids: [109085],
 		kind: 'buff',
 		durationMs: 10_000,
+		gearProc: true,
 	},
 ];
 

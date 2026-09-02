@@ -13,6 +13,7 @@ export type {
 	Incomparable,
 	MetricGap,
 	NoteKind,
+	ProcGap,
 	PullFraming,
 	SectionGap,
 	TalentGap,

@@ -27,10 +27,22 @@ const gateLabel = (c: CastRow, t: ReportCopy['t']): string =>
  * Pressed for something other than damage, and so kept out of the rate table.
  *
  * By cast id rather than by a flag on the row, because `CastRow` carries the gate rather than the
- * ability object. Flying Serpent Kick is the only one: a movement button whose cast rate is not a
- * decision anyone makes about damage.
+ * ability object. Two buttons, for two different reasons:
+ *
+ *   - **Flying Serpent Kick** (101545) is a movement button. Its cast rate is not a decision anyone
+ *     makes about damage.
+ *   - **Touch of Karma** (122470) is a defensive, and it has a section of its own further down that
+ *     judges each press on what it returned. A rate row for it was the report asking a second, worse
+ *     question about the same button: pressing it more often is not the improvement a `3 / 6` reads
+ *     as, because how many charges a fight offers something to redirect is the encounter's business.
+ *     Removed at the reader's request, and the judgement it used to carry is not lost. `karma`'s own
+ *     tiles already show the presses against the charges the cooldown allowed, on
+ *     `defensiveUseTone`'s deliberately wide bands rather than on this table's cooldown ceiling.
+ *
+ * Neither exclusion touches `cpm.totalCpm` or `cpm.gcdUtilisationPct`, which come off the analysis
+ * rather than off this filtered list: the globals were spent, and the pace figures still count them.
  */
-const UTILITY_IDS = new Set([101545]);
+const UTILITY_IDS = new Set([101545, 122470]);
 
 /** Tiger Palm, whose target this report can compute downwards rather than up. */
 const TIGER_PALM_ID = 100787;
@@ -75,11 +87,12 @@ function tigerPalmBudget(analysis: Analysis): TigerPalmBudget {
  */
 const DEEP_DIVE: Record<number, string> = {
 	// `fof`, not `fists-of-fury`: this is the section's id, and the heading it addresses is
-	// `fof-heading`. The other three in this map were right and this one silently linked nowhere.
+	// `fof-heading`. The other entries in this map were right and this one silently linked nowhere.
 	113656: 'fof',
 	100787: 'tiger-palm',
-	122470: 'karma',
 	107428: 'debuff',
+	// Touch of Karma had an entry here and no longer does: it is in `UTILITY_IDS` above, so the row
+	// this would have linked from is not drawn. A link out of a table has to come from a row.
 };
 
 /**
@@ -98,10 +111,14 @@ function optimalCpm(c: CastRow, budget: TigerPalmBudget): number | null {
 	if (c.id === TIGER_PALM_ID && budget.casts > 0) {
 		return (c.cpm * budget.earned) / budget.casts;
 	}
-	// A cooldown is a ceiling whatever gates it. Fists of Fury and Touch of Karma are `conditional`
-	// because *when* they go out is a judgement the log cannot second-guess — but both still have a
-	// hard recharge, and "cast 3 times in a pull that allowed 9" is a fact rather than a verdict.
-	// What the gate changes is how the shortfall is described, not whether it can be shown.
+	// A cooldown is a ceiling whatever gates it. Fists of Fury is `conditional` because *when* it goes
+	// out is a judgement the log cannot second-guess, but it still has a hard recharge, and "cast 3
+	// times in a pull that allowed 9" is a fact rather than a verdict. What the gate changes is how the
+	// shortfall is described, not whether it can be shown.
+	//
+	// Touch of Karma used to be the second example here and is no longer in this table at all; see
+	// `UTILITY_IDS`. A defensive is the one conditional button where the ceiling *is* a verdict, which
+	// is why its own section grades the presses rather than the rate.
 	return c.cooldownSec ? 60 / c.cooldownSec : null;
 }
 

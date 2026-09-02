@@ -2706,6 +2706,39 @@ export function windwalkerAudit(h: Handles): SpecAuditResult {
 	 */
 	const upAt = (windows: readonly { start: number; end: number }[], at: number): boolean =>
 		windows.some((w) => w.start <= at && w.end >= at);
+	/**
+	 * Whether the press went out while a Tigereye Brew was running: the one thing about a Karma this
+	 * report will call a mistake.
+	 *
+	 * **The request behind this was "Touch of Karma should not be used during a Tigereye Brew
+	 * snapshot", and the claim it is written as is deliberately the narrow one.** The tempting
+	 * justification is that the redirect would have been amplified, and it is not available: Touch of
+	 * Karma is not in wowsims-mop at all. `sim/monk/` registers no spell, no aura and no APL entry for
+	 * 122470, so nothing can say what the brew does or does not do to what it returns. See the
+	 * `fortifyingBrew` note above, which refused a bonus on the same grounds.
+	 *
+	 * What is supportable is the *global*. The button is `onGcd: true`, and a brew is fifteen seconds
+	 * of every point of damage the player deals being multiplied by `damagePerStack`, which is
+	 * `0.05 + masteryPercent` per stack, frozen at the cast (`sim/monk/windwalker/tigereye_brew.go:52`).
+	 * So a global spent inside one on a defensive is the most expensive global in the pull to spend on
+	 * something that is not a damage press. The fault is the *placement*, not the press: a ninety
+	 * second cooldown has room to go out on either side of a fifteen second window.
+	 *
+	 * **Every brew is a snapshot**, which is why this is measured against the brew window itself and
+	 * not against the subset of brews that caught a Rune of Re-Origination proc. The brew freezes the
+	 * multiplier it will carry at the moment it is cast whether or not a trinket was involved, and
+	 * scoping the rule to the Rune would make it unaskable on a pull where nobody wore one, which is a
+	 * rule that grades gear rather than play.
+	 *
+	 * **Read at the cast, exactly like `cap` above and unlike the `fortifyingBrew` flag beside it.**
+	 * That flag asks "did the pairing happen" and so takes any overlap with the redirect's ten seconds;
+	 * this asks "what did this global cost", and a global is spent at the press. A brew that went up
+	 * two seconds later cost this press nothing.
+	 *
+	 * The reference pull `a:6MhZgjyAknFWrYfK` #12 has one of each, which is why it is the fixture the
+	 * rule is pinned against: two presses, one at 28.99s inside a brew running 14.871s to 29.875s, and
+	 * one at 119.0s in the gap between two brews. `lib/__tests__/pull.test.ts` asserts both.
+	 */
 	const karmaWithFortifying = karmaUses.map((use) => {
 		const pool =
 			karmaCap === null
@@ -2724,6 +2757,7 @@ export function windwalkerAudit(h: Handles): SpecAuditResult {
 			// Restated off the ceiling rather than off the last absorb's shortfall — see `karmaCap`.
 			exhausted: cap !== null && cap > 0 && use.absorbed >= cap * KARMA_DRAINED_SHARE,
 			fortifyingBrew: fortifyingWindows.some((w) => w.start <= use.t + TOUCH_OF_KARMA_MS && w.end >= use.t),
+			duringBrew: upAt(brewWindows, use.t),
 		};
 	});
 
@@ -3432,6 +3466,23 @@ export function windwalkerAudit(h: Handles): SpecAuditResult {
 				detail: `${u.consumed} of ${TEB_DRAIN} stacks`,
 				link: link(u.t),
 			})),
+		// The global, not the redirect: see `duringBrew` in the Touch of Karma block for why the fault
+		// is stated that narrowly. Listed with the brew's remaining seconds, because that is the size of
+		// the window the press had to be moved out of and a reader can check it against the timeline.
+		...karmaWithFortifying
+			.filter((use) => use.duringBrew)
+			.map((use) => {
+				const window = brewWindows.find((w) => w.start <= use.t && w.end >= use.t);
+				return {
+					kind: 'Touch of Karma inside a brew',
+					at: use.t,
+					detail:
+						window === undefined
+							? 'pressed while a Tigereye Brew was running'
+							: `pressed with ${r1((window.end - use.t) / 1000)}s of a Tigereye Brew left to run`,
+					link: link(use.t),
+				};
+			}),
 		...comboBreaker.flatMap((cb) =>
 			cb.expired.map((w) => ({
 				kind: `Combo Breaker: ${cb.label} expired`,
@@ -4262,6 +4313,11 @@ export function windwalkerAudit(h: Handles): SpecAuditResult {
 			capPerUse: karmaCap,
 			exhausted: karmaWithFortifying.filter((use) => use.exhausted).length,
 			withFortifyingBrew: karmaWithFortifying.filter((use) => use.fortifyingBrew).length,
+			// A count and not a share, which is what `karmaInBrew` in `score.ts` is graded on. A ninety
+			// second cooldown puts most real pulls under `MIN_GRADED_SAMPLE`, so a share of the presses
+			// would be refused on nearly every log, and one press inside a brew is a whole fault by
+			// itself rather than a proportion of one.
+			duringBrew: karmaWithFortifying.filter((use) => use.duringBrew).length,
 			uses: karmaWithFortifying.map((use) => ({
 				...use,
 				// The absorb over this press's own ceiling — never the redirect, which is 1.05× larger, and

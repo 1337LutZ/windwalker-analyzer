@@ -265,3 +265,88 @@ describe('the shared model itself stays well-formed', () => {
 		expect(empty).toEqual([]);
 	});
 });
+
+describe('the auras an item puts up on its own', () => {
+	/**
+	 * The set `Aura.gearProc` names, pinned, because nothing else in the tree can tell when it is wrong.
+	 *
+	 * A trinket added to the block below the "trinkets, meta, cloak" banner without the flag drops a
+	 * row from the compare page's proc block in silence: no error, no failing test, and a reader who
+	 * wore it is told the log recorded no proc of it. That is the failure this repository keeps
+	 * writing down, a claim living in exactly one place, and the file's own banner comment makes it
+	 * out loud, "everything from here to the end carries `gearProc: true`". This is what makes that
+	 * sentence enforceable.
+	 *
+	 * Sorted rather than listed in declaration order, so re-ordering the file is not a failure.
+	 */
+	it('is exactly the item effects, and nothing else', () => {
+		expect(
+			SHARED_AURAS.filter((aura) => aura.gearProc === true)
+				.map((aura) => aura.key)
+				.sort(),
+		).toEqual(
+			[
+				'blades-of-renataki',
+				'breath-of-hydra',
+				'capacitance',
+				'chayes',
+				'cloudburst',
+				'cruelty',
+				'dancing-steel',
+				'dextrous',
+				'essence-of-yulon',
+				'expanded-mind',
+				'eye-of-brutality',
+				'feathers-of-fury',
+				'ferocity',
+				'flurry-of-xuen',
+				'fortitude',
+				'juju-madness',
+				'jade-spirit',
+				'lightweave',
+				'lord-blastingtons',
+				'rampage',
+				're-origination',
+				'restless-agility',
+				'rivers-song',
+				'spirit-of-chi-ji',
+				'swordguard-embroidery',
+				'tenacious',
+				'tempus-repit',
+				'titanic-restoration',
+				'toxic-power',
+				'unerring-vision',
+				'vicious',
+				'windsong',
+				'wrath-of-darkspear',
+				'wushoolays-lightning',
+			].sort(),
+		);
+	});
+
+	/**
+	 * And never the counter inside a proc window, which is the one way to get this wrong quietly.
+	 *
+	 * Five of these trinkets log a window and a stacking counter under separate ids, and the counter
+	 * gains a stack a second to ten or twenty. Flagging both reports one trinket twice, the second time
+	 * at ten times its real rate: a number that looks like a reading rather than like a bug.
+	 */
+	it('never flags the counter that sits inside one', () => {
+		const counters = SHARED_AURAS.filter((aura) => aura.key.endsWith('-stacks'));
+		expect(counters.length).toBeGreaterThan(3);
+		expect(counters.filter((aura) => aura.gearProc === true).map((aura) => aura.key)).toEqual([]);
+	});
+
+	/**
+	 * A pressed button is not a roll, whatever slot it came out of.
+	 *
+	 * Synapse Springs is the case that matters: it is an item effect on the same character, in the
+	 * glove slot, and it goes up because somebody pressed it. The three beside it are the same test
+	 * from the other direction: a buff a raid-mate pressed is not this player's luck either.
+	 */
+	it('leaves the gear the player presses alone, and the raid buffs somebody else pressed', () => {
+		for (const key of ['synapse-springs', 'bloodlust', 'skull-banner', 'stormlash-totem']) {
+			expect(registry.aura(key).gearProc, key).toBeUndefined();
+		}
+	});
+});

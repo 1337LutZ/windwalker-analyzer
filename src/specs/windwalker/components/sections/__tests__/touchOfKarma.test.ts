@@ -343,3 +343,41 @@ describe('the Touch of Karma section', () => {
 		expect(tile(render(fixture('strong')), 'Uses')).toContain(TONE.bad);
 	});
 });
+
+/**
+ * A press inside a Tigereye Brew, which no committed capture can show.
+ *
+ * All six predate `duringBrew` entirely, so the column, the cell colour and the two sentences under
+ * the table are unreachable through any of them, which is exactly the shape that ships a wrong
+ * plural or a mis-nested key in silence. `mixed` is the pull the figure is derived from in
+ * `lib/__tests__/karma.test.ts`: two of its three presses land inside a brew window, so the flags
+ * here are the real answer written on rather than an invented one.
+ */
+function insideBrew(count: 1 | 2): Analysis {
+	const analysis = measured();
+	const flags = count === 1 ? [false, true, false] : [false, true, true];
+	analysis.karma.duringBrew = count;
+	analysis.karma.uses = analysis.karma.uses.map((use, i) => ({ ...use, duringBrew: flags[i] === true }));
+	return analysis;
+}
+
+describe('a press inside a brew', () => {
+	it('says nothing at all on a pull that never made one', () => {
+		const html = render(measured());
+		expect(html).not.toContain(t('karma.columns.inBrew'));
+		expect(html).not.toContain(t('karma.inBrewNote'));
+	});
+
+	it('draws the column, marks the press and picks the right arm of the sentence', () => {
+		const one = render(insideBrew(1));
+		expect(one).toContain(t('karma.columns.inBrew'));
+		expect(one).toContain(t('karma.inBrew', { count: 1 }));
+		expect(one).toContain(t('karma.inBrewNote'));
+		// The fault is coloured where the neutral Fortifying Brew column beside it is not.
+		expect(one).toMatch(/text-miss[^<]*>yes/);
+
+		const two = render(insideBrew(2));
+		expect(two).toContain(t('karma.inBrew', { count: 2 }));
+		expect(two).not.toContain(t('karma.inBrew', { count: 1 }));
+	});
+});
