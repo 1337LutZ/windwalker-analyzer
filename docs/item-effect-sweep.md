@@ -99,7 +99,19 @@ with somebody else's identical trinket.
 | 148906 | `toxic-power`                 | Kardris' Toxic Totem, item 104544 — `db.json` `itemEffects[1]`                                                | **9 · 12 · 10** · 0    | all three Elemental       |
 | 104993 | `jade-spirit`                 | enchant 4442 — `db.json`, `sim/common/mop/enchants.go`                                                        | **26 · 19 · 11** · 0   | all three Elemental       |
 | 120032 | `dancing-steel`               | enchant 4444 — **the logged id, which neither source names**; see tier 3                                      | 0 · 0 · 0 · **28**     | Windwalker, both weapons  |
+| 142530 | `dancing-steel`               | enchant 5125, Bloody Dancing Steel: `db.json` `enchantEffects[0]`, and right this time                        | 0 · 0 · 0 · 0          | none of the four          |
 | 125487 | `lightweave`                  | enchants 3722/4115/4892 — `db.json`                                                                           | **10** · 0 · **7** · 0 | cleave, unbroken          |
+
+`142530` is the row with a zero that is not a gap. None of the four fixture players wears enchant
+5125, so those four columns can say nothing at all about it: the distinction §51's own box warns
+about. It is confirmed from the **wide** instrument instead: 94 events on one of the 58 cached
+reference datasets (`BpHWKzXLRgbhGFcv` #49, a Monk), as 34 applies, 27 refreshes and 33 removes,
+self-targeted under a source of −1, median window 12 004ms against the 12 000 `db.json` declares.
+
+That pull carries **zero** 120032, which is what makes the two grades alternatives rather than
+siblings and is why they share the key `dancing-steel` and are told apart by `variants`. Worth
+recording that after 4444 the client data was checked rather than believed, and here it holds: the
+one place both sources are wrong stayed one place.
 
 `lightweave`'s zero on `phased` is the row worth pausing on. It is not a dry spell: that pull's cloak
 carries enchant **4423**, plain Superior Intellect, where the other two carry 4892. Until this
@@ -373,10 +385,11 @@ trinkets, so my instrument adds nothing to the counts; the _structural_ reason i
 
 ### 3d. Ids both sources name that the game does not write
 
-| id(s)           | what the sources say                                                                          | why it cannot appear                                                                                                                                                                                                                                                                |
-| --------------- | --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 118334 · 118335 | Dancing Steel agility / strength — named by **both** `enchants.go` and `db.json` enchant 4444 | absent from all 1,317 distinct friendly ids of the wide instrument (**inherited**) and from all four fixtures, on a pull whose player wears enchant 4444 **on both weapons**. The game writes **120032**. This is the only place where the Go _and_ the client data are both wrong. |
-| 114207          | Skull Banner                                                                                  | occurs once in the sim repository, in `ui/core/components/inputs/buffs_debuffs.ts`, as the icon the **buff picker** draws. `sim/core/buffs.go` casts and registers 114206. Zero on all four fixtures.                                                                               |
+| id(s)           | what the sources say                                                                          | why it cannot appear                                                                                                                                                                                                                                                                                                                                |
+| --------------- | --------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 118334 · 118335 | Dancing Steel agility / strength — named by **both** `enchants.go` and `db.json` enchant 4444 | absent from all 1,317 distinct friendly ids of the wide instrument (**inherited**) and from all four fixtures, on a pull whose player wears enchant 4444 **on both weapons**. The game writes **120032**. This is the only place where the Go _and_ the client data are both wrong. Re-checked when enchant 5125 was added, and still the only one. |
+| 142468          | Bloody Dancing Steel, the **enchant's own** spell id, `db.json` enchant 5125 `spellId`        | zero across the 58 cached reference datasets, including the one pull that carries the enchant and writes its buff 94 times. The buff is what a log records; the enchant spell is what applies it. Not the 4444 failure repeating: `db.json`'s `enchantEffects[0].buffId` for 5125 is correct, and this is the field beside it.                      |
+| 114207          | Skull Banner                                                                                  | occurs once in the sim repository, in `ui/core/components/inputs/buffs_debuffs.ts`, as the icon the **buff picker** draws. `sim/core/buffs.go` casts and registers 114206. Zero on all four fixtures.                                                                                                                                               |
 
 ### 3e. Hidden marker and trigger auras
 

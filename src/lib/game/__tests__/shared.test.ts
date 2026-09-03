@@ -338,6 +338,24 @@ describe('the auras an item puts up on its own', () => {
 	});
 
 	/**
+	 * Both grades of the melee weapon enchant resolve to one aura, so the compare page draws one row.
+	 *
+	 * Two players on opposite grades of one enchant are not two pieces of gear to line up: they would be
+	 * two half-empty rows, each reading "no proc in this log" on the other's side. Pinned by id rather
+	 * than by counting the entry's `ids`, so splitting them into two keys fails here and names both.
+	 */
+	it('folds Dancing Steel and its Siege upgrade into one row', () => {
+		expect(registry.auraById(120_032)?.key).toBe('dancing-steel');
+		expect(registry.auraById(142_530)?.key).toBe('dancing-steel');
+		// The window says which grade it was, the way Windsong's says which stat.
+		expect(registry.variantOf(120_032)).toBe('Dancing Steel');
+		expect(registry.variantOf(142_530)).toBe('Bloody Dancing Steel');
+		// And the ids neither enchant writes stay out: 118334/118335 for the reason the entry gives at
+		// length, 142468 because it is the enchant's own spell and the game logs the buff.
+		for (const id of [118_334, 118_335, 142_468]) expect(registry.auraById(id), String(id)).toBeUndefined();
+	});
+
+	/**
 	 * A pressed button is not a roll, whatever slot it came out of.
 	 *
 	 * Synapse Springs is the case that matters: it is an item effect on the same character, in the

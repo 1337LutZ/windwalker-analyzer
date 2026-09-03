@@ -302,7 +302,7 @@ const SILENT_AURAS: Record<string, string[]> = {
 		'cloudburst [138856]',
 		'cruelty [146285]',
 		'cruelty-stacks [146293]',
-		'dancing-steel [120032]',
+		'dancing-steel [120032, 142530]',
 		'dextrous [146308]',
 		'elemental-mastery [16166]',
 		'eye-of-brutality [139170]',
