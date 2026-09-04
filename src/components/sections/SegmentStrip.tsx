@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 
 import type { FightSegment } from '~/lib/analysis/segments';
 import type { Analysis } from '~/lib/types';
@@ -10,6 +11,34 @@ import { KEY_ORDER, segmentLabel, segmentLength, shortOf } from './segmentCopy';
 import ScrollableTrack from '../charts/ScrollableTrack';
 import SegmentLane, { type LaneSpan } from '../charts/SegmentLane';
 import { ChartFigure } from '../primitives';
+
+/**
+ * A pull's stretches as lane spans, ready for `SegmentLane`.
+ *
+ * Exported because the compare page grew a lane of its own under its damage overlay. The mapping is
+ * four fields and a spread, which is exactly the size of thing that gets copied and then drifts: two
+ * callers a `tone` rename apart would draw the same pull in two different colours.
+ *
+ * It lives here rather than beside the labels it calls, because `segmentCopy` states that it imports
+ * nothing from `charts/` (`charts/` imports *it*), and `LaneSpan` is a `charts/` type. That rule is
+ * about runtime cycles and a type import could not close one, but a file that says it holds an
+ * invariant should not quietly stop holding it.
+ */
+export function segmentSpans(
+	segments: readonly FightSegment[] | undefined,
+	t: TFunction<'report'>,
+	detailOf?: (segment: FightSegment) => string | null | undefined,
+): LaneSpan[] {
+	return (segments ?? []).map((segment) => ({
+		startMs: segment.startMs,
+		endMs: segment.endMs,
+		tone: segment.mode,
+		label: segmentLabel(segment, t),
+		lengthLabel: segmentLength(segment, t),
+		short: shortOf(segment),
+		...(detailOf?.(segment) ? { detail: detailOf(segment) as string } : {}),
+	}));
+}
 
 /**
  * The pull cut into the stretches it was actually fought in, drawn once across the top of the report.
@@ -57,19 +86,7 @@ export default function SegmentStrip({
 	const { t } = useTranslation('report');
 	const segments = analysis.segments?.segments;
 
-	const spans = useMemo(
-		(): LaneSpan[] =>
-			(segments ?? []).map((segment) => ({
-				startMs: segment.startMs,
-				endMs: segment.endMs,
-				tone: segment.mode,
-				label: segmentLabel(segment, t),
-				lengthLabel: segmentLength(segment, t),
-				short: shortOf(segment),
-				...(detailOf?.(segment) ? { detail: detailOf(segment) as string } : {}),
-			})),
-		[segments, t, detailOf],
-	);
+	const spans = useMemo(() => segmentSpans(segments, t, detailOf), [segments, t, detailOf]);
 
 	/**
 	 * A pull with one stretch draws no chart — and still opens the replay.

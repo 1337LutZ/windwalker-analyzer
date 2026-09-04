@@ -257,10 +257,17 @@ routes. Two pulls of **one spec and one boss**, read side by side.
   own. An absent row says only that the log recorded no proc of it, which is either different gear or
   the same gear that never rolled — nothing here can separate those, because the character sheet
   carries item ids, the events carry spell ids, and no map between them ships.
-- **Not compared:** timelines, cast logs, lanes, the miss ledger. Two pulls of different length do not
-  line up second for second. The page says so and links to each report instead. The proc block is not
-  an exception to this: it counts off the lanes rather than drawing them, and a count survives two
-  pulls that share no clock where a picture of one does not.
+- **The damage overlay is the one timeline on the page**, and it is drawn because a _rate over time_
+  is not what that rule was written about: each curve describes its own pull alone, so two of them
+  compare shapes — the opener, a trough where a phase took the boss away, the ramp at the end — rather
+  than moments. Absolute seconds, and the shorter line simply stops; normalising to 0–100% would
+  invent the shared moment the rule refuses. It is drawn from `damage.perSecond`, which comes off the
+  **same walk** as `eventTotal` and sums to it exactly (asserted in `exclusionEvidence.test.ts`), so
+  the curve and the total cannot disagree. The window is applied at the chart, not in the analysis.
+- **Not compared:** cast logs, lanes, the miss ledger. Two pulls of different length do not line up
+  second for second. The page says so and links to each report instead. The proc block is not an
+  exception either: it counts off the lanes rather than drawing them, and a count survives two pulls
+  that share no clock where a picture of one does not.
 - Guards: `src/lib/compare/__tests__/` (real figures over the captures, plus the `TIE_BANDS` sweep —
   146 metric pairs, none called level while the grades disagree) and
   `src/components/compare/__tests__/compareReport.test.ts`.

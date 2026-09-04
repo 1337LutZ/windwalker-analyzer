@@ -13,6 +13,9 @@ import SectionNav, { type ReportSection } from '../report/SectionNav';
 import { useSpec } from '../report/specContext';
 
 import ComparabilityNotes from './ComparabilityNotes';
+import DpsOverlay from './DpsOverlay';
+import { rollingDps, type DpsSeries } from '../charts/dpsCurve';
+import { segmentSpans } from '../sections/SegmentStrip';
 import PullHeader from './PullHeader';
 import TalentGaps from './TalentGaps';
 import { pullLabels } from './pullLabels';
@@ -95,6 +98,7 @@ function castRows(
  */
 const NAV: readonly ReportSection[] = [
 	{ id: 'compare-framing', titleKey: 'compare.title', group: null },
+	{ id: 'compare-dps', titleKey: 'compare.dps.title', group: null },
 	{ id: 'compare-gaps', titleKey: 'compare.gaps.title', group: null },
 	{ id: 'compare-damage', titleKey: 'compare.damage.title', group: null },
 	{ id: 'compare-procs', titleKey: 'compare.procs.title', group: null },
@@ -148,6 +152,15 @@ export default function CompareReport({ a, b }: { a: Pull; b: Pull }) {
 	const damage = useMemo(() => damageRows(comparison, identity.damage, spec), [comparison, identity, spec]);
 	const casts = useMemo(() => castRows(comparison, identity.cast, spec), [comparison, identity, spec]);
 	const procs = useMemo(() => procRows(comparison), [comparison]);
+	// The curve is built here rather than inside the chart so a pull captured before the series existed
+	// resolves to null once, and the chart's empty state is reached rather than an empty plot.
+	const series = (pull: Pull): DpsSeries | null => {
+		const perSecond = pull.analysis.damage.perSecond;
+		return perSecond === undefined || perSecond.length === 0 ? null : rollingDps(perSecond, pull.analysis.durationMs);
+	};
+	const dps = useMemo(() => ({ a: series(a), b: series(b) }), [a, b]);
+	const segsA = useMemo(() => segmentSpans(a.analysis.segments?.segments, t), [a, t]);
+	const segsB = useMemo(() => segmentSpans(b.analysis.segments?.segments, t), [b, t]);
 
 	// Not the bare names: two anonymous reports can both hold a `Player (10)`. See `pullLabels`.
 	const players = pullLabels(comparison.a, comparison.b);
@@ -178,6 +191,20 @@ export default function CompareReport({ a, b }: { a: Pull; b: Pull }) {
 					    of you leads — and the talents are what a reader turns to next to explain it: a build that
 					    took Invoke Xuen is behind on Rushing Jade Wind by choice, not by play. */}
 						<TalentGaps gap={comparison.talents} players={players} />
+					</div>
+				</Section>
+
+				{/* Between the framing and the ranked gaps, which is where a reader meets it: they have just read
+			    two DPS numbers and have not yet been told which part of the rotation differs. The curve is the
+			    shape behind those two numbers, and the segment lanes under it are why it has the shape it has
+			    A trough is usually a phase that took the boss away rather than a player who stopped. */}
+				<Section id="compare-dps" title={t('compare.dps.title')}>
+					<Prose>{t('compare.dps.intent')}</Prose>
+					<div className="mt-5">
+						<DpsOverlay
+							a={{ series: dps.a, spans: segsA, name: players.a }}
+							b={{ series: dps.b, spans: segsB, name: players.b }}
+						/>
 					</div>
 				</Section>
 

@@ -41,7 +41,7 @@ import { specColorsOf } from '~/lib/view/specColors';
 import { SpellIcon } from '../primitives';
 import { buttonClass } from '../primitives/controls';
 import { spellIconUrl } from '../primitives/spellIcon';
-import { formatGap, formatStamp } from '~/lib/format';
+import { formatCompact, formatGap, formatStamp } from '~/lib/format';
 
 import { fmt, n } from '../format';
 import { jumpToHeading } from '../jump';
@@ -49,7 +49,8 @@ import { readTheme, tooltip, type ChartTheme, type TipRow } from './apex';
 import ChartEmpty from './ChartEmpty';
 import { GCD_ICON_PX, commitOf, packCasts } from './castRows';
 import { DEFAULT_ZOOM, ZOOM_LADDER, tickStepMs, useDragScroll } from './scroll';
-import ResourceTrack, { type Shade, type ShadeWindow } from './ResourceTrack';
+import ResourceTrack, { smoothPath, type Shade, type ShadeWindow } from './ResourceTrack';
+import { ceilingOf, rollingDps } from './dpsCurve';
 import { cappedOf, emptiedOf } from './capped';
 import { BAND, COUNT } from './tones';
 import { RESOURCE_TYPE } from '~/lib/game/resources';
@@ -333,6 +334,25 @@ const SHAPE_LABEL_PAD_PX = 8;
 const PHASE_ROW_PX = ROW_PX;
 
 /**
+ * The damage row's height.
+ *
+ * Taller than a band of bars and far shorter than a resource lane: a curve needs enough vertical room
+ * for a trough to be visibly a trough, and this row is an orientation aid rather than a figure anybody
+ * measures off. `RESOURCE_ROW_PX` would give it the weight of the energy bar, which it does not carry.
+ */
+const DPS_ROW_PX = 56;
+
+/**
+ * Headroom above the damage curve, in the row's own pixels.
+ *
+ * Without it the ceiling rule lands on `y = 0`, flush with the row's top edge: the SVG clips half its
+ * stroke, and the matching tick in the label column is centred on the boundary between this row and
+ * the band above, so it reads as belonging to that band. Four pixels is enough to make the top rule a
+ * line inside the row rather than its edge, and the curve wants a little air above its peak anyway.
+ */
+const DPS_PAD_PX = 4;
+
+/**
  * The phase marker's line and its label, in semi-transparent white.
  *
  * **Not one of the tones in `charts/tones.ts`, and that is the whole colour decision.** Every one of
@@ -451,6 +471,22 @@ const MAX_TARGET_LANES = 12;
  * bars in the lanes are the data, and they are drawn in the mechanic colours.
  */
 const LANE_RULE = 'border-b border-line/40';
+
+/**
+ * The two background washes, as classes rather than as markup, because two rows now paint them.
+ *
+ * The track has drawn these since it existed and the damage row above it wants the same ground under
+ * its curve: a trough during an intermission is the fight taking the boss away, not the player
+ * stopping, and that is unreadable if the wash stops at the row above. Sharing the class is what stops
+ * the two from drifting to two greys. The track's own note is explicit that a reader has no business
+ * telling two of them apart.
+ *
+ * Only the fill is shared. The track's spans also carry the edges, the names and the hit boxes, and
+ * the damage row wants none of those: its own hover strips answer the pointer there, and a second set
+ * of tooltips over them would fight for the cursor.
+ */
+const LUST_FILL = 'absolute inset-y-0 bg-[var(--color-band-lust)]';
+const AWAY_FILL = 'absolute inset-y-0 bg-muted/10';
 
 /**
  * The two bars, in the order they are spent: energy buys chi, chi buys the abilities that matter.
@@ -1766,6 +1802,54 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 		}));
 	}, [analysis.segments, t]);
 	const shapeGutterPx = shapeSpans.length === 0 ? 0 : SHAPE_ROW_PX;
+
+	/**
+	 * The pull's damage per second as a path, and the peak it is drawn against.
+	 *
+	 * Null on a pull with no series (every capture from before `damage.perSecond` existed, where the
+	 * row is not drawn at all rather than drawn empty) and on one that dealt no damage, where a curve
+	 * normalised to a peak of nought is a division nobody wants.
+	 *
+	 * Normalised here rather than in `rollingDps`, which returns real damage per second and is shared
+	 * with the compare page's overlay: that chart has a value axis and needs the true numbers. Scaling
+	 * is a property of *this* row, so it is done at this row.
+	 */
+	const dpsCurvePath = useMemo(() => {
+		const perSecond = analysis.damage.perSecond;
+		if (perSecond === undefined || perSecond.length === 0) return null;
+		const { points } = rollingDps(perSecond, analysis.durationMs);
+		const peak = Math.max(0, ...points.map((point) => point.y));
+		if (peak <= 0) return null;
+		// The curve is drawn against a *rounded* ceiling rather than the raw peak, which is what lets the
+		// axis be labelled in numbers a reader can hold: 600k and 300k rather than 574k and 287k. The
+		// cost is a little headroom above the tallest point, which a curve wants anyway.
+		const ceiling = ceilingOf(peak);
+		/**
+		 * Where a damage value sits in the row, in the row's own pixels.
+		 *
+		 * **One function, read by both columns.** The rules are drawn in the track and their ticks and
+		 * labels in the label column beside it, and those were two copies of this arithmetic, which is
+		 * the shape of bug this file keeps writing down, and it duly appeared: the top tick sat off its
+		 * own rule. Two passes that must agree are a bug, so there is one pass and the other column reads
+		 * its answer as a percentage of the same height.
+		 */
+		const yOf = (value: number) => DPS_PAD_PX + (1 - value / ceiling) * (DPS_ROW_PX - DPS_PAD_PX);
+		return {
+			ceiling,
+			// One reading per second, for the hover strips. The same numbers the path is drawn from, so the
+			// tooltip and the curve cannot disagree about a moment.
+			samples: points.map((point) => ({ at: point.x, dps: point.y })),
+			// Half and full. Two is what a 56-pixel row can carry without the labels touching, and the
+			// midline is the one that makes a trough readable as "about half". Each carries the height it
+			// is drawn at, so nothing downstream recomputes it.
+			levels: [ceiling / 2, ceiling].map((value) => ({
+				value,
+				y: yOf(value),
+				pct: `${(yOf(value) / DPS_ROW_PX) * 100}%`,
+			})),
+			d: smoothPath(points.map((point): [number, number] => [(point.x / span) * 1000, yOf(point.y)])),
+		};
+	}, [analysis.damage.perSecond, analysis.durationMs, span]);
 	const phaseGutterPx = phases.length === 0 ? 0 : phaseRows * PHASE_ROW_PX;
 	const stepMs = tickStepMs(pxPerSec);
 	// Room for two digits and a breath, converted from pixels into fight time at the current zoom —
@@ -2001,6 +2085,11 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 				// When a phase began. Its own attribute rather than `at`, for the reason `landed` has one:
 				// `at` is labelled "Pressed", and the boss changing phase is not something anybody pressed.
 				const entered = mark.getAttribute('data-tip-entered');
+				// The damage row's reading at the moment under the cursor. Its own attribute because it is
+				// the one value on this chart that is a *rate over a window* rather than a quantity at an
+				// instant, and the copy for the row says so rather than leaving a reader to assume the
+				// number is what landed in that second.
+				const dps = mark.getAttribute('data-tip-dps');
 				// The moment an aura's own mark stands for: an application or a refresh, which the log tells
 				// apart and a reader looking at one bar cannot, so the copy names both.
 				const applied = mark.getAttribute('data-tip-applied');
@@ -2016,6 +2105,7 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 						at,
 					]);
 				if (entered !== null) rows.push([t('castLog.tip.entered'), entered]);
+				if (dps !== null) rows.push([t('castLog.tip.dps'), dps]);
 				// When the aura went up or was renewed. Its own attribute for the reason `entered` has one:
 				// `at` is labelled "Pressed", and a mark on a bar is the buff arriving rather than a button.
 				if (applied !== null) rows.push([t('castLog.tip.applied'), applied]);
@@ -2459,6 +2549,11 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 		// into phase one is deliberately not drawn, and the same name can appear twice because a boss can
 		// re-enter a phase it has already been in.
 		phases.length === 0 ? null : t('castLog.phase.note'),
+		// The damage row, which needs a sentence for the same reason the meter below does: it is drawn to
+		// a different convention from every other row here. It has no axis, its height is its own peak
+		// rather than a shared one, and it is a rate over a window rather than a value at an instant.
+		// None of which the picture can say for itself.
+		dpsCurvePath === null ? null : t('castLog.dps.note'),
 		// A row drawn as a meter instead of as a bar is a different convention from every other row, and
 		// one whose meter never fills needs saying out loud — otherwise the missing fifth charge reads as
 		// a gap in the chart rather than as the discharge it actually is. `rows` is already the drawn
@@ -2623,11 +2718,22 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 				</details>
 			)}
 
-			<div className="flex gap-2">
+			<div className="flex">
 				{/* The gutter sits outside the scroller so the names stay put while the clock moves. Row
 				    heights are the same constant on both sides, which is what lines them up without anything
 				    having to measure anything. */}
-				<div className="w-28 shrink-0 sm:w-44">
+				{/*
+				 * `border-y border-transparent` is not decoration: it is the 1px the scroller beside this
+				 * column spends on its own top border.
+				 *
+				 * The two columns line up by drawing the same rows at the same heights and by nothing else,
+				 * and that argument quietly assumed both boxes start at the same y. The track does not: it
+				 * is `border border-line`, so everything inside it sits one pixel lower than its label. On a
+				 * solid band nobody could see it; on a hairline rule against its own tick in this column it
+				 * is the whole width of the thing being aligned. Matching the border rather than padding the
+				 * top, so the bottom edge agrees too and the column's height is the scroller's height.
+				 */}
+				<div className="w-28 shrink-0 border-y border-transparent sm:w-44">
 					{/* The phase gutter's row in this column, and first in the sequence exactly as it is first
 					    on the track.
 
@@ -2650,14 +2756,55 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 					{/* The target-mode band's row in this column, first of all because the band is first on the
 					    track. Named, not a spacer, for the reason the phase row states: the two columns line up
 					    only because they draw the same rows in the same order at the same heights. */}
+					{phaseGutterPx === 0 ? null : (
+						<div className={`flex items-start gap-2 pr-2 ${LANE_RULE}`} style={{ height: phaseGutterPx }}>
+							<span className="truncate font-mono text-sm leading-6 text-ink-2">{t('castLog.phase.title')}</span>
+						</div>
+					)}
 					{shapeGutterPx === 0 ? null : (
-						<div className="flex items-center gap-2 pr-2" style={{ height: shapeGutterPx }}>
+						<div className={`flex items-center gap-2 pr-2 ${LANE_RULE}`} style={{ height: shapeGutterPx }}>
 							<span className="truncate font-mono text-sm text-ink-2">{t('castLog.shape.title')}</span>
 						</div>
 					)}
-					{phaseGutterPx === 0 ? null : (
-						<div className="flex items-start gap-2 pr-2" style={{ height: phaseGutterPx }}>
-							<span className="truncate font-mono text-sm leading-6 text-ink-2">{t('castLog.phase.title')}</span>
+					{/* The damage row's label, carrying the peak the curve is drawn against: the same shape the
+					    resource rows use, and for the same reason: a curve normalised to its own maximum has no
+					    axis, so the number that makes it readable belongs beside its name. */}
+					{dpsCurvePath === null ? null : (
+						<div className={`relative flex items-center gap-2 pr-2 ${LANE_RULE}`} style={{ height: DPS_ROW_PX }}>
+							<span className="truncate font-mono text-sm text-ink-2">{t('castLog.dps.title')}</span>
+							{/* The value axis, in this column because a label inside the track would scroll away from
+							    the row it names and be stretched by the viewBox besides. Right-aligned against the
+							    gutter's edge so the numbers sit next to the rules they belong to.
+
+							    The top label is pushed down rather than centred on its rule: centred, half of it
+							    would sit over the target-mode band above, which is a solid colour. The midline has
+							    room on both sides and is centred. */}
+							{dpsCurvePath.levels.map((level) => (
+								<span
+									key={level.value}
+									className="tabular absolute right-3 -translate-y-1/2 font-mono text-[10px] text-muted"
+									style={{ top: level.pct }}
+								>
+									{formatCompact(level.value)}
+								</span>
+							))}
+							{/*
+							 * A tick per rule, flush against the gutter's right edge and exactly on the rule's own
+							 * height.
+							 *
+							 * The labels cannot carry that job: the top one is pushed down so it does not sit over
+							 * the band above, so its text is no longer level with the line it names. The tick is
+							 * always level, so the reader has an unambiguous reference point and the number beside
+							 * it is free to sit wherever it fits.
+							 */}
+							{dpsCurvePath.levels.map((level) => (
+								<span
+									key={`tick-${level.value}`}
+									aria-hidden="true"
+									className="absolute right-0 h-px w-1.5 -translate-y-1/2 bg-line"
+									style={{ top: level.pct }}
+								/>
+							))}
 						</div>
 					)}
 					{/* One label per ability, matching the aura lanes below it: the same icon-and-name shape,
@@ -2778,10 +2925,43 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 					    condition for a ramp being usable at all. `border-r border-bg` is the hairline that makes
 					    a run of stretches read as a run: these tile the clock, so one ends exactly where the
 					    next begins. */}
+					{phaseGutterPx === 0 ? null : (
+						<div
+							data-band="phases"
+							className={`relative ${LANE_RULE}`}
+							style={{ width: trackPx, height: phaseGutterPx }}
+						>
+							{placedPhases.map(({ mark, label, row }) => (
+								<span
+									// Both, because the id repeats within a pull and only the pair is unique.
+									key={`${mark.id}-${mark.at}`}
+									title={`${t('castLog.phase.title')} · ${label} · ${formatStamp(mark.at)}`}
+									data-tip={label}
+									// `ink` rather than any of the coloured tones, for the reason the rule is white.
+									data-tip-tone="ink"
+									// The moment, which the label does not carry. Its own attribute rather than `at`,
+									// which the tooltip labels "Pressed" — nobody pressed a phase change.
+									data-tip-entered={formatStamp(mark.at)}
+									// Down to the bottom of the gutter rather than one row tall, so every rule ends flush
+									// against the chart it annotates and a staggered label is still joined to its own
+									// moment. On a single-row gutter — every real encounter at the default zoom — that is
+									// exactly the 24px line asked for.
+									style={{ left: pct(mark.at, span), top: row * PHASE_ROW_PX }}
+									className={PHASE_MARKER_CLASS}
+								>
+									{label}
+								</span>
+							))}
+						</div>
+					)}
 					{shapeGutterPx === 0 ? null : (
 						// Named, because two bands now carry a width and a height together and "the first box that
 						// does" was how the tests told the phase gutter apart from everything else.
-						<div data-band="target-mode" className="relative" style={{ width: trackPx, height: shapeGutterPx }}>
+						<div
+							data-band="target-mode"
+							className={`relative ${LANE_RULE}`}
+							style={{ width: trackPx, height: shapeGutterPx }}
+						>
 							{shapeSpans.map((stretch) => (
 								<span
 									key={stretch.startMs}
@@ -2835,28 +3015,139 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 							))}
 						</div>
 					)}
-					{phaseGutterPx === 0 ? null : (
-						<div data-band="phases" className="relative" style={{ width: trackPx, height: phaseGutterPx }}>
-							{placedPhases.map(({ mark, label, row }) => (
+					{/* The pull's damage per second, under the shape it was fought in.
+
+					    Under it rather than over, because it is the consequence and the shape is the cause: a
+					    trough here is usually the stretch above it changing. Same `trackPx` width and the same
+					    `span`, so a dip sits over the presses that produced it at every zoom.
+
+					    Normalised to the pull's own peak, which the label column prints. There is no value axis
+					    in a 56-pixel row and inventing one would cost more height than the row is worth. What
+					    this row answers is *when* the damage was, and the sections below answer how much.
+
+					    A monotone cubic, the same geometry the resource bars use, so the curve cannot overshoot
+					    into a rate the pull never reached. See `smoothPath`. */}
+					{dpsCurvePath === null ? null : (
+						<div data-band="dps" className={`relative ${LANE_RULE}`} style={{ width: trackPx, height: DPS_ROW_PX }}>
+							{/*
+							 * The same ground the track below is drawn on, under this curve too.
+							 *
+							 * A trough during an intermission is the fight taking the boss away and a peak inside a
+							 * haste window is the raid buying it, and neither is readable if the wash stops at the row
+							 * above. Paint only: `pointer-events-none` throughout, so the hover strips further down
+							 * keep the cursor and the reader still gets damage-per-second rather than a second
+							 * tooltip about a band they can already see named on the track.
+							 *
+							 * First in the row, so everything else paints over it.
+							 */}
+							{haste.length === 0 && berserking.length === 0 ? null : (
+								<div className="pointer-events-none absolute inset-0 opacity-30">
+									{[...haste, ...berserking].map((w) => (
+										<span
+											key={`wash-${w.start}-${w.end}`}
+											style={{ left: pct(w.start, span), width: pct(Math.max(w.end - w.start, 0), span) }}
+											className={LUST_FILL}
+										/>
+									))}
+								</div>
+							)}
+							{intermissions.length === 0 ? null : (
+								<div className="pointer-events-none absolute inset-0">
+									{intermissions.map(([start, end]) => (
+										<span
+											key={`away-${start}`}
+											style={{ left: pct(start, span), width: pct(end - start, span) }}
+											className={AWAY_FILL}
+										/>
+									))}
+								</div>
+							)}
+							{/*
+							 * The same global-cooldown rules the lanes below are read against, drawn from the very
+							 * same path.
+							 *
+							 * `gcdRules` is built once for the chart, so this row cannot come to disagree with the
+							 * track about where a global fell — and a curve is exactly the row where that matters: a
+							 * ramp that starts on a rule is a ramp that starts on a press. `viewBox="0 0 1000 1"`
+							 * with no aspect ratio is the trick the track uses to stretch one-unit-tall rules to
+							 * whatever height the row happens to be.
+							 */}
+							<svg
+								className="pointer-events-none absolute inset-0 h-full w-full"
+								viewBox="0 0 1000 1"
+								preserveAspectRatio="none"
+								aria-hidden="true"
+							>
+								<path
+									d={gcdRules}
+									stroke="var(--color-line)"
+									strokeWidth={1}
+									vectorEffect="non-scaling-stroke"
+									fill="none"
+								/>
+							</svg>
+							{/*
+							 * `relative` is load-bearing, not layout. The washes above are absolutely positioned and
+							 * this is not, and a positioned element paints over a static one however the source order
+							 * runs, so without it the ground covers the curve it is meant to sit behind. Positioned
+							 * and later in the DOM, it wins. The same trap the compare overlay's rules fell into.
+							 */}
+							<svg
+								viewBox={`0 0 1000 ${DPS_ROW_PX}`}
+								preserveAspectRatio="none"
+								className="relative block h-full w-full"
+								aria-hidden="true"
+							>
+								{/* The value rules, drawn *before* the curve so the curve paints over them: inside one
+								    SVG, document order is the paint order and no stacking context is needed. That is
+								    the same rule the compare overlay has to solve with a positioned wrapper, and it is
+								    simpler here because these lines are in the drawing rather than beside it.
+
+								    Horizontal lines are the one thing that survives `preserveAspectRatio="none"`
+								    unharmed: stretching changes their length and not their weight, which is why the
+								    labels are in the gutter and these are not. */}
+								{dpsCurvePath.levels.map((level) => (
+									<line
+										key={level.value}
+										x1={0}
+										x2={1000}
+										y1={level.y}
+										y2={level.y}
+										stroke="var(--color-line)"
+										strokeWidth={1}
+										vectorEffect="non-scaling-stroke"
+									/>
+								))}
+								<path
+									d={dpsCurvePath.d}
+									fill="none"
+									stroke="var(--color-kick)"
+									strokeWidth={2}
+									vectorEffect="non-scaling-stroke"
+								/>
+							</svg>
+							{/*
+							 * One hover strip per second, over the curve.
+							 *
+							 * The tooltip on this chart reads its content off attributes of whatever is under the
+							 * cursor, so a value that changes along the row cannot come from one element: a single
+							 * band could only ever carry one number. A strip per second is the same granularity the
+							 * series itself has, so every reading the tooltip gives is one the analysis actually
+							 * holds rather than an interpolation between two of them.
+							 *
+							 * They are the same HTML-positioned-by-percentage shape as the stretches on the row
+							 * above, so they land on their own second at every zoom, and they carry no ink at all.
+							 */}
+							{dpsCurvePath.samples.map((sample) => (
 								<span
-									// Both, because the id repeats within a pull and only the pair is unique.
-									key={`${mark.id}-${mark.at}`}
-									title={`${t('castLog.phase.title')} · ${label} · ${formatStamp(mark.at)}`}
-									data-tip={label}
-									// `ink` rather than any of the coloured tones, for the reason the rule is white.
-									data-tip-tone="ink"
-									// The moment, which the label does not carry. Its own attribute rather than `at`,
-									// which the tooltip labels "Pressed" — nobody pressed a phase change.
-									data-tip-entered={formatStamp(mark.at)}
-									// Down to the bottom of the gutter rather than one row tall, so every rule ends flush
-									// against the chart it annotates and a staggered label is still joined to its own
-									// moment. On a single-row gutter — every real encounter at the default zoom — that is
-									// exactly the 24px line asked for.
-									style={{ left: pct(mark.at, span), top: row * PHASE_ROW_PX }}
-									className={PHASE_MARKER_CLASS}
-								>
-									{label}
-								</span>
+									key={sample.at}
+									className="absolute inset-y-0"
+									style={{ left: pct(sample.at, span), width: pct(1000, span) }}
+									data-tip={t('castLog.dps.title')}
+									data-tip-tone="kick"
+									data-tip-landed={formatStamp(sample.at)}
+									data-tip-dps={formatCompact(sample.dps)}
+								/>
 							))}
 						</div>
 					)}
@@ -2922,14 +3213,14 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 									<span
 										key={`lust-${w.start}-${w.end}`}
 										style={{ left: pct(w.start, span), width: pct(Math.max(w.end - w.start, 0), span) }}
-										className="absolute inset-y-0 bg-[var(--color-band-lust)]"
+										className={LUST_FILL}
 									/>
 								))}
 								{berserking.map((w) => (
 									<span
 										key={`berserking-${w.start}-${w.end}`}
 										style={{ left: pct(w.start, span), width: pct(Math.max(w.end - w.start, 0), span) }}
-										className="absolute inset-y-0 bg-[var(--color-band-lust)]"
+										className={LUST_FILL}
 									/>
 								))}
 							</div>
@@ -3035,7 +3326,7 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 										data-tip-from={formatStamp(start)}
 										data-tip-to={formatStamp(end)}
 										style={{ left: pct(start, span), width: pct(end - start, span) }}
-										className="pointer-events-auto absolute inset-y-0 border-x border-line bg-muted/10"
+										className={`pointer-events-auto border-x border-line ${AWAY_FILL}`}
 									/>
 								))}
 							</div>

@@ -35,6 +35,10 @@ export interface Shade {
 /**
  * A smooth path through the points, without inventing a value outside them.
  *
+ * Exported for the compare page's damage overlay, which wants exactly this property and not merely a
+ * rounded line: see the note below on overshoot. That chart draws two curves and no bar, so it does
+ * not reuse this component, only its geometry.
+ *
  * Monotone cubic rather than a plain Catmull-Rom or a fixed-tension spline, and the difference
  * matters here: an ordinary spline overshoots on a sharp turn, and this bar has a hard ceiling and a
  * hard floor. A curve that bulges past a reading would draw 104 energy, which is not a quantity
@@ -47,7 +51,7 @@ export interface Shade {
  * genuinely refills continuously and is sampled several times a global, and it is wrong for anything
  * counted in whole units.
  */
-function smoothPath(pts: ReadonlyArray<readonly [number, number]>): string {
+export function smoothPath(pts: ReadonlyArray<readonly [number, number]>): string {
 	if (pts.length < 3)
 		return pts.map(([px, py], i) => `${i === 0 ? 'M' : 'L'}${px.toFixed(2)} ${py.toFixed(2)}`).join('');
 

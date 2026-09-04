@@ -73,9 +73,20 @@ Hooks follow the same rule: one hook per file under `hooks/`, named `useThing.ts
 | interactive UI primitives  | `@base-ui/react`                                    | a hand-built modal, popover, select, tabs or tooltip |
 | forms, settings, options   | `react-hook-form`                                   | ad-hoc `useState` per field                          |
 | fetching, caching, retries | `@tanstack/react-query`                             | `useEffect` + `useState` fetch triples               |
-| charts and timelines       | `apexcharts` via `react-apexcharts`                 | hand-built SVG charts                                |
+| charts and timelines       | `apexcharts` via `react-apexcharts`                 | hand-built SVG charts (two exceptions below)         |
 | dates and durations        | `date-fns`                                          | manual `Date` maths                                  |
 | numbers, percents          | `Intl.NumberFormat` behind helpers in `lib/format/` | inline `toFixed` scattered through JSX               |
+
+**Two charts are hand-built SVG, and both are deliberate.** The resource bars (`ResourceTrack`) came
+first: a bar sampled a few times a global wants a monotone cubic through its readings, and the
+guarantee that buys is that the curve cannot overshoot a reading: no 104 energy, no 2.5 chi. The
+compare page's damage overlay (`DpsOverlay`) is the second, and it borrows that geometry for the same
+guarantee: an ordinary spline dips below a trough, which on a damage curve draws negative damage per
+second. Clamping an axis hides that; not drawing it is better.
+
+So the rule stands as written for anything new. Reach for Apex first, and the eight charts that use
+it are the evidence it is usually right. What earns an exception is a _property of the curve_ the
+library cannot give, argued at the component. "It looked closer to the mock" does not.
 
 Base UI is headless, which is the point: it brings the keyboard handling, focus trapping and ARIA
 wiring, and Tailwind brings every pixel of the look. A modal that is not a Base UI `Dialog` is a
@@ -609,10 +620,10 @@ copy itself follows — say it once, outside the arms.
      src/lib/i18n/__tests__/conventionsCensus.test.ts. Re-run the block above and paste the whole set
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
-As of the gear-proc block on the compare page, it prints 1819 leaves, 828 prose, 25,228
-words; median 27, p75 40, p90 57, p95 66, p99 102, max 158; longest 9% carry 23%; report.json 750 prose
-leaves, 1,339 sentences, median 16, 212 past 25 (15.8%), 1 em-dash in 0 sentences (0.0%);
-73 / 25 / 1 / 2 on the quote lines.
+As of the damage row on the cast log, it prints 1828 leaves, 832 prose, 25,445
+words; median 27, p75 40, p90 57, p95 67, p99 102, max 158; longest 9% carry 23%; report.json 754 prose
+leaves, 1,349 sentences, median 16, 217 past 25 (16.1%), 1 em-dash in 0 sentences (0.0%);
+74 / 25 / 1 / 2 on the quote lines.
 
 One leaf in, one prose string with it, and three of the five headlines reworded. The line under them
 changed what it counts, too. It
@@ -841,6 +852,28 @@ from one log is either gear the player did not wear or gear that never fired, an
 report separates them: the character sheet carries item ids, the events carry spell ids, and no map
 between the two ships. Saying that plainly is what lets the table print an absent row without the
 reader taking it for a nought.
+
+Six leaves and 102 words for the **damage overlay**: a heading, an intent, a caption, a chart label,
+a lane label and an empty state. Two of the six are figure labels rather than prose, which is the
+split a chart family makes every time: the replay's thirteen leaves carried only four prose strings.
+
+**One string was rewritten before it shipped, and the guard that caught it is `readerVoice`.** The
+intent said the segment lanes sat under the curve "on the same clock", and `clock` is in
+`MODEL_WORDS`: the fight timeline is legitimately a clock elsewhere in this file, which is exactly why
+that sweep does not run across every string. "Lined up with the curve above" says the same thing in
+the reader's terms. The lesson is the one that list was written for: the word arrived in a sentence
+about drawing, where it reads as ordinary English, rather than in a sentence about the audit.
+
+Three leaves and 80 words for the **damage row on the cast log**: a name for the row, the note that
+says what it is, and one label for the tooltip's own row. Two of the three are a word or three, which
+is the ratio a chart row runs at.
+
+**`past 25` moves 214 to 217, and the note is three of them.** It is one string of three sentences,
+each over the line, and it stays that way: what it has to say is that the row has no axis, that its
+height is its own peak rather than a shared one, and that it is a rate over a window rather than a
+value at an instant. None of the three is inferable from the picture, and a row drawn to a different
+convention from every other row on the chart is exactly where this corpus spends its long sentences.
+The meter row two entries up made the same trade for the same reason.
 
 <!-- /census:figures -->
 
