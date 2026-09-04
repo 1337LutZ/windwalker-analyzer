@@ -400,6 +400,79 @@ describe('Living Corruption on the one committed pull of its encounter', () => {
 		expect(progression.targets?.multiTargetPct).toBeCloseTo(35.37, 2);
 		expect(progression.targets?.detected).toBe('multi');
 	});
+
+	/**
+	 * *** And the damage moves with it, which for a long time it did not. ***
+	 *
+	 * The block above was the demonstration of what the mode changes, and it demonstrated the enemy
+	 * count and nothing else, because the damage table did not consult the ruleset at all. `eventTotal`
+	 * and every ability's total were accumulated outside `aggregateDamage`'s own guard, so a struck
+	 * body's damage counted towards the player under both readings. A control that says it changes what
+	 * was measured has to change it: a pull reading single-target with 0% multi-target while still
+	 * carrying every point of damage dealt to the twenty bodies it just struck is two answers to one
+	 * question.
+	 *
+	 * 4,871,094 of this pull's damage was dealt to Living Corruptions, **4.0% of it**, and that is the
+	 * whole of the difference here. The parsing figure is the one a ranking would see.
+	 *
+	 * The shares move with the totals rather than being renormalised separately, which is the property
+	 * worth pinning: `share` is computed against the same `eventTotal` the rows were summed into, so the
+	 * table adds to a hundred under either reading.
+	 */
+	it('takes a struck body’s damage out of the table under parsing, and leaves it under progression', () => {
+		const parsing = analyse(dataset, undefined, 'parsing');
+		const progression = analyse(dataset, undefined, 'progression');
+
+		expect(parsing.damage.eventTotal).toBe(116_647_203);
+		expect(progression.damage.eventTotal).toBe(121_518_297);
+		expect(progression.damage.eventTotal - parsing.damage.eventTotal).toBe(4_871_094);
+
+		// Non-vacuity: the numbers above are a difference only because the ruleset struck something here.
+		// On a pull with no exclusion row the two readings must still agree to the unit.
+		const plain = rawFixture('windwalker', 'dataset-ironJuggernaut.json');
+		expect(analyse(plain, undefined, 'parsing').damage.eventTotal).toBe(
+			analyse(plain, undefined, 'progression').damage.eventTotal,
+		);
+
+		// Each reading's table is internally whole: the rows sum to the total they were divided by.
+		for (const card of [parsing, progression]) {
+			const rows = card.damage.abilities.reduce((sum, a) => sum + a.total, 0);
+			expect(rows).toBe(card.damage.eventTotal);
+			expect(card.damage.abilities.reduce((sum, a) => sum + a.share, 0)).toBeCloseTo(100, 6);
+		}
+	});
+
+	/**
+	 * And the per-second series is the same reading of the same walk, under either mode.
+	 *
+	 * This is the identity the curve on the compare page rests on. The series exists so that damage can
+	 * be drawn against a clock, and the one thing that would make it a lie is disagreeing with the total
+	 * printed beside it, which is exactly what a second walk over the events would eventually do, since
+	 * nothing would force it to apply the struck filter the same way. Asserting the sum is what makes
+	 * "off the same walk" a fact rather than a comment.
+	 */
+	it('publishes a per-second series that adds up to the total it was taken from', () => {
+		for (const mode of ['parsing', 'progression'] as const) {
+			const card = analyse(dataset, undefined, mode);
+			const series = card.damage.perSecond ?? [];
+			expect(series.length, mode).toBeGreaterThan(0);
+			expect(
+				series.reduce((sum, n) => sum + n, 0),
+				mode,
+			).toBe(card.damage.eventTotal);
+			// One slot per whole second of the pull, plus the partial one at the end.
+			expect(series.length, mode).toBe(Math.ceil(card.durationMs / 1000) + 1);
+			expect(
+				series.every((n) => n >= 0),
+				mode,
+			).toBe(true);
+		}
+		// The two curves differ by exactly the damage the ruleset struck, second for second.
+		const struckOff =
+			(analyse(dataset, undefined, 'progression').damage.perSecond ?? []).reduce((sum, n) => sum + n, 0) -
+			(analyse(dataset, undefined, 'parsing').damage.perSecond ?? []).reduce((sum, n) => sum + n, 0);
+		expect(struckOff).toBe(4_871_094);
+	});
 });
 
 /**

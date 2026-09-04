@@ -12,6 +12,24 @@ export interface DamageAggregate {
 	 * it rather than against the site's number.
 	 */
 	eventTotal: number;
+	/**
+	 * Damage dealt in each whole second of the pull, index by second from the pull's start.
+	 *
+	 * **Off the same walk as the totals, which is the only reason it is here rather than in a helper of
+	 * its own.** A curve and a total that disagree about one pull is the two-passes failure this
+	 * codebase keeps writing down, and building the series beside the sum makes them the same reading by
+	 * construction: `perSecond` adds to `eventTotal` exactly, and a test asserts it. A second walk over
+	 * `damageEvents` would be free to apply the struck filter differently and nothing would catch it.
+	 *
+	 * **Seconds, and no window applied.** This is the raw quantity; how much of it to average into a
+	 * readable line is a drawing decision and belongs to the chart, which is where the window can be
+	 * chosen against the width it has. Storing a pre-smoothed series would freeze that choice in the
+	 * analysis and make the number unrecoverable.
+	 *
+	 * Dense rather than sparse: a second in which nothing landed is a real zero, and a curve drawn from
+	 * a sparse series would join the two seconds either side of a gap into a slope nobody had.
+	 */
+	perSecond: number[];
 }
 
 /**
@@ -53,6 +71,32 @@ export function aggregateDamage(
 	nameOf: (id: number) => string,
 	ignoredTargets: ReadonlySet<number> = new Set(),
 	immuneSpawns: ReadonlySet<string> = new Set(),
+	/**
+	 * A hit WarcraftLogs strikes off the ranking, which under `parsing` is a hit that did not happen.
+	 *
+	 * **A different question from the two sets above, which is why it is a third argument and not a
+	 * fourth member of their condition.** `ignoredTargets` and `immuneSpawns` decide whether a body
+	 * joins the *fan-out*, how many enemies an ability was hitting, and a trigger ability counts a
+	 * unit it could not damage, which is what `multiTargetBenefit: 'trigger'` buys. Nothing about that
+	 * applies here: the ruleset does not care what an ability's benefit was, it removes the damage.
+	 *
+	 * So a struck hit leaves **everything**: the total, the hit count and the crit count, rather than
+	 * only the fan-out. Leaving it in `hits` while taking it out of `total` would publish an `avgHit`
+	 * divided by blows that no longer count towards the numerator, which is a number describing neither
+	 * reading of the pull.
+	 *
+	 * Defaults to counting every hit, so a caller that has not resolved a ruleset against its pull gets
+	 * exactly the behaviour this function had before the argument existed.
+	 */
+	struck: (event: DamageEvent) => boolean = () => false,
+	/**
+	 * The pull's own clock, for the per-second series. Absent on a caller that wants only the table.
+	 *
+	 * `t0` is the fight's start timestamp, which the events are still absolute against at this point,
+	 * and `durationMs` sizes the array so a pull whose last hit lands well before the end still
+	 * publishes the quiet tail it really had.
+	 */
+	clock?: { t0: number; durationMs: number },
 ): DamageAggregate {
 	const rows = new Map<
 		string,
@@ -68,10 +112,17 @@ export function aggregateDamage(
 		}
 	>();
 	let eventTotal = 0;
+	// One slot per whole second, so the last partial second of a pull has somewhere to land.
+	const seconds = clock === undefined ? 0 : Math.ceil(clock.durationMs / 1000) + 1;
+	const perSecond: number[] = Array.from({ length: seconds }, () => 0);
 
 	for (const e of damageEvents) {
 		const id = abilityIdOf(e);
 		if (id === null) continue;
+		// Before the row is even reached for: a struck hit is not a smaller hit, it is one the reading
+		// the player asked for does not contain. An ability every one of whose hits was struck therefore
+		// leaves the table rather than appearing at zero.
+		if (struck(e)) continue;
 		const ability = registry.abilityByDamageId(id) ?? registry.abilityByCastId(id);
 		const key = ability?.key ?? `#${id}`;
 		const rec = rows.get(key) ?? {
@@ -103,7 +154,14 @@ export function aggregateDamage(
 			rec.targetsByTimestamp.set(e.timestamp, targets);
 		}
 		rows.set(key, rec);
-		eventTotal += e.amount ?? 0;
+		const amount = e.amount ?? 0;
+		eventTotal += amount;
+		if (clock !== undefined) {
+			// Clamped rather than dropped: a hit stamped a beat past the fight's end is a real hit, and
+			// throwing it away would break the identity this series is asserted on.
+			const at = Math.min(Math.max(Math.floor((e.timestamp - clock.t0) / 1000), 0), perSecond.length - 1);
+			perSecond[at] = (perSecond[at] ?? 0) + amount;
+		}
 	}
 
 	const abilities = [...rows.values()]
@@ -129,7 +187,7 @@ export function aggregateDamage(
 		})
 		.sort((a, b) => b.total - a.total);
 
-	return { abilities, eventTotal };
+	return { abilities, eventTotal, perSecond };
 }
 
 export function damageByTarget(damageEvents: readonly DamageEvent[]): Map<number, number> {

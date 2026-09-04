@@ -2124,6 +2124,29 @@ export interface AnalysisCore {
 		eventTotal: number;
 		dps: number;
 		abilities: AbilityDamage[];
+		/**
+		 * Damage dealt in each whole second of the pull, index by second from the start.
+		 *
+		 * The series the compare page's overlay is drawn from, and the only shape in the analysis that
+		 * carries damage against a clock. Taken off the same walk as `eventTotal` and summing to it
+		 * exactly. See `DamageAggregate.perSecond`, which is where that identity is argued and where the
+		 * decision to store seconds rather than a smoothed line is made.
+		 *
+		 * **It follows the reader's analysis mode**, because the walk it comes off does: under `parsing`
+		 * a struck body's damage is not in the total and is not in the curve either. That was not true of
+		 * anything in this block until the struck filter reached `aggregateDamage`.
+		 *
+		 * Optional because every committed capture predates it, so absent means "analysed by an older
+		 * build" and a chart must draw nothing rather than an empty pull.
+		 *
+		 * **It is dense, and a captured fixture pays for it.** One number per second is 250-odd entries
+		 * on a four-minute pull and 500 on Garrosh, and `AnalysisCore` is what the pre-analysed fixtures
+		 * serialise, so the next capture committed will carry the array where the six that exist today
+		 * carry nothing. That is the right trade for a series the chart cannot reconstruct, but it is
+		 * the sort of cost that is invisible until a fixture doubles, so it is written down here where
+		 * whoever re-captures one will be looking.
+		 */
+		perSecond?: number[];
 	};
 	cpm: CpmSummary;
 	casts: CastRow[];
