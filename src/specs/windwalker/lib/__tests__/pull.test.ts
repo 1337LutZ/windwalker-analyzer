@@ -46,7 +46,14 @@ describe('a real Windwalker pull, audited from raw events', () => {
 	 * contact clock had stopped measuring contact.
 	 */
 	it('reads the pull the way WarcraftLogs does, except for the clock the rate is per', () => {
-		expect(Math.round(a.damage.dps)).toBe(442_607);
+		// 461,334 and not 442,607: the headline is this reading's own damage over the pull now rather than
+		// WarcraftLogs' table total, so it follows the analysis mode and the ability rows sum to it. The
+		// difference here is the tiger, 3,129,489 of pet damage the site's entry for this pull leaves out,
+		// plus the half-percent residue named on `eventTotal`. See `dps` in `analyseCore`.
+		expect(Math.round(a.damage.dps)).toBe(461_334);
+		// The rows add up to the headline, which is the property the old number did not have.
+		expect(a.damage.abilities.reduce((sum, ability) => sum + ability.total, 0)).toBe(a.damage.eventTotal);
+		expect(Math.round(a.damage.eventTotal / (a.durationMs / 1000))).toBe(Math.round(a.damage.dps));
 		expect(+a.cpm.totalCpm.toFixed(2)).toBe(52.84);
 		// What it read before, off WarcraftLogs' span, and the whole of the movement.
 		expect(+(a.cpm.onGcdCasts / (a.cpm.activeMs / 60_000)).toFixed(2)).toBe(52.81);

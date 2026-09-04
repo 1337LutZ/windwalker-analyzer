@@ -7,9 +7,18 @@ const CRIT = 2;
 export interface DamageAggregate {
 	abilities: AbilityDamage[];
 	/**
-	 * Sum of the `amount` field over the damage events. Runs a few percent above WarcraftLogs' own
-	 * damage-done total because it counts overkill, which is why per-ability shares are taken against
-	 * it rather than against the site's number.
+	 * Sum of the `amount` field over the damage events this reading counts.
+	 *
+	 * The per-ability shares are taken against it, and so is the headline DPS, so the table adds up to
+	 * the number above it. It also follows the analysis mode, because the walk it comes off does.
+	 *
+	 * **It runs above WarcraftLogs' own damage-done total, and not for the reason this docblock used to
+	 * give.** It said "because it counts overkill", and these events carry no `overkill` field at all:
+	 * 895 damage events on the Iron Juggernaut fixture and not one of them has the key. Measured, the
+	 * difference is two things: the player's pets, which this sum includes and the site's entry for that
+	 * pull does not, and a residue of between half a percent and five that is the site applying
+	 * exclusions this report does not fully implement. Iron Juggernaut is 84,666,478 of the player's own
+	 * against 84,232,041 at the site, plus 3,129,489 of pet.
 	 */
 	eventTotal: number;
 	/**

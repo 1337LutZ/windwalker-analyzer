@@ -2044,7 +2044,22 @@ export function analyseCore(
 			wclTotal: entry?.total ?? null,
 			eventTotal,
 			perSecond,
-			dps: duration > 0 ? (entry?.total ?? eventTotal) / (duration / 1000) : 0,
+			/**
+			 * The pull's own damage over its own length, and **not** WarcraftLogs' table total any more.
+			 *
+			 * Two things were wrong with taking the site's number. It ignores the reader's analysis mode,
+			 * which every other figure in this report now follows: on heroic Malkorok the curve below moves
+			 * by 4,871,094 between the two readings and the headline over it did not move at all. And it
+			 * does not agree with the table beneath it: the per-ability rows sum to `eventTotal`, so a
+			 * report could print "87.8M damage at 442,607 DPS" on a pull where those two cannot both be
+			 * true. One quantity, one clock, and the rows now add up to the headline.
+			 *
+			 * The cost is that this no longer matches the DPS WarcraftLogs shows for the same pull, by
+			 * between half a percent and eight across the committed fixtures. `wclTotal` is still
+			 * published beside it, and `rankPercent` is still the site's own, so the number a reader can
+			 * check against the site has not gone anywhere.
+			 */
+			dps: duration > 0 ? eventTotal / (duration / 1000) : 0,
 			abilities,
 		},
 		// ------------------------------------------------ the two clocks, one field at a time
