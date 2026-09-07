@@ -35,6 +35,15 @@ export interface AbilityIdentity {
 	 * every id it logs a cast under, and whether a character has to be something to have it at all.
 	 */
 	ability(id: number): { castIds: readonly number[]; gatedBy?: 'race' | 'profession' } | null;
+	/**
+	 * True when the id names an aura an *item* puts up on its own: a trinket, the meta gem, a cloak,
+	 * an enchant.
+	 *
+	 * Here for the same reason the three lookups above are: the answer lives in the game model, and
+	 * nothing in `lib/compare` may reach into a spec to get it. A list of trinket keys inside this
+	 * folder would be this folder naming mechanics, which is the one thing it does not do.
+	 */
+	gearProc(id: number): boolean;
 }
 
 /**
@@ -48,6 +57,7 @@ export interface AbilityIdentity {
 export function identityFrom(registry: {
 	abilityByCastId(id: number): { key: string; castIds: number[]; gatedBy?: 'race' | 'profession' } | undefined;
 	abilityByDamageId(id: number): { key: string; castIds: number[]; gatedBy?: 'race' | 'profession' } | undefined;
+	auraById(id: number): { gearProc?: true } | undefined;
 }): AbilityIdentity {
 	const of = (id: number) => registry.abilityByCastId(id) ?? registry.abilityByDamageId(id);
 	return {
@@ -57,6 +67,7 @@ export function identityFrom(registry: {
 			const found = of(id);
 			return found === undefined ? null : { castIds: found.castIds, gatedBy: found.gatedBy };
 		},
+		gearProc: (id) => registry.auraById(id)?.gearProc === true,
 	};
 }
 

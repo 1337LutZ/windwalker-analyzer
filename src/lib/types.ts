@@ -1662,6 +1662,20 @@ export interface KarmaAudit {
 	 * back as `Analysis` with no migration: absent means "analysed by an older build", not "zero".
 	 */
 	withFortifyingBrew?: number;
+	/**
+	 * Presses that went out while a Tigereye Brew was running: the section's one graded fault.
+	 *
+	 * A count rather than a share, because a ninety second cooldown leaves most pulls under
+	 * `MIN_GRADED_SAMPLE` and a refused share would publish no letter on nearly every log. The claim
+	 * is about the *global* the press spent inside the brew and never about what the redirect
+	 * returned, which nothing can say: see `duringBrew` in `~/specs/windwalker/lib` for the derivation
+	 * and for why the rule is measured against the brew window rather than against the subset of brews
+	 * that caught a Rune proc.
+	 *
+	 * Optional for the reason the two fields above it are: absent means "analysed by an older build",
+	 * never "zero".
+	 */
+	duringBrew?: number;
 	uses: Array<{
 		t: number;
 		reflected: number;
@@ -1687,6 +1701,13 @@ export interface KarmaAudit {
 		capPct: number | null;
 		/** Fortifying Brew was running for part of the redirect. Absent on a fixture, never null. */
 		fortifyingBrew?: boolean;
+		/**
+		 * A Tigereye Brew was running when this press went out, so its global was the amplified kind.
+		 *
+		 * Read at the cast and not across the redirect, unlike `fortifyingBrew` above: the cost being
+		 * named is the global, and a global is spent at the press. Absent on a fixture, never `false`.
+		 */
+		duringBrew?: boolean;
 	}>;
 }
 
@@ -2103,6 +2124,29 @@ export interface AnalysisCore {
 		eventTotal: number;
 		dps: number;
 		abilities: AbilityDamage[];
+		/**
+		 * Damage dealt in each whole second of the pull, index by second from the start.
+		 *
+		 * The series the compare page's overlay is drawn from, and the only shape in the analysis that
+		 * carries damage against a clock. Taken off the same walk as `eventTotal` and summing to it
+		 * exactly. See `DamageAggregate.perSecond`, which is where that identity is argued and where the
+		 * decision to store seconds rather than a smoothed line is made.
+		 *
+		 * **It follows the reader's analysis mode**, because the walk it comes off does: under `parsing`
+		 * a struck body's damage is not in the total and is not in the curve either. That was not true of
+		 * anything in this block until the struck filter reached `aggregateDamage`.
+		 *
+		 * Optional because every committed capture predates it, so absent means "analysed by an older
+		 * build" and a chart must draw nothing rather than an empty pull.
+		 *
+		 * **It is dense, and a captured fixture pays for it.** One number per second is 250-odd entries
+		 * on a four-minute pull and 500 on Garrosh, and `AnalysisCore` is what the pre-analysed fixtures
+		 * serialise, so the next capture committed will carry the array where the six that exist today
+		 * carry nothing. That is the right trade for a series the chart cannot reconstruct, but it is
+		 * the sort of cost that is invisible until a fixture doubles, so it is written down here where
+		 * whoever re-captures one will be looking.
+		 */
+		perSecond?: number[];
 	};
 	cpm: CpmSummary;
 	casts: CastRow[];

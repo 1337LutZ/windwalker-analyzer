@@ -73,9 +73,20 @@ Hooks follow the same rule: one hook per file under `hooks/`, named `useThing.ts
 | interactive UI primitives  | `@base-ui/react`                                    | a hand-built modal, popover, select, tabs or tooltip |
 | forms, settings, options   | `react-hook-form`                                   | ad-hoc `useState` per field                          |
 | fetching, caching, retries | `@tanstack/react-query`                             | `useEffect` + `useState` fetch triples               |
-| charts and timelines       | `apexcharts` via `react-apexcharts`                 | hand-built SVG charts                                |
+| charts and timelines       | `apexcharts` via `react-apexcharts`                 | hand-built SVG charts (two exceptions below)         |
 | dates and durations        | `date-fns`                                          | manual `Date` maths                                  |
 | numbers, percents          | `Intl.NumberFormat` behind helpers in `lib/format/` | inline `toFixed` scattered through JSX               |
+
+**Two charts are hand-built SVG, and both are deliberate.** The resource bars (`ResourceTrack`) came
+first: a bar sampled a few times a global wants a monotone cubic through its readings, and the
+guarantee that buys is that the curve cannot overshoot a reading: no 104 energy, no 2.5 chi. The
+compare page's damage overlay (`DpsOverlay`) is the second, and it borrows that geometry for the same
+guarantee: an ordinary spline dips below a trough, which on a damage curve draws negative damage per
+second. Clamping an axis hides that; not drawing it is better.
+
+So the rule stands as written for anything new. Reach for Apex first, and the eight charts that use
+it are the evidence it is usually right. What earns an exception is a _property of the curve_ the
+library cannot give, argued at the component. "It looked closer to the mock" does not.
 
 Base UI is headless, which is the point: it brings the keyboard handling, focus trapping and ARIA
 wiring, and Tailwind brings every pixel of the look. A modal that is not a Base UI `Dialog` is a
@@ -609,10 +620,10 @@ copy itself follows — say it once, outside the arms.
      src/lib/i18n/__tests__/conventionsCensus.test.ts. Re-run the block above and paste the whole set
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
-As of the split-group callout, it prints 1808 leaves, 823 prose, 24,992
-words; median 27, p75 40, p90 57, p95 66, p99 102, max 158; longest 9% carry 23%; report.json 745 prose
-leaves, 1,324 sentences, median 16, 212 past 25 (16.0%), 1 em-dash in 0 sentences (0.0%);
-73 / 25 / 1 / 2 on the quote lines.
+As of the damage row on the cast log, it prints 1828 leaves, 832 prose, 25,445
+words; median 27, p75 40, p90 57, p95 67, p99 102, max 158; longest 9% carry 23%; report.json 754 prose
+leaves, 1,349 sentences, median 16, 217 past 25 (16.1%), 1 em-dash in 0 sentences (0.0%);
+74 / 25 / 1 / 2 on the quote lines.
 
 One leaf in, one prose string with it, and three of the five headlines reworded. The line under them
 changed what it counts, too. It
@@ -807,6 +818,62 @@ the row stands at 75.
 **What this census is for, on the evidence of that round trip.** A row moving is a question, not a
 verdict. This one was answered wrongly twice before the provenance of the rule behind it was checked,
 and the number was the same number all three times.
+
+Five leaves and 135 words in the pass that added the Touch of Karma placement rule: two labels, two
+count arms of one sentence and the note under them. Three of the five are prose and two are headings, so
+the leaf count moves five and the prose count three, which is the split the replay family above is the
+long-form case of. **The row worth reading is `past 25`, which falls 212 to 212 and 16.0% to 15.9%
+while the sentence total climbs nine.** The first draft of the two count arms was two sentences of
+thirty-five and twenty-eight words apiece, both past the line; splitting each into three took them
+under it without losing a clause, and the share fell out of the denominator rather than out of a
+decision. The em-dash count holds at 1 in 0 sentences.
+
+**The note under it exists because the rule is narrower than it reads.** "Do not press this during a
+brew" invites the reader to supply the reason, and the obvious reason is that the redirect would have
+been amplified, which nothing can support: the simulator does not model Touch of Karma at all. So the
+copy names the cost it can stand behind, the global, and then says outright what it is not claiming.
+That is the same trade the replay's note makes, in a section where the misreading is about a mechanic
+rather than about a picture.
+
+Six leaves and 101 words in the pass after that, for the **gear-proc block** on the compare page: a
+heading, an intent, a two-word absence label, a unit, the caveat under the table and an empty state.
+**Not one of the six is past 25 words, and the block is the shortest section copy on the page.** It
+did not start that way. The first draft ran an intent of five sentences and a caveat of five, both
+arguing the block's design at a reader who had asked only what the numbers were; the reader who saw
+it asked what the numbers were anyway. Six leaves and a unit label answered it.
+
+**The unit is a leaf on its own, `{{value}}/min`, and it is the entry.** The figure is procs per
+minute of contact and the block drew it as a bare `2.2`, which is a fraction of a proc and nothing
+the game produces. The reader read it as a count and said so. A number whose unit is only in the
+prose above it is a number without a unit.
+
+**The caveat is the longest of the six and is the reason the block can exist at all.** A proc absent
+from one log is either gear the player did not wear or gear that never fired, and nothing in this
+report separates them: the character sheet carries item ids, the events carry spell ids, and no map
+between the two ships. Saying that plainly is what lets the table print an absent row without the
+reader taking it for a nought.
+
+Six leaves and 102 words for the **damage overlay**: a heading, an intent, a caption, a chart label,
+a lane label and an empty state. Two of the six are figure labels rather than prose, which is the
+split a chart family makes every time: the replay's thirteen leaves carried only four prose strings.
+
+**One string was rewritten before it shipped, and the guard that caught it is `readerVoice`.** The
+intent said the segment lanes sat under the curve "on the same clock", and `clock` is in
+`MODEL_WORDS`: the fight timeline is legitimately a clock elsewhere in this file, which is exactly why
+that sweep does not run across every string. "Lined up with the curve above" says the same thing in
+the reader's terms. The lesson is the one that list was written for: the word arrived in a sentence
+about drawing, where it reads as ordinary English, rather than in a sentence about the audit.
+
+Three leaves and 80 words for the **damage row on the cast log**: a name for the row, the note that
+says what it is, and one label for the tooltip's own row. Two of the three are a word or three, which
+is the ratio a chart row runs at.
+
+**`past 25` moves 214 to 217, and the note is three of them.** It is one string of three sentences,
+each over the line, and it stays that way: what it has to say is that the row has no axis, that its
+height is its own peak rather than a shared one, and that it is a rate over a window rather than a
+value at an instant. None of the three is inferable from the picture, and a row drawn to a different
+convention from every other row on the chart is exactly where this corpus spends its long sentences.
+The meter row two entries up made the same trade for the same reason.
 
 <!-- /census:figures -->
 

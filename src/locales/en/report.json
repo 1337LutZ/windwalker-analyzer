@@ -489,6 +489,10 @@
     "shape": {
       "title": "Target mode"
     },
+    "dps": {
+      "title": "Damage",
+      "note": "The damage line under the target mode is your damage per second, averaged over a trailing 15 seconds so one critical strike is not a spike. It is drawn against your own peak for the pull, which is the number beside its name, because a row this short has no room for a scale. Read it for when the damage was, not for how much: a trough is usually the stretch above it changing rather than anything you stopped doing."
+    },
     "intent": "Every press as its own icon at the moment it went out, with buffs, procs and the Rising Sun Kick debuff as bars underneath, so you can read down from a button to what was up when you pressed it. Turn off what you are not looking at, zoom, and scroll sideways.",
     "empty": "No casts and no buff windows were recorded for this pull, so there is nothing to draw.",
     "expand": "Open full width",
@@ -509,6 +513,7 @@
       "swing": "Swung",
       "cancelledAt": "Cancelled at",
       "entered": "Entered",
+      "dps": "Damage per second",
       "applied": "Went up or was renewed",
       "cast": "Cast for",
       "stat": "Converted into",
@@ -618,6 +623,9 @@
     "verdict_none": "Touch of Karma was never pressed, and the pull allowed {{available}} uses.",
     "empty_one": "One press redirected nothing at all, a ninety-second cooldown and a global used while nothing was hitting you.",
     "empty_other": "{{count}} presses redirected nothing at all, that many ninety-second cooldowns and globals used while nothing was hitting you.",
+    "inBrew_one": "One press went out while a Tigereye Brew was running. Touch of Karma takes a global, and a brew is fifteen seconds of everything you do hitting harder. Its ninety-second cooldown has room on either side of a brew, so keep the press out of that window.",
+    "inBrew_other": "{{count}} presses went out while a Tigereye Brew was running. Touch of Karma takes a global, and a brew is fifteen seconds of everything you do hitting harder. Its ninety-second cooldown has room on either side of a brew, so keep the presses out of that window.",
+    "inBrewNote": "What the redirect itself returns under a brew is not claimed either way. Touch of Karma is absent from the simulator entirely, so nothing can say whether the damage it sends back is amplified. The cost being named is the global.",
     "none": "Touch of Karma was never pressed, and the pull allowed {{available}} uses.",
     "caption": "Every Touch of Karma, and what the redirect returned while it ran",
     "kpi": {
@@ -632,7 +640,8 @@
       "reflected": "returned",
       "hits": "hits",
       "capPct": "% of max health",
-      "fortifying": "fortifying brew"
+      "fortifying": "fortifying brew",
+      "inBrew": "inside a brew"
     },
     "capSummary_zero": "Your health pool on this pull was {{health, compact}}, and that is the most one press can absorb. Across {{casts}} presses that comes to {{possible, compact}}; the redirect absorbed {{absorbed, compact}} of it, {{pct, percent}}. None of them ran out of pool, so every one of them had room left for damage that never came.",
     "capSummary_one": "Your health pool on this pull was {{health, compact}}, and that is the most one press can absorb. Across {{casts}} presses that comes to {{possible, compact}}; the redirect absorbed {{absorbed, compact}} of it, {{pct, percent}}. One press drained its pool completely and could not have returned more.",
@@ -1322,6 +1331,9 @@
         },
         "karmaCapShare": {
           "label": "Health reflected"
+        },
+        "karmaInBrew": {
+          "label": "Pressed inside a brew"
         },
         "globalsMissed": {
           "label": "Missed globals"
@@ -2208,6 +2220,22 @@
       "intent": "How often each button went out, per minute of pull. A cooldown that differs here drifted; a button waiting on chi or energy differs because the economy behind it did.",
       "none": "Neither pull recorded a cast."
     },
+    "dps": {
+      "title": "Damage over the pull",
+      "intent": "Each pull's damage per second, averaged over a trailing {{window}}-second window so one critical strike is not a spike. The lines end where each pull ended; nothing is stretched to make them the same length. The stretches underneath are what each pull was fought in, lined up with the curve above, because a dip is usually a phase that took the boss away rather than a player who stopped.",
+      "caption": "Damage per second, trailing {{window}}s mean",
+      "label": "Damage per second over the pull, {{a}} against {{b}}",
+      "segments": "The stretches {{player}} fought this pull in",
+      "empty": "One of these pulls was analysed before the per-second series existed, so there is no curve to draw. Re-run it to see this chart."
+    },
+    "procs": {
+      "title": "Gear procs per minute",
+      "intent": "Trinkets, the meta gem, the cloak and the weapon enchant fire on their own. Procs per minute of contact, so a longer pull does not read as a luckier one. A roll is not a decision, so none of this is scored. It is here because it moves damage: check a gap above against this block before hunting the rotation for a mistake.",
+      "absent": "no proc in this log",
+      "perMinute": "{{value}}/min",
+      "caveat": "A missing row means that log recorded no proc of it: different gear, or the same gear that never fired. This report cannot tell which, and the gear each of you wore is on the two report pages.",
+      "none": "Neither pull recorded a gear proc."
+    },
     "rate": {
       "notPressed": "not pressed",
       "notTalented": "not talented",
@@ -2223,7 +2251,7 @@
       "bands": "The two pulls were fought at different enemy counts. Anything that only applies at some counts is marked as not asked rather than compared.",
       "itemLevel": "Item level {{a}} against {{b}}. Nothing here models gear, so read the damage gap with that in hand."
     },
-    "elsewhere": "Timelines, cast logs and the miss ledger are not compared here. Two pulls of different length do not line up second for second, so putting their events beside each other would show you a difference that is only the difference in length. Open each report for those.",
+    "elsewhere": "Cast logs, the aura lanes and the miss ledger are not compared here. Two pulls of different length do not line up second for second, so putting their events beside each other would show you a difference that is only the difference in length. The damage curve above is the exception and not a change of mind: a rate over time describes each pull on its own, so two of them compare shapes rather than moments. Open each report for the rest.",
     "talents": {
       "title": "Talents",
       "legend": "The whole tree. A choice you both made is outlined plainly, one only you made takes your own colour, and one neither of you took stays dim.",

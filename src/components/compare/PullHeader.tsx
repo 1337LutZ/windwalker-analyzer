@@ -1,5 +1,7 @@
 import { useTranslation } from 'react-i18next';
 
+import { jumpToHeading } from '../jump';
+
 import type { Comparison, PullFraming, Side } from '~/lib/compare';
 import { formatCompact, formatDecimal, formatHumanDuration, formatPercentValue } from '~/lib/format';
 
@@ -41,6 +43,28 @@ function difference(shape: Shape, a: number, b: number): { by: number; leader: S
  * why they are here and not in a scored section: none of them is graded, and none of them belongs to
  * one spec.
  */
+/**
+ * Where each figure in this table is argued at length, so a reader can go from the headline to it.
+ *
+ * The three rows are the only figures on the page stated before anything explains them, which is what
+ * makes them the natural way in: a reader who sees a 40k DPS gap wants the shape behind it, not the
+ * next paragraph. `dps` therefore points at the curve rather than at the ranked gaps: the chart is
+ * the answer to "where did that come from" in a way a bar of bands is not.
+ *
+ * `gcd` points at the ranked gaps because that is where `gcdUtilisation` is drawn; the casts section
+ * below it is a list of per-button rates and does not carry the figure. `cpm` points at that list
+ * instead, which is the same number broken down.
+ *
+ * Smooth-scrolled through `jumpToHeading`, shared with the contents rail, so an in-page jump behaves
+ * the same wherever it is started from, including honouring a reader who has asked for less motion.
+ * A real `<a href>` rather than a click handler, so it middle-clicks and keyboards like any link.
+ */
+const FIGURE_SECTION = {
+	dps: 'compare-dps',
+	cpm: 'compare-casts',
+	gcd: 'compare-gaps',
+} as const;
+
 export default function PullHeader({ comparison }: { comparison: Comparison }) {
 	const { t } = useTranslation('report');
 	const { a, b } = comparison;
@@ -63,7 +87,7 @@ export default function PullHeader({ comparison }: { comparison: Comparison }) {
 	);
 
 	const figure = (
-		key: string,
+		key: keyof typeof FIGURE_SECTION,
 		label: string,
 		shape: Shape,
 		left: number,
@@ -74,7 +98,15 @@ export default function PullHeader({ comparison }: { comparison: Comparison }) {
 		return {
 			key,
 			cells: {
-				figure: label,
+				figure: (
+					<a
+						href={`#${FIGURE_SECTION[key]}-heading`}
+						onClick={(event) => jumpToHeading(`${FIGURE_SECTION[key]}-heading`, event)}
+						className="rounded-sm underline decoration-line underline-offset-4 transition-colors hover:decoration-kick hover:text-ink"
+					>
+						{label}
+					</a>
+				),
 				a: text(left),
 				b: text(right),
 				difference:

@@ -159,7 +159,7 @@ describe('the compare page', () => {
 	 * assertion would have pinned the wrong invariant to the right name.
 	 */
 	it('names the first log before the second in the chart legend', () => {
-		const chart = html.slice(html.indexOf('compare-gaps-heading'), html.indexOf('compare-damage-heading'));
+		const chart = html.slice(html.indexOf('id="compare-gaps-heading"'), html.indexOf('id="compare-damage-heading"'));
 		expect(chart).not.toBe('');
 		const legend = chart.match(/<figcaption[\s\S]*?<\/figcaption>/)?.[0] ?? '';
 		expect(legend.indexOf(captured('strong').player)).toBeGreaterThan(-1);
@@ -172,7 +172,7 @@ describe('the compare page', () => {
 	 * thresholds.
 	 */
 	it('draws each figure on its own scale rather than one shared axis', () => {
-		const chart = html.slice(html.indexOf('compare-gaps-heading'), html.indexOf('compare-damage-heading'));
+		const chart = html.slice(html.indexOf('id="compare-gaps-heading"'), html.indexOf('id="compare-damage-heading"'));
 		const comparable = compare(pull('strong'), pull('poor'), IDENTITY)
 			.sections.flatMap((section) => section.metrics)
 			.filter((gap) => gap.bands !== null);
@@ -198,5 +198,166 @@ describe('the compare page', () => {
 		expect(self).not.toContain('Not asked of');
 		expect(self).not.toMatch(/compare\.[a-z]+\./i);
 		expect(self).toContain('12/14');
+	});
+});
+
+describe('the gear-proc block', () => {
+	/**
+	 * The block draws, names its rows off the game model, and says what an absent row means.
+	 *
+	 * The caveat is asserted rather than taken on trust because it is load-bearing: without it an
+	 * absent row is a blank beside a real reading, and a reader supplies the wrong reason for it.
+	 */
+	it('draws the item effects and the note that makes an absent row readable', () => {
+		expect(html).toContain(`id="compare-procs-heading"`);
+		expect(html).toContain('Re-Origination');
+		expect(html).toContain('Capacitance');
+		// The class proc that shares the timeline's `proc` group and is not luck. See `build.test.ts`.
+		expect(html).not.toContain('Combo Breaker: Tiger Palm');
+		expect(html).toMatch(/different gear, or the same gear that never fired/);
+	});
+
+	/**
+	 * The unit is on every reading, which is what a bare number could not say.
+	 *
+	 * `2.1` beside a trinket reads as a proc count, and a trinket does not fire 2.1 times. It is a
+	 * rate on purpose: `strong` rolled the Rune 16 times over 8:55 and `poor` 9 times over 4:15, so
+	 * the count favours the longer pull (16 against 9) and the rate says `poor` was luckier (1.86 against 2.14).
+	 */
+	it('prints the unit on every reading', () => {
+		const block = html.slice(html.indexOf('id="compare-procs-heading"'), html.indexOf('id="compare-casts-heading"'));
+		expect(block).toMatch(/\d\.\d\/min/);
+		// And never the counts the rate was divided from, which read as the comparison itself.
+		expect(block).not.toMatch(/>16</);
+	});
+
+	/** Two pulls in different trinkets: the side with no row says so instead of reading nought. */
+	it('labels the side that recorded no proc', () => {
+		const across = render(pull('strong'), pull('mixed'));
+		expect(across).toContain('Vicious');
+		expect(across).toContain('Ferocity');
+		expect(across).toContain('no proc in this log');
+	});
+});
+
+describe('the damage overlay', () => {
+	/**
+	 * The chart is hand-built SVG, so it actually renders here.
+	 *
+	 * That is a real gain over the ApexCharts draft this replaced: `ApexChart` builds its options only
+	 * inside a `ChartEnv`, which needs a browser, so `renderToStaticMarkup` got a placeholder and every
+	 * option (the rules, the colours, the dashes) was untested. These assertions are the ones that
+	 * were impossible a commit ago.
+	 */
+	/**
+	 * A pull with the series attached, which no committed capture has.
+	 *
+	 * All six predate `damage.perSecond`, so the page's own fixtures render the empty state, which is
+	 * the right behaviour and is asserted below, but it means the chart itself is only reachable from a
+	 * built pull. The shape is a burst then a decline, so a curve that came out flat would fail.
+	 */
+	const withSeries = (name: string, scale: number): Pull => {
+		const base = pull(name);
+		const seconds = Math.ceil(base.analysis.durationMs / 1000) + 1;
+		const perSecond = Array.from({ length: seconds }, (_, at) => Math.round(scale * (1 + Math.sin(at / 20)) * 1000));
+		return { ...base, analysis: { ...base.analysis, damage: { ...base.analysis.damage, perSecond } } };
+	};
+	const drawn = render(withSeries('strong', 300), withSeries('poor', 200));
+
+	it('draws one curve per pull, told apart by more than colour', () => {
+		const block = drawn.slice(drawn.indexOf('id="compare-dps-heading"'), drawn.indexOf('id="compare-gaps-heading"'));
+		expect(block).toContain('var(--color-pull-a)');
+		expect(block).toContain('var(--color-pull-b)');
+		// The second pull is dashed as well as differently hued, so the pair survives greyscale.
+		expect(block).toMatch(/stroke="var\(--color-pull-b\)"[^>]*stroke-dasharray/);
+		// Two paths and no more: one per pull.
+		// Four paths in the plot: a visible curve per pull and a wide transparent copy of each, which is
+		// what makes a two-pixel line hoverable. Two more in the legend swatches below it, drawn as paths
+		// on purpose so the legend shows the dash the curves are told apart by.
+		const plot = block.slice(block.indexOf('<svg'), block.indexOf('</svg>'));
+		expect([...plot.matchAll(/<path /g)]).toHaveLength(4);
+		expect([...plot.matchAll(/stroke="transparent"/g)]).toHaveLength(2);
+		expect([...block.matchAll(/<path /g)]).toHaveLength(6);
+		// A monotone cubic, which is what cannot overshoot into negative damage per second.
+		expect(block).toMatch(/d="M[\d.]+ [\d.]+C/);
+	});
+
+	/**
+	 * The identity mark sits over the lane rather than beside it, and says whose row it is on hover.
+	 *
+	 * Overlapping is what keeps the lanes the same width as the plot: beside the lane, the mark and its
+	 * gap came out of the lane's own width and every segment boundary sat left of the second it belonged
+	 * to. The outline is what keeps a violet dot visible on the darker end of the count ramp underneath.
+	 */
+	it('lays the identity mark over the lane, outlined and titled', () => {
+		const block = drawn.slice(drawn.indexOf('id="compare-dps-heading"'), drawn.indexOf('id="compare-gaps-heading"'));
+		expect(block).toMatch(/title="[^"]+"[^>]*class="absolute/);
+		expect(block).toContain('outline-1 outline-black/50');
+		// Positioned over the lane, not laid out beside it.
+		expect(block).toMatch(/class="absolute top-1\/2 left-1/);
+	});
+
+	/**
+	 * The rules are graph paper: they belong under the curves, not over them.
+	 *
+	 * They are absolutely positioned and the plot is not, and a positioned element paints over a static
+	 * one whatever the source order, so the plot needs a stacking context of its own or the rules cut
+	 * across both lines.
+	 */
+	it('keeps the value rules under the curves', () => {
+		const block = drawn.slice(drawn.indexOf('id="compare-dps-heading"'), drawn.indexOf('id="compare-gaps-heading"'));
+		const rules = block.indexOf('bg-line');
+		const plot = block.indexOf('<svg');
+		// The rules are written first and the plot second, so the plot paints last.
+		expect(rules).toBeLessThan(plot);
+		expect(block).toMatch(/class="relative pr-9"/);
+	});
+
+	/** The horizontal rules the value is read across, and a clock along the bottom. */
+	/** A capture from before the series existed says so, rather than drawing an empty plot. */
+	it('refuses to draw a pull that was analysed before the series existed', () => {
+		const block = html.slice(html.indexOf('id="compare-dps-heading"'), html.indexOf('id="compare-gaps-heading"'));
+		expect(block).not.toContain('var(--color-pull-a)');
+		expect(block).toContain('analysed before the per-second series existed');
+	});
+
+	it('rules the plot horizontally and labels both axes', () => {
+		const block = drawn.slice(drawn.indexOf('id="compare-dps-heading"'), drawn.indexOf('id="compare-gaps-heading"'));
+		// Four value rules, each labelled in thousands.
+		expect([...block.matchAll(/bg-line/g)].length).toBeGreaterThanOrEqual(4);
+		expect(block).toMatch(/\dk</);
+		// And the segment lanes underneath, one per pull, on the same clock.
+		expect(block).toContain('0:00');
+	});
+});
+
+describe('the contents rail', () => {
+	/**
+	 * The same rail the report page and the segment tool carry, in the same column.
+	 *
+	 * Asserted through the links rather than the markup: what a reader needs is a way to reach every
+	 * block, and the failure worth catching is a section added below without an entry here, or an
+	 * entry left behind pointing at a heading that no longer renders.
+	 */
+	it('lists every section on the page, and nothing that is not on it', () => {
+		// The rail only. The framing table's three figures link to their sections too, and counting those
+		// as contents entries would make this pass while the rail was missing one of them.
+		const rail = html.slice(html.indexOf('<nav'), html.indexOf('</nav>'));
+		const linked = [...rail.matchAll(/href="#(compare-[a-z]+)-heading"/g)].map((m) => m[1]);
+		const headings = [...html.matchAll(/id="(compare-[a-z]+)-heading"/g)].map((m) => m[1]);
+		expect(linked).toEqual([
+			'compare-framing',
+			'compare-dps',
+			'compare-gaps',
+			'compare-damage',
+			'compare-procs',
+			'compare-casts',
+		]);
+		expect([...new Set(headings)]).toEqual(linked);
+	});
+
+	/** Desktop only and genuinely not rendered below `lg`, exactly as `SectionNav` argues for it. */
+	it('is a landmark that a phone never has to skip past', () => {
+		expect(html).toMatch(/<nav[^>]*class="hidden lg:/);
 	});
 });

@@ -1884,10 +1884,13 @@ describe('CastTimeline, the boss’s phases', () => {
 	 * line up by drawing the same rows in the same order and by nothing else.
 	 */
 	it('opens the label column with a named row of the same height', () => {
-		expect(html).toContain(
-			'<div class="w-28 shrink-0 sm:w-44"><div class="flex items-start gap-2 pr-2" style="height:24px">' +
-				'<span class="truncate font-mono text-sm leading-6 text-ink-2">Phase</span></div>',
+		// The class list is matched loosely and the height exactly: the row gained the lanes' bottom rule
+		// when the bands were given visual separation, and pinning the whole attribute pinned a colour
+		// decision to a test about which row comes first and how tall it is.
+		expect(html).toMatch(
+			/<div class="w-28 shrink-0[^"]*"><div class="flex items-start gap-2 pr-2[^"]*" style="height:24px">/,
 		);
+		expect(html).toContain('<span class="truncate font-mono text-sm leading-6 text-ink-2">Phase</span></div>');
 	});
 
 	/**
@@ -1936,8 +1939,8 @@ describe('CastTimeline, the boss’s phases', () => {
 		const crowdedHtml = render(crowded);
 		// Two rows of gutter, and the label column shifted by the same 48px.
 		expect(crowdedHtml).toContain('style="width:4567.416px;height:48px"');
-		expect(crowdedHtml).toContain(
-			'<div class="w-28 shrink-0 sm:w-44"><div class="flex items-start gap-2 pr-2" style="height:48px">',
+		expect(crowdedHtml).toMatch(
+			/<div class="w-28 shrink-0[^"]*"><div class="flex items-start gap-2 pr-2[^"]*" style="height:48px">/,
 		);
 		// The first label keeps the top row; the second takes the one below it. Asserted as one
 		// contiguous run of attributes so the row cannot be read off the wrong marker.
@@ -1986,6 +1989,185 @@ describe('CastTimeline, the boss’s phases', () => {
 	});
 
 	/**
+	 * The damage row answers the pointer with the reading at that second.
+	 *
+	 * The chart's tooltip reads its content off attributes of whatever is under the cursor, so a value
+	 * that changes along a row cannot come from the row: one band can only ever carry one number. The
+	 * strips are one per second, which is the granularity the series itself has, so every reading the
+	 * tooltip gives is one the analysis holds rather than an interpolation between two of them.
+	 */
+	it('answers the pointer with the damage at that second', () => {
+		const drawnHtml = render(pull);
+		const band = drawnHtml.slice(drawnHtml.indexOf('data-band="dps"'));
+		const row = band.slice(0, band.indexOf('data-band=') > 0 ? band.indexOf('</div></div>') : band.length);
+		const strips = [...row.matchAll(/data-tip-dps="([^"]+)"/g)];
+		// One per second of the series, and each carries its own moment as well as its own value.
+		expect(strips.length).toBe(pull.damage.perSecond!.length);
+		expect(row).toMatch(/data-tip-landed="[^"]+"/);
+		// The strips carry no ink: they exist to be hovered, not to be seen.
+		expect(row).toMatch(/class="absolute inset-y-0"/);
+	});
+
+	/**
+	 * The two columns start at the same y, which the row heights alone do not guarantee.
+	 *
+	 * They line up by drawing the same rows in the same order at the same heights, an argument that
+	 * quietly assumes both boxes begin level, and for a long time they did not: the track is inside a
+	 * bordered scroller and the label column was not, so every row's content sat a pixel below its own
+	 * label. Invisible on a solid band, and exactly the width of the thing being aligned once a hairline
+	 * rule had a tick beside it to line up with.
+	 *
+	 * Pinned as "the label column carries the same vertical border the scroller does" rather than as a
+	 * measurement, because there is nothing in a server-rendered string to measure.
+	 */
+	it('gives the label column the scroller’s own vertical border, so both columns start level', () => {
+		const drawnHtml = render(pull);
+		expect(drawnHtml).toMatch(/<div class="w-28 shrink-0[^"]*\bborder-y\b[^"]*">/);
+		// And the scroller it is matching still has the border being matched.
+		expect(drawnHtml).toMatch(/class="[^"]*overflow-x-auto[^"]*\bborder\b[^"]*"/);
+	});
+
+	/**
+	 * The curve's own SVG, which is not the row's only one: the global-cooldown rules are drawn in a
+	 * second layer of their own, before it. Located by the class that makes the curve paint over that
+	 * layer rather than by being first.
+	 *
+	 * Matched on the attribute and not on `<svg class=`, because React writes attributes in source
+	 * order and this element declares its `viewBox` first.
+	 */
+	const curveSvgOf = (html: string): string => {
+		const band = html.slice(html.indexOf('data-band="dps"'));
+		const svg = band.slice(band.indexOf('class="relative block'));
+		return svg.slice(0, svg.indexOf('</svg>'));
+	};
+
+	/**
+	 * The damage row is drawn on the same ground as the track: the washes run under it.
+	 *
+	 * A trough during an intermission is the fight taking the boss away and a peak inside a haste
+	 * window is the raid buying it, and neither reads if the wash stops at the row above. They are
+	 * paint only here (the row's own hover strips keep the cursor) and the curve has to sit on top,
+	 * which needs the SVG positioned: an absolute wash paints over a static element whatever the source
+	 * order says.
+	 */
+	it('runs the background washes under the damage curve', () => {
+		const drawnHtml = render(pull);
+		const band = drawnHtml.slice(drawnHtml.indexOf('data-band="dps"'));
+		const row = band.slice(0, band.indexOf('class="relative block'));
+		// The ground is drawn before the curve and takes no pointer events.
+		expect(row).toMatch(/pointer-events-none absolute inset-0/);
+		expect(row.indexOf('inset-0')).toBeLessThan(row.length);
+		// And the curve is positioned, so it paints over that ground rather than under it.
+		expect(band).toContain('class="relative block');
+		// The global-cooldown rules sit between the two: over the wash, under the curve.
+		expect(row).toContain('viewBox="0 0 1000 1"');
+	});
+
+	/**
+	 * The tick, the label and the rule sit at one height, because one function decides it.
+	 *
+	 * This is the regression: the rules were drawn in the track from one copy of the arithmetic and the
+	 * ticks positioned in the label column from another, so the top tick sat off its own line. The
+	 * mapping is published per level now, and the two columns read the same number. Asserting it means
+	 * reading the `y` the SVG line was given and the `top` percentage the gutter used, and checking they
+	 * are the same fraction of the row.
+	 */
+	it('puts each tick at the height of the rule it names', () => {
+		const drawnHtml = render(pull);
+		const svg = curveSvgOf(drawnHtml);
+		const ys = [...svg.matchAll(/<line[^>]*y1="([\d.]+)"/g)].map((m) => Number(m[1]));
+		const gutter = drawnHtml.slice(drawnHtml.indexOf('>Damage</span>'));
+		const tops = [...gutter.slice(0, 1200).matchAll(/-translate-y-1\/2 bg-line" style="top:([\d.]+)%"/g)].map((m) =>
+			Number(m[1]),
+		);
+		expect(ys).toHaveLength(2);
+		expect(tops).toHaveLength(2);
+		// 56px row: a rule at y maps to y/56 of the height, which is what the gutter is given.
+		expect(tops.map((top) => Math.round((top / 100) * 56 * 100) / 100)).toEqual(
+			ys.map((y) => Math.round(y * 100) / 100),
+		);
+		// And the ceiling rule is inside the row rather than flush with its edge, which is what made the
+		// top tick read as belonging to the band above.
+		expect(Math.min(...ys)).toBeGreaterThan(0);
+	});
+
+	/**
+	 * A tick per rule, level with the rule, because the top label is not.
+	 *
+	 * The topmost number is pushed down so it does not sit over the target-mode band above it, which
+	 * leaves its text off the line it names. The tick is always level, so there is an unambiguous
+	 * reference point and the number beside it is free to sit where it fits.
+	 */
+	it('marks each rule with a tick in the label column', () => {
+		const drawnHtml = render(pull);
+		const gutter = drawnHtml.slice(drawnHtml.indexOf('>Damage</span>'));
+		const ticks = [...gutter.slice(0, 900).matchAll(/class="absolute right-0 h-px w-1\.5 -translate-y-1\/2 bg-line"/g)];
+		expect(ticks).toHaveLength(2);
+	});
+
+	/**
+	 * The bands run phase, then target mode, then damage, on the track and in the label column alike.
+	 *
+	 * **Order is the whole contract between the two columns.** They line up because they draw the same
+	 * rows in the same sequence at the same heights and nothing measures anything, so a band that moves
+	 * on one side and not the other puts every label below it against the wrong row. Asserting the
+	 * sequence on the track is asserting it on both.
+	 *
+	 * Phase sits above target mode because it is the fight's own script and the shape is a consequence
+	 * of it; damage sits under the shape for the same reason, one step further down the chain.
+	 */
+	it('orders the bands phase, target mode, damage', () => {
+		// A pull carrying all three bands. Iron Juggernaut reports its phases and its damage series
+		// already; what it does not have is a second stretch, and a band is not drawn for one: that rule
+		// is `SegmentStrip`'s and this chart keeps it. So the single stretch is split in half here.
+		const one = pull.segments!.segments[0]!;
+		const half = Math.round((one.startMs + one.endMs) / 2);
+		const all: Analysis = {
+			...pull,
+			segments: {
+				...pull.segments!,
+				segments: [
+					{ ...one, endMs: half },
+					{ ...one, startMs: half },
+				],
+			},
+		};
+		const at = (band: string) => render(all).indexOf(`data-band="${band}"`);
+		expect(at('phases')).toBeGreaterThan(-1);
+		expect(at('target-mode')).toBeGreaterThan(-1);
+		expect(at('dps')).toBeGreaterThan(-1);
+		expect(at('phases')).toBeLessThan(at('target-mode'));
+		expect(at('target-mode')).toBeLessThan(at('dps'));
+	});
+
+	/**
+	 * The damage row carries a value axis, and draws nothing at all without a series.
+	 *
+	 * The rules are `<line>`s *inside* the row's own SVG and written before the path, which is how the
+	 * curve comes out on top: within one SVG, document order is the paint order. The labels are not in
+	 * there with them: they live in the label column, because text inside a `preserveAspectRatio="none"`
+	 * viewBox is stretched with the drawing, and because a label in the track would scroll away from the
+	 * row it names.
+	 *
+	 * A capture from before `damage.perSecond` existed draws no row rather than an empty one.
+	 */
+	it('rules the damage row against a value axis, and draws nothing without a series', () => {
+		const drawnHtml = render(pull);
+		expect(drawnHtml).toContain(`data-band="dps"`);
+		const svg = curveSvgOf(drawnHtml);
+		// Two rules, and the curve after them so it paints over.
+		expect([...svg.matchAll(/<line /g)]).toHaveLength(2);
+		expect(svg.indexOf('<line ')).toBeLessThan(svg.indexOf('<path '));
+		// A monotone cubic, the same geometry the resource bars use.
+		expect(svg).toMatch(/d="M[\d.]+ [\d.]+C/);
+
+		const older: Partial<Analysis> = { ...pull, damage: { ...pull.damage } };
+		delete (older.damage as { perSecond?: number[] }).perSecond;
+		const bare = render(older as Analysis);
+		expect(bare).not.toContain('data-band="dps"');
+	});
+
+	/**
 	 * And nothing at all without the fight's start time, rather than markers on the report's clock.
 	 * An analysis captured before the core carried one has no basis to rebase against, and a marker
 	 * drawn anyway would be off the end of the track.
@@ -1995,6 +2177,9 @@ describe('CastTimeline, the boss’s phases', () => {
 		delete older.fightStartMs;
 		const bare = render(older as Analysis);
 		expect(bare).not.toContain('data-tip-entered=');
-		expect(bare).not.toMatch(/style="width:[\d.]+px;height:/);
+		// Named, for the reason the sibling test above gives: "the only box carrying a width and a height
+		// together" stopped identifying this band when the target-mode row arrived, and stopped again when
+		// the damage row did. A band is told apart by its name or not at all.
+		expect(bare).not.toContain('data-band="phases"');
 	});
 });

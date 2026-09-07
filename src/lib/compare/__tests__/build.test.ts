@@ -253,3 +253,97 @@ describe('direction', () => {
 		expect(TIE_BANDS).toBeGreaterThan(0);
 	});
 });
+
+describe('gear procs', () => {
+	/**
+	 * The block exists to hold the luck apart from the play, so the first thing to pin is that it is
+	 * exactly the gear and nothing else.
+	 *
+	 * Combo Breaker is the row that makes this a real test rather than a tautology. It is drawn in the
+	 * same `proc` group as the trinkets on the timeline, because it is not a press either. But it is
+	 * the monk's own passive, it fires off their own presses, and a table calling it luck would be
+	 * telling a reader that a chunk of their rotation happened to them. Focus of Xuen is the second:
+	 * gear, and a tier bonus a rotation earns by spending its own brew stacks. Neither is a roll.
+	 */
+	it('takes the item effects and leaves the class procs alone', () => {
+		const keys = strongVsPoor.procs.map((proc) => proc.key);
+		expect(keys).toContain('re-origination');
+		expect(keys).toContain('capacitance');
+		expect(keys).toContain('flurry-of-xuen');
+		expect(keys).toContain('dancing-steel');
+		expect(keys).not.toContain('combo-breaker-tiger-palm');
+		expect(keys).not.toContain('combo-breaker-blackout-kick');
+		expect(keys).not.toContain('focus-of-xuen');
+	});
+
+	/**
+	 * A rate and nothing else, on the rule the two lists above this one already follow.
+	 *
+	 * `strong` rolled the Rune 16 times over 8:55 and `poor` 9 times over 4:15, which is 1.86 a minute
+	 * against 2.14: nearly twice the count on the pull that was slightly unluckier per minute. A raw
+	 * count would have answered a question about how long the boss lived.
+	 */
+	it('publishes a rate and never a raw count', () => {
+		for (const proc of strongVsPoor.procs) {
+			if (proc.a !== null) expect(proc.a).toBeGreaterThan(0);
+			if (proc.b !== null) expect(proc.b).toBeGreaterThan(0);
+			expect(proc.rate).toBeCloseTo((proc.a ?? 0) - (proc.b ?? 0));
+			expect(Object.keys(proc)).not.toContain('aCount');
+		}
+		const rune = strongVsPoor.procs.find((proc) => proc.key === 're-origination');
+		expect(rune?.a).toBeCloseTo(1.86, 2);
+		expect(rune?.b).toBeCloseTo(2.14, 2);
+	});
+
+	/**
+	 * Two pulls in different trinkets, which the committed captures happen to provide.
+	 *
+	 * `strong` wears Haromm's Talisman and `mixed` wears Sigil of Rampage, so each side carries a proc
+	 * the other has no row for at all. That absence is marked rather than left as a nought, because a
+	 * bare `0.0` beside a real reading reads as bad luck and this one is a different item.
+	 */
+	it('marks the side with no row rather than reading it as a nought', () => {
+		const across = compare(pull('strong'), pull('mixed'), IDENTITY);
+		const vicious = across.procs.find((proc) => proc.key === 'vicious');
+		const ferocity = across.procs.find((proc) => proc.key === 'ferocity');
+
+		expect(vicious?.absent).toBe('b');
+		expect(vicious?.b).toBeNull();
+		expect(ferocity?.absent).toBe('a');
+		expect(ferocity?.a).toBeNull();
+		// And a proc both wore is not marked at all.
+		expect(across.procs.find((proc) => proc.key === 're-origination')?.absent).toBeNull();
+	});
+
+	/** Widest gap first, the way the cast and damage lists are ranked, and for the same reason. */
+	it('ranks the rows by how far apart the two pulls fell', () => {
+		const gaps = strongVsPoor.procs.map((proc) => Math.abs(proc.rate));
+		expect([...gaps].sort((one, two) => two - one)).toEqual(gaps);
+	});
+
+	/**
+	 * And none of it reaches a verdict.
+	 *
+	 * The whole argument for drawing this block is that a proc rate is not a decision, so a run of it
+	 * must not move the tally, the sections or the headline. Compared against the same pair with the
+	 * procs read: identical scoring either way.
+	 */
+	it('stays out of the scoring entirely', () => {
+		expect(strongVsPoor.procs.length).toBeGreaterThan(0);
+		const metrics = strongVsPoor.sections.flatMap((section) => section.metrics.map((gap) => gap.key));
+		for (const proc of strongVsPoor.procs) expect(metrics).not.toContain(proc.key);
+		expect(
+			strongVsPoor.tally.a + strongVsPoor.tally.b + strongVsPoor.tally.level + strongVsPoor.tally.incomparable,
+		).toBe(metrics.length);
+	});
+
+	it('negates every rate when the two sides swap', () => {
+		const back = compare(pull('poor'), pull('strong'), IDENTITY);
+		for (const proc of strongVsPoor.procs) {
+			const mirrored = back.procs.find((row) => row.key === proc.key);
+			expect(mirrored?.rate).toBeCloseTo(-proc.rate);
+			expect(mirrored?.a).toBe(proc.b);
+			expect(mirrored?.b).toBe(proc.a);
+		}
+	});
+});

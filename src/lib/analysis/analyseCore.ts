@@ -825,14 +825,6 @@ export function analyseCore(
 					// ruleset written in `gameID`s.
 					npcs: (table.fight.enemyNPCs ?? []).map((npc) => ({ ...npc, name: actorNames.get(npc.id) ?? null })),
 				});
-	const { abilities, eventTotal } = aggregateDamage(
-		damageEvents,
-		spec.registry,
-		nameOf,
-		ignoredMultiTargetIDs,
-		immuneSpawns,
-	);
-
 	// ------------------------------------------------------------- the GCD
 	/**
 	 * Every press that took a global, and how much of one it took.
@@ -1100,6 +1092,33 @@ export function analyseCore(
 	const struckHit = (e: WclEvent): boolean =>
 		(e.targetID !== undefined && struckActorIDs.has(e.targetID)) ||
 		isStruckHit(struckSpawns, e.targetID, e.targetInstance, e.timestamp);
+
+	/**
+	 * The damage table, and it is built **here** rather than beside the enemy list two hundred lines up
+	 * because it reads `struckHit`, which cannot exist until the ruleset has been resolved against this
+	 * pull.
+	 *
+	 * *** This is the fix for damage that ignored the reader's analysis mode entirely. *** The exclusion
+	 * sets were computed, `contact` below was filtered by them, and the damage totals were not: the
+	 * `eventTotal +=` inside `aggregateDamage` sat outside its own target-count guard, so a struck add's
+	 * damage counted towards the player's total under both readings. Measured on a Garrosh pull, the two
+	 * modes returned byte-identical totals, 254,831,412 either way, on one of the two encounters the
+	 * ruleset names adds on. A control that says it changes what was measured has to change it.
+	 *
+	 * The predicate is passed rather than the sets, because striking a hit off the damage is a different
+	 * question from leaving a body out of the enemy count and the two guards inside that function must
+	 * not be made to share one condition. See `struck` on `aggregateDamage` for what each governs.
+	 */
+	const { abilities, eventTotal, perSecond } = aggregateDamage(
+		damageEvents,
+		spec.registry,
+		nameOf,
+		ignoredMultiTargetIDs,
+		immuneSpawns,
+		struckHit,
+		{ t0, durationMs: duration },
+	);
+
 	const contact = engagedWindows(
 		damageEvents
 			.filter((e) => e.sourceID === actor.id && !(isDamage(e) && e.tick === true))
@@ -2024,7 +2043,23 @@ export function analyseCore(
 		damage: {
 			wclTotal: entry?.total ?? null,
 			eventTotal,
-			dps: duration > 0 ? (entry?.total ?? eventTotal) / (duration / 1000) : 0,
+			perSecond,
+			/**
+			 * The pull's own damage over its own length, and **not** WarcraftLogs' table total any more.
+			 *
+			 * Two things were wrong with taking the site's number. It ignores the reader's analysis mode,
+			 * which every other figure in this report now follows: on heroic Malkorok the curve below moves
+			 * by 4,871,094 between the two readings and the headline over it did not move at all. And it
+			 * does not agree with the table beneath it: the per-ability rows sum to `eventTotal`, so a
+			 * report could print "87.8M damage at 442,607 DPS" on a pull where those two cannot both be
+			 * true. One quantity, one clock, and the rows now add up to the headline.
+			 *
+			 * The cost is that this no longer matches the DPS WarcraftLogs shows for the same pull, by
+			 * between half a percent and eight across the committed fixtures. `wclTotal` is still
+			 * published beside it, and `rankPercent` is still the site's own, so the number a reader can
+			 * check against the site has not gone anywhere.
+			 */
+			dps: duration > 0 ? eventTotal / (duration / 1000) : 0,
 			abilities,
 		},
 		// ------------------------------------------------ the two clocks, one field at a time

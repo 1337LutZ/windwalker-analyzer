@@ -94,6 +94,11 @@ export default function RateGaps({
 	// by nothing.
 	const domain = Math.max(max, 1);
 	const at = (value: number) => Math.max(0, Math.min(100, (value / domain) * 100));
+	// One reading of a row's text, so the visible figure and the screen-reader one cannot come apart.
+	const textFor = (row: RateRow, side: 'a' | 'b') => {
+		const value = side === 'a' ? row.a : row.b;
+		return value === null ? t(row.absent) : format(value);
+	};
 
 	return (
 		<ul className="m-0 grid list-none grid-cols-1 gap-3 p-0 lg:grid-cols-2 2xl:grid-cols-3">
@@ -107,8 +112,8 @@ export default function RateGaps({
 								<SpellIcon id={row.id} label={row.name} />
 							</span>
 							<span className="flex items-baseline gap-3 tabular font-mono text-sm text-ink">
-								<PullKey side="a">{row.a === null ? t(row.absent) : format(row.a)}</PullKey>
-								<PullKey side="b">{row.b === null ? t(row.absent) : format(row.b)}</PullKey>
+								<PullKey side="a">{textFor(row, 'a')}</PullKey>
+								<PullKey side="b">{textFor(row, 'b')}</PullKey>
 							</span>
 						</span>
 						{/* One track, no zones: there is no rule here to draw as ground, only two readings and the
@@ -133,8 +138,7 @@ export default function RateGaps({
 							) : null}
 						</span>
 						<span className="sr-only">
-							{players.a} {row.a === null ? t(row.absent) : format(row.a)}, {players.b}{' '}
-							{row.b === null ? t(row.absent) : format(row.b)}
+							{players.a} {textFor(row, 'a')}, {players.b} {textFor(row, 'b')}
 						</span>
 					</li>
 				);

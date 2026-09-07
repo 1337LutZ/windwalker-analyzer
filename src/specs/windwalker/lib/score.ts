@@ -496,6 +496,30 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 		'karmaCapShare',
 		karmaCeiling === null || karma.absorbed === undefined ? null : sharePct(karma.absorbed, karmaCeiling),
 	);
+	/**
+	 * Presses that went out inside a Tigereye Brew: the one thing this section grades that is the
+	 * player's alone.
+	 *
+	 * The other two rules here are readings of what the fight was doing: a press into a quiet stretch
+	 * returns nothing however well it was timed. This one is not. A brew is fifteen seconds out of
+	 * four minutes and Touch of Karma is on a ninety-second cooldown, so there is always somewhere else
+	 * to put the press, and the global it takes inside the brew is the most expensive one in the pull.
+	 * See `duringBrew` in `~/specs/windwalker/lib` for why the claim is about the global and not about
+	 * what the redirect returned, which nothing in the simulator can say.
+	 *
+	 * **A count, and the reason is `karmaEmpty`'s own argument turned around.** That share needs
+	 * `MIN_GRADED_SAMPLE` because a proportion of two presses is not a habit, and five of the six
+	 * committed pulls fall under the floor, which for a share is the right refusal and for this would
+	 * be the wrong one. One press inside a brew is a whole fault by itself: it does not become more or
+	 * less of one because the pull had room for three charges rather than two. `weaveEarly` and
+	 * `brewShortUses` are counted for the same reason and this follows them.
+	 *
+	 * **Null on a pull that never pressed it**, which is a pull the rule was never asked of rather than
+	 * a clean sheet. That is the shape `weaveAsked` gives the three weave rules. Null too on an analysis
+	 * captured before the field existed, where `duringBrew` is `undefined`: reading that as nought
+	 * would publish a clean letter over six pulls nobody has measured.
+	 */
+	const karmaInBrew = metric('karmaInBrew', karma.casts === 0 ? null : (karma.duringBrew ?? null));
 
 	/**
 	 * Potions drunk out of the two the pull allowed.
@@ -557,6 +581,7 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 		brewShortUses,
 		karmaEmpty,
 		karmaCapShare,
+		karmaInBrew,
 		potionsUsed,
 	];
 
@@ -582,9 +607,20 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 			casts: section([gcdUtilisation]),
 			debuff: section([rskUptime]),
 			tigerPalm: section([tigerPalmWaste]),
-			// Both primary: an empty press and a press that half-filled are separate faults, and the
-			// weaker of the two should carry the section rather than be averaged away by the other.
-			karma: section([karmaEmpty, karmaCapShare]),
+			// The first two primary: an empty press and a press that half-filled are separate faults, and
+			// the weaker of the two should carry the section rather than be averaged away by the other.
+			//
+			// **The third is secondary, and that is a copy decision rather than a claim that it matters
+			// less.** `verdict('karma', …)` picks its sentence off the section's letter, and every arm of
+			// that sentence is about what the redirect *returned*: "only part of their potential came
+			// back", "time it for when damage is coming in". A press that landed full, drained its pool
+			// and went out inside a brew would pull the letter down and print one of those over a pull
+			// they are false of. That is the same shape as the `tooFew` bug on `karmaEmpty` above, with a
+			// third metric instead of a second. `snapshots` and `weave` put their fault counts in the
+			// secondary slot for this reason and it is the precedent followed here: the rule still reads
+			// a band, still draws its row in the scorecard grid and still differences on the compare
+			// page. What it does not do is speak in a sentence written about something else.
+			karma: section([karmaEmpty, karmaCapShare], [karmaInBrew]),
 			// A section with one metric and no section of its own on the page. It is here because the
 			// scorecard is the only route into the summary — `Takeaways` walks these sections — and a
 			// potion nobody drank is worth a card. The report deliberately grows no section to argue it:
@@ -905,6 +941,32 @@ export const THRESHOLDS = {
 	karmaCapShare: { good: 75, ok: 40, higherIsBetter: true, unit: 'percent' },
 
 	/**
+	 * Touch of Karma presses that went out while a Tigereye Brew was running.
+	 *
+	 * Zero is the target and it is reachable on every pull, which is what separates this from the two
+	 * rules above it: the button is on a ninety-second cooldown and the brew runs fifteen seconds, so
+	 * there is no fight that forces the overlap. Nothing here asks the press to be *held*, since how
+	 * many charges a pull offers something to redirect is still the encounter's business. It asks only
+	 * that the press is not put inside the one window where a global is worth most.
+	 *
+	 * `ok` at one, `bad` at two, on the ladder `weaveEarly` uses and for its reason: one is a slip and
+	 * two is a habit. **And the sample says so, which was worth measuring rather than assuming.** The
+	 * six committed captures predate the field, but they carry the press times and the brew windows it
+	 * is derived from, so the figure can be recovered from them: `strong` 1 of 2, `poor` 1 of 3, `mixed`
+	 * 2 of 3, `cleave` 0 of 2, `waves` 0 of 1, `weave` 0 of 1, and the raw Iron Juggernaut dataset 1 of
+	 * 2. Fourteen presses, five of them inside a brew, and the per-pull counts separate all three ways
+	 * on this ladder with nothing invented. `karma.test.ts` derives it rather than quoting it.
+	 *
+	 * That also settles what the rule is *for*. This is not a rare slip: half the committed pulls make
+	 * it, and the overlaps are not marginal: 6.5s and 10.1s of brew left on two of them. A rule
+	 * nobody trips is a rule not worth a row.
+	 *
+	 * **No band.** Where to put a defensive relative to your own damage window is the same decision at
+	 * every target count.
+	 */
+	karmaInBrew: { good: 0, ok: 1, higherIsBetter: false, unit: 'count' },
+
+	/**
 	 * Potions drunk, out of the two a pull allows.
 	 *
 	 * **The one threshold in this file that is not cut from a sample, and the only one that does not
@@ -997,14 +1059,49 @@ export const WEIGHTS: Record<MetricKey, number> = {
 	// as the brew economy it can put a card in the summary of a pull that skipped both potions without
 	// ever outranking the two habits that actually separate Windwalkers.
 	potionsUsed: 1,
-	// Graded in its own section and deliberately not counted in the headline, for a different reason
+	// Graded in their own section and deliberately not counted in the headline, for a different reason
 	// than `snapshotDepth` above: these two are sound, but what they measure is not the player's alone.
 	// The redirect returns what the fight was doing to them, so how much a press could ever be worth is
 	// set by the encounter — a phase with nothing incoming caps a perfect press at nothing. Letting
 	// that swing the verdict would grade the pull the player was handed. Zero rather than deletion, so
 	// the section still reads a band off them and the reason lives beside the weights that do count.
+	//
+	// The third rule in that section is weighted, and the note under it is why: it is the one thing
+	// here the encounter cannot excuse.
 	karmaEmpty: 0,
 	karmaCapShare: 0,
+	// **A half, and the only weighted metric in a section whose other two are zero.** That is not an
+	// inconsistency, it is the distinction those two exist to draw. They are readings of what the fight
+	// was doing: the redirect returns what was hitting the player, so a phase with nothing incoming
+	// caps a perfect press at nothing, and letting either swing the verdict would grade the pull the
+	// player was handed. Where a defensive goes relative to your own damage window is not that. Touch
+	// of Karma recharges in ninety seconds and a brew runs fifteen, so there is no fight that forces
+	// the overlap, and half the committed pulls make it anyway.
+	//
+	// **Half rather than the one `brewShortUses` and `potionsUsed` carry, and the first fractional
+	// weight in this table.** Those two are each a resource the pull spent badly, counted across every
+	// brew or every slot; this is one global out of two or three presses. It is worth counting and it
+	// is not worth as much as they are, and the scale can say so — `POINTS` already works in halves, so
+	// nothing about the arithmetic is new.
+	//
+	// The one visible consequence is that `judged.measured` and `judged.total` are no longer whole.
+	// Nothing on screen prints them: `ReportHeader` reads `judged.checks`, a count of metrics, for
+	// exactly the reason a weight-denominated ratio under the word "scored" read as a mark out of the
+	// weight. The fallback beside it would print `17.5` and is unreachable for anything this build
+	// scores, since `overallOf` always fills `checks`.
+	//
+	// **It carries this weight while sitting in the section's *secondary* slot, and the two are answers
+	// to different questions.** The slot decides which rules can pull the section's letter down, and
+	// that letter picks a *sentence*, every arm of which is about what the redirect returned, so this
+	// rule must not be able to print one. The weight decides what the headline is a mean over, and a
+	// mean is not a sentence: a rule can be worth counting without being the thing the paragraph is
+	// about. `snapshotDepth` is the same slot for the opposite reason, and says so.
+	//
+	// **Null on a pull that never pressed the button**, so a monk who held the cooldown all fight is
+	// never graded on where they put it. That is `metricOf` refusing an absent value, not a weight, and
+	// it is the shape `weaveRate` already has. The point still counts toward `judged.total`, so the
+	// line under the headline says a point was offered and not answered rather than quietly shrinking.
+	karmaInBrew: 0.5,
 };
 
 /**
