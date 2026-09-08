@@ -2,7 +2,7 @@
 
 import type { BandView } from '~/lib/score/bands';
 import type { Metric, Scorecard, SectionScore } from '~/lib/score/model';
-import type { AbilityDamage, Analysis, CastRow } from '~/lib/types';
+import type { AbilityDamage, Analysis, AuraLane, CastRow } from '~/lib/types';
 
 import type { Absence } from './absent';
 
@@ -15,6 +15,7 @@ import type {
 	Comparison,
 	ComparabilityNote,
 	MetricGap,
+	ProcGap,
 	PullFraming,
 	SectionGap,
 	Side,
@@ -299,6 +300,105 @@ function castGaps(a: Pull, b: Pull, identity: AbilityIdentity): CastGap[] {
 }
 
 /**
+ * The clock a proc rate is per: the player's own contact span, summed from the segments published.
+ *
+ * The same fallback `CastsPerMinute` takes, and for its reason: a capture from before
+ * `contactSegments` existed has only WarcraftLogs' `activeMs`, and reading one pull's rates on one
+ * clock and the other's on another is not a comparison. Floored above zero so a pull with no measured
+ * contact divides by something rather than producing an infinity.
+ */
+function contactMinutes(analysis: Analysis): number {
+	const segments = analysis.timeline?.contactSegments;
+	const ms =
+		segments === undefined || segments.length === 0
+			? analysis.cpm.activeMs
+			: segments.reduce((sum, [start, end]) => sum + (end - start), 0);
+	return Math.max(ms, 1) / 60_000;
+}
+
+/**
+ * How many times one lane's gear actually fired.
+ *
+ * Two readings, because two kinds of aura reach here. A plain proc goes up once per roll, so its
+ * applications are its procs. `applications` and not `windows`, because a roll landing on a live
+ * buff logs a `refreshbuff` and opens no second window, and a trinket that refreshed itself twice
+ * procced three times.
+ *
+ * A *counter* is the other kind, and counting its applications would answer a different question. The
+ * meta gem holds one sixty-second window while it fills to five and then pays out, over and over, so
+ * what a reader means by "how often did the gem fire" is the payout. `stacks.discharges` is that,
+ * taken from the payout's own damage events rather than inferred from the counter.
+ */
+function procCount(lane: AuraLane): number {
+	if (lane.stacks !== undefined) return lane.stacks.discharges.length;
+	return lane.applications?.length ?? lane.windows.length;
+}
+
+/** One aura's roll on one pull: the icon it draws, the name it wears, and how often it fired. */
+interface LaneRoll {
+	id: number;
+	name: string;
+	count: number;
+}
+
+/**
+ * Every gear proc one pull recorded, folded by the aura it belongs to.
+ *
+ * Folded because a lane is not always one row per aura: a proc that lands on the enemy is drawn per
+ * target, and two lanes of one key are one trinket seen twice. Nothing here decides *which* auras are
+ * gear: `identity.gearProc` does, off the game model, so this file names no item.
+ *
+ * **`lanes` and deliberately not `lanes` ++ `hiddenLanes`**, which is the pair `CastTimeline`
+ * documents as the full per-target set. Nothing a gear proc can reach is ever held back by that cap:
+ * all three specs fill `hiddenLanes` from per-enemy debuff rows and per-caster raid-buff rows
+ * (`rskTargets.rest`, `fsTargets.rest`, `weakenedBlows.hidden`, `raidLanes.hidden`), and none of those
+ * is an item effect. Worth stating because the failure would be quiet in the worst way: a capped-out
+ * trinket row would read `no proc in this log`, which is the exact mislabel the block's caveat exists
+ * to prevent, arriving from the other side. Re-check this if a spec ever caps a proc lane.
+ */
+function procsOf(analysis: Analysis, isGear: (id: number) => boolean): Map<string, LaneRoll> {
+	const out = new Map<string, LaneRoll>();
+	for (const lane of analysis.timeline?.lanes ?? []) {
+		if (!isGear(lane.id)) continue;
+		const seen = out.get(lane.key);
+		if (seen === undefined) out.set(lane.key, { id: lane.id, name: lane.name, count: procCount(lane) });
+		else seen.count += procCount(lane);
+	}
+	return out;
+}
+
+/**
+ * What the gear did on its own, on both sides, ranked by how far apart the two pulls fell.
+ *
+ * Ranked by the gap rather than by the rate, on `RateGaps`' argument for the cast list: a trinket both
+ * players rolled identically is the least interesting row here whatever its rate, and the one they
+ * differ on is the whole point of the block.
+ */
+function procGaps(a: Pull, b: Pull, isGear: (id: number) => boolean): ProcGap[] {
+	const left = procsOf(a.analysis, isGear);
+	const right = procsOf(b.analysis, isGear);
+	const perMinuteA = contactMinutes(a.analysis);
+	const perMinuteB = contactMinutes(b.analysis);
+	return unionKeys([...left.keys()], [...right.keys()])
+		.map((key) => {
+			const one = left.get(key) ?? null;
+			const two = right.get(key) ?? null;
+			const rateA = one === null ? null : one.count / perMinuteA;
+			const rateB = two === null ? null : two.count / perMinuteB;
+			return {
+				key,
+				id: one?.id ?? two?.id ?? 0,
+				name: one?.name ?? two?.name ?? '',
+				a: rateA,
+				b: rateB,
+				rate: (rateA ?? 0) - (rateB ?? 0),
+				absent: one === null ? ('a' as Side) : two === null ? ('b' as Side) : null,
+			};
+		})
+		.sort((one, two) => Math.abs(two.rate) - Math.abs(one.rate));
+}
+
+/**
  * Two pulls of one spec, differenced.
  *
  * Order is load-bearing and is the caller's: `a` is named first in every figure the view draws, and
@@ -324,6 +424,7 @@ export function compare(a: Pull, b: Pull, identity: AbilityIdentity): Comparison
 		sections,
 		abilities: abilityGaps(a, b, identity),
 		casts: castGaps(a, b, identity),
+		procs: procGaps(a, b, identity.gearProc),
 	};
 }
 
